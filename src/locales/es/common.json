@@ -1,0 +1,128 @@
+{
+  "app": {
+    "title": "CreatiFit AI",
+    "generate": "Generar con IA",
+    "plan": "Plan",
+    "session": "Sesión",
+    "progress": "Progreso"
+  },
+  "nav": {
+    "dashboard": "Inicio",
+    "plans": "Planes",
+    "exercises": "Ejercicios",
+    "workoutHistory": "Historial"
+  },
+  "onboarding": {
+    "title": "Bienvenido a CreatiFit AI",
+    "subtitle": "Vamos a crear tu plan de entrenamiento personalizado",
+    "objective": {
+      "label": "¿Cuál es tu objetivo principal de fitness?",
+      "fat_loss": "Pérdida de Grasa",
+      "muscle_gain": "Ganancia de Músculo",
+      "body_recomposition": "Recomposición Corporal",
+      "strength": "Fuerza",
+      "power": "Potencia y Explosividad",
+      "endurance": "Resistencia",
+      "mobility": "Movilidad y Flexibilidad",
+      "rehabilitation": "Rehabilitación y Prevención de Lesiones",
+      "sports_performance": "Rendimiento Deportivo",
+      "functional_fitness": "Fitness Funcional",
+      "general_health": "Salud General y Bienestar"
+    },
+    "level": {
+      "label": "¿Cuál es tu nivel de fitness?",
+      "beginner": "Principiante (0-6 meses)",
+      "intermediate": "Intermedio (6 meses - 2 años)",
+      "advanced": "Avanzado (2+ años)"
+    },
+    "personal": {
+      "age": "Edad",
+      "gender": "Género",
+      "gender_male": "Masculino",
+      "gender_female": "Femenino",
+      "gender_other": "Otro",
+      "weight": "Peso (kg)",
+      "height": "Altura (cm)"
+    },
+    "equipment": {
+      "label": "¿Qué equipamiento tienes disponible?",
+      "categories": {
+        "basic": "Básico (Sin Equipos)",
+        "resistance": "Resistencia y Bandas",
+        "weight": "Pesos y Barras",
+        "specialized": "Equipamiento Especializado"
+      }
+    },
+    "weeks": {
+      "label": "Duración del plan"
+    },
+    "steps": {
+      "label": "Meta de pasos diarios (opcional)"
+    },
+    "submit": "Generar Mi Plan",
+    "generating": "Generando Tu Plan..."
+  },
+  "equipment": {
+    "none": "Sin Equipamiento (Solo Peso Corporal)",
+    "wall": "Pared",
+    "chair": "Silla/Taburete",
+    "table": "Mesa/Escritorio",
+    "resistance_band": "Bandas de Resistencia",
+    "resistance_tubes": "Tubos de Resistencia",
+    "dumbbells": "Mancuernas",
+    "barbell": "Barra",
+    "weight_plates": "Discos de Peso",
+    "ez_bar": "Barra EZ",
+    "trap_bar": "Barra Trap",
+    "pullup_bar": "Barra de Dominadas",
+    "ab_wheel": "Rueda Abdominal",
+    "pushup_handles": "Mangos para Flexiones",
+    "yoga_mat": "Esterilla de Yoga",
+    "foam_roller": "Rodillo de Espuma",
+    "jump_rope": "Cuerda para Saltar",
+    "vibration_platform": "Plataforma Vibratoria",
+    "power_rack": "Rack de Potencia",
+    "bench": "Banco",
+    "incline_bench": "Banco Inclinable",
+    "dip_bars": "Barras Paralelas"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "age_range": "La edad debe estar entre 16 y 80 años",
+    "weight_range": "El peso debe estar entre 30 y 200 kg",
+    "height_range": "La altura debe estar entre 120 y 250 cm",
+    "submit_error": "Error al generar el plan. Por favor, inténtalo de nuevo."
+  },
+  "plan": {
+    "title": "Tu Plan de Entrenamiento",
+    "weeks": "semanas",
+    "day": "Día",
+    "focus": "Enfoque",
+    "exercises": "Ejercicios",
+    "start_session": "Iniciar Sesión",
+    "back_to_plan": "Volver al Plan",
+    "regenerate": "Regenerar Plan"
+  },
+  "session": {
+    "title": "Sesión de Entrenamiento",
+    "exercise": "Ejercicio",
+    "sets": "Series",
+    "reps": "Repeticiones",
+    "rest": "Descanso",
+    "next": "Siguiente Ejercicio",
+    "complete": "Completar Entrenamiento",
+    "log_workout": "Registrar Entrenamiento"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "app": {
+    "title": "CreatiFit AI",
+    "generate": "Generate with AI",
+    "plan": "Plan",
+    "session": "Session",
+    "progress": "Progress"
+  },
+  "nav": {
+    "dashboard": "Home",
+    "plans": "Plans",
+    "exercises": "Exercises",
+    "workoutHistory": "History"
+  },
+  "onboarding": {
+    "title": "Welcome to CreatiFit AI",
+    "subtitle": "Let's create your personalized fitness plan",
+    "objective": {
+      "label": "What's your main fitness goal?",
+      "fat_loss": "Fat Loss",
+      "muscle_gain": "Muscle Gain",
+      "body_recomposition": "Body Recomposition",
+      "strength": "Strength",
+      "power": "Power & Explosiveness",
+      "endurance": "Endurance",
+      "mobility": "Mobility & Flexibility",
+      "rehabilitation": "Rehabilitation & Injury Prevention",
+      "sports_performance": "Sports Performance",
+      "functional_fitness": "Functional Fitness",
+      "general_health": "General Health & Wellness"
+    },
+    "level": {
+      "label": "What's your fitness level?",
+      "beginner": "Beginner (0-6 months)",
+      "intermediate": "Intermediate (6 months - 2 years)",
+      "advanced": "Advanced (2+ years)"
+    },
+    "personal": {
+      "age": "Age",
+      "gender": "Gender",
+      "gender_male": "Male",
+      "gender_female": "Female",
+      "gender_other": "Other",
+      "weight": "Weight (kg)",
+      "height": "Height (cm)"
+    },
+    "equipment": {
+      "label": "What equipment do you have access to?",
+      "categories": {
+        "basic": "Basic (No Equipment)",
+        "resistance": "Resistance & Bands",
+        "weight": "Weights & Bars",
+        "specialized": "Specialized Equipment"
+      }
+    },
+    "weeks": {
+      "label": "Plan duration"
+    },
+    "steps": {
+      "label": "Daily step goal (optional)"
+    },
+    "submit": "Generate My Plan",
+    "generating": "Generating Your Plan..."
+  },
+  "equipment": {
+    "none": "No Equipment (Bodyweight Only)",
+    "wall": "Wall",
+    "chair": "Chair/Stool",
+    "table": "Table/Desk",
+    "resistance_band": "Resistance Bands",
+    "resistance_tubes": "Resistance Tubes",
+    "dumbbells": "Dumbbells",
+    "barbell": "Barbell",
+    "weight_plates": "Weight Plates",
+    "ez_bar": "EZ Bar",
+    "trap_bar": "Trap Bar",
+    "pullup_bar": "Pull-up Bar",
+    "ab_wheel": "Ab Wheel",
+    "pushup_handles": "Push-up Handles",
+    "yoga_mat": "Yoga Mat",
+    "foam_roller": "Foam Roller",
+    "jump_rope": "Jump Rope",
+    "vibration_platform": "Vibration Platform",
+    "power_rack": "Power Rack",
+    "bench": "Bench",
+    "incline_bench": "Incline Bench",
+    "dip_bars": "Dip Bars"
+  },
+  "validation": {
+    "required": "This field is required",
+    "age_range": "Age must be between 16 and 80",
+    "weight_range": "Weight must be between 30 and 200 kg",
+    "height_range": "Height must be between 120 and 250 cm",
+    "submit_error": "Failed to generate plan. Please try again."
+  },
+  "plan": {
+    "title": "Your Training Plan",
+    "weeks": "weeks",
+    "day": "Day",
+    "focus": "Focus",
+    "exercises": "Exercises",
+    "start_session": "Start Session",
+    "back_to_plan": "Back to Plan",
+    "regenerate": "Regenerate Plan"
+  },
+  "session": {
+    "title": "Workout Session",
+    "exercise": "Exercise",
+    "sets": "Sets",
+    "reps": "Reps",
+    "rest": "Rest",
+    "next": "Next Exercise",
+    "complete": "Complete Workout",
+    "log_workout": "Log Workout"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous"
+  }
+}

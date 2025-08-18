@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model profiles {
+  id        String   @id // auth UUID
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  intake    intake?
+  plans     plans[]
+}
+
+model intake {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  objective String
+  level     String
+  age       Int
+  weightKg  Float
+  heightCm  Int
+  equipment Json
+  stepsDay  Int?
+  notes     String?
+  createdAt DateTime @default(now())
+  profiles  profiles @relation(fields: [userId], references: [id])
+}
+
+model plans {
+  id         String    @id @default(cuid())
+  userId     String
+  weeks      Int
+  version    Int       @default(1)
+  sourceHash String
+  payload    Json      // cached full plan
+  createdAt  DateTime  @default(now())
+  user       profiles  @relation(fields: [userId], references: [id])
+  days       plan_days[]
+}
+
+model plan_days {
+  id        String   @id @default(cuid())
+  planId    String
+  dayIndex  Int      // 0..n
+  date      DateTime?
+  focus     String
+  plan      plans    @relation(fields: [planId], references: [id])
+  items     day_exercises[]
+}
+
+model exercises {
+  id    String @id @default(cuid())
+  name  String @unique
+  kind  String // push, pull, squat, hinge, core, cardio
+  meta  Json?
+  dayExercises day_exercises[]
+}
+
+model day_exercises {
+  id           String     @id @default(cuid())
+  dayId        String
+  exerciseId   String
+  targetSets   Int
+  targetRepsLo Int
+  targetRepsHi Int
+  restSec      Int
+  cues         Json?
+  day          plan_days  @relation(fields: [dayId], references: [id])
+  exercise     exercises  @relation(fields: [exerciseId], references: [id])
+  logs         workout_logs[]
+}
+
+model workout_logs {
+  id          String   @id @default(cuid())
+  userId      String
+  dayExId     String
+  setIndex    Int
+  reps        Int
+  load        Float?   // bands: use level or 0
+  rpe         Float?
+  notes       String?
+  ts          DateTime @default(now())
+  dayExercise day_exercises @relation(fields: [dayExId], references: [id])
+}

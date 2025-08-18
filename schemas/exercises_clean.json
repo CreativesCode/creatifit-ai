@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Band Chest Press",
+    "kind": "push",
+    "meta": "{\"target\": [\"chest\", \"triceps\"], \"equipment\": [\"resistance band\"], \"difficulty\": \"beginner\"}"
+  },
+  {
+    "name": "Mountain Climber Burpees",
+    "kind": "cardio",
+    "meta": "{\"target\": [\"cardio\", \"core\", \"full body\"], \"equipment\": [\"none\"], \"difficulty\": \"intermediate\"}"
+  },
+  {
+    "name": "Barbell Romanian Deadlifts",
+    "kind": "hinge",
+    "meta": "{\"target\": [\"hamstrings\", \"glutes\", \"lower back\"], \"equipment\": [\"barbell\"], \"difficulty\": \"intermediate\"}"
+  },
+  {
+    "name": "Barbell Pullovers",
+    "kind": "pull",
+    "meta": "{\"target\": [\"back\", \"chest\"], \"equipment\": [\"barbell\", \"bench\"], \"difficulty\": \"intermediate\"}"
+  },
+  {
+    "name": "Barbell Bulgarian Split Squats",
+    "kind": "squat",
+    "meta": "{\"target\": [\"quads\", \"glutes\", \"core\"], \"equipment\": [\"barbell\", \"bench\"], \"difficulty\": \"advanced\"}"
+  },
+  {
+    "name": "Chair Dips",
+    "kind": "push",
+    "meta": "{\"target\": [\"triceps\", \"chest\"], \"equipment\": [\"chair\"], \"difficulty\": \"intermediate\"}"
+  },
+  {
+    "name": "EZ Bar Spider Curls",
+    "kind": "pull",
+    "meta": "{\"target\": [\"biceps\"], \"equipment\": [\"ez_bar\", \"bench\"], \"difficulty\": \"intermediate\"}"
+  },
+  {
+    "name": "Barbell Incline Press",
+    "kind": "push",
+    "meta": "{\"target\": [\"chest\", \"triceps\", \"shoulders\"], \"equipment\": [\"barbell\", \"incline_bench\"], \"difficulty\": \"intermediate\"}"
+  },
+  {
+    "name": "Barbell Russian Twists",
+    "kind": "core",
+    "meta": "{\"target\": [\"core\", \"obliques\"], \"equipment\": [\"barbell\"], \"difficulty\": \"intermediate\"}"
+  },
+  {
+    "name": "Deep Breathing",
+    "kind": "core",
+    "meta": "{\"target\": [\"recovery\", \"stress relief\", \"focus\"], \"equipment\": [\"none\"], \"difficulty\": \"beginner\"}"
+  }
+]

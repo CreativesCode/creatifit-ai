@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* Brand tokens — Violet Nebula (dark‑first) */
+:root {
+  /* Light */
+  --bg: #ffffff;
+  --surface: #f6f3ff; /* lilac surface */
+  --txt: #0f0a1f;
+  --muted: #6e6a86;
+  --primary: #7c3aed; /* violet-600 */
+  --accent: #c026d3; /* fuchsia-600 */
+  --secondary: #6366f1;
+  --info: #06b6d4;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border: #e4e1f4;
+}
+.dark {
+  /* Dark */
+  --bg: #0b0a0f;
+  --surface: #13111a;
+  --txt: #eceaf5;
+  --muted: #aaa6bd;
+  --primary: #8b5cf6; /* violet-500 */
+  --accent: #f472d0; /* neon magenta */
+  --secondary: #6366f1; /* indigo-500 */
+  --info: #22d3ee;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border: #1a1625;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--txt);
+}
+
+/* Utility helpers */
+.container {
+  width: 100%;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+@media (min-width: 1280px) {
+  .container {
+    max-width: 72rem;
+  }
+}

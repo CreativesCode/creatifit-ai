@@ -68,13 +68,59 @@ export async function POST(request: NextRequest) {
 
     console.log("✅ [PLAN SAVE] Plan days saved successfully:", daysData);
 
-    // 3. TEMPORAL: No insertar ejercicios por ahora (problema de foreign key)
-    console.log(
-      "⚠️ [PLAN SAVE] Skipping day_exercises insertion due to foreign key constraint"
-    );
-    console.log(
-      "💡 [PLAN SAVE] TODO: Implementar mapeo real de ejercicios o crear ejercicios temporales"
-    );
+    // 3. Guardar ejercicios del plan usando la nueva función RPC
+    console.log("💪 [PLAN SAVE] Guardando ejercicios del plan...");
+
+    try {
+      // Preparar datos de ejercicios para la función RPC
+      const exercisesData = validatedPlan.days.flatMap((day) =>
+        day.blocks.map((block, blockIndex) => ({
+          name: block.name,
+          day: day.day,
+          block_index: blockIndex,
+          sets: block.sets,
+          reps: block.reps,
+          rest_sec: block.rest_sec,
+          cues: block.cues || [],
+        }))
+      );
+
+      console.log(
+        `📋 [PLAN SAVE] Ejercicios a guardar: ${exercisesData.length}`
+      );
+      console.log(
+        "📋 [PLAN SAVE] Datos de ejercicios:",
+        JSON.stringify(exercisesData, null, 2)
+      );
+
+      // Llamar a la función RPC directamente usando Supabase
+      const { data: exercisesResult, error: exercisesError } =
+        await supabase.rpc("insert_plan_exercises", {
+          p_plan_id: finalPlanId,
+          p_exercises: exercisesData,
+        });
+
+      if (exercisesError) {
+        console.error(
+          "❌ [PLAN SAVE] Error al guardar ejercicios:",
+          exercisesError
+        );
+        throw new Error(
+          `Failed to save plan exercises: ${exercisesError.message}`
+        );
+      } else {
+        console.log(
+          `✅ [PLAN SAVE] Ejercicios guardados exitosamente: ${exercisesResult} ejercicios`
+        );
+      }
+    } catch (error) {
+      console.error("❌ [PLAN SAVE] Error al guardar ejercicios:", error);
+      throw new Error(
+        `Failed to save plan exercises: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
 
     // 4. Insertar los datos de intake (según database-schema.sql)
     try {

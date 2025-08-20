@@ -59,6 +59,35 @@ export default function DashboardPage() {
 
   const handlePlanGenerated = (planId: string, plan: GeneratedPlan) => {
     console.log("🎯 [DASHBOARD] Plan generated and saved:", planId);
+    console.log("📋 [DASHBOARD] Plan structure:", JSON.stringify(plan, null, 2));
+    
+    // Validar que el plan tenga la estructura correcta antes de establecerlo
+    if (!plan || !plan.days || !Array.isArray(plan.days)) {
+      console.error("❌ [DASHBOARD] Invalid plan structure:", plan);
+      alert("Error: Invalid plan structure received");
+      return;
+    }
+    
+    // Validar que cada día tenga bloques válidos
+    for (let i = 0; i < plan.days.length; i++) {
+      const day = plan.days[i];
+      if (!day.blocks || !Array.isArray(day.blocks)) {
+        console.error(`❌ [DASHBOARD] Day ${i} missing blocks:`, day);
+        alert(`Error: Day ${i} is missing blocks`);
+        return;
+      }
+      
+      for (let j = 0; j < day.blocks.length; j++) {
+        const block = day.blocks[j];
+        if (!block || typeof block.sets !== 'number') {
+          console.error(`❌ [DASHBOARD] Block ${j} in day ${i} invalid:`, block);
+          alert(`Error: Block ${j} in day ${i} has invalid sets property`);
+          return;
+        }
+      }
+    }
+    
+    console.log("✅ [DASHBOARD] Plan validation passed, setting state");
     setGeneratedPlan(plan);
     setPlanId(planId);
     setCurrentView("plan");

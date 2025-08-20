@@ -108,6 +108,7 @@ function ExerciseStep({
   onCompleteSet,
   onStartRest,
   onLogChange,
+  exerciseDetails,
 }: {
   currentExercise: ExerciseBlock;
   currentSetIndex: number;
@@ -115,6 +116,7 @@ function ExerciseStep({
   onCompleteSet: () => void;
   onStartRest: () => void;
   onLogChange: (log: Partial<WorkoutLog>) => void;
+  exerciseDetails?: any;
 }) {
   return (
     <div className="container mx-auto px-4 py-8">
@@ -126,6 +128,36 @@ function ExerciseStep({
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Imagen del ejercicio */}
+          {exerciseDetails?.gif_url ? (
+            <div className="text-center mb-6">
+              <img
+                src={exerciseDetails.gif_url}
+                alt={currentExercise.name}
+                className="w-32 h-32 rounded-lg object-cover border border-border/50 mx-auto shadow-md"
+                onError={(e) => {
+                  // Fallback a placeholder si falla la imagen
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/placeholder-exercise.svg";
+                }}
+              />
+              {exerciseDetails?.equipment && (
+                <p className="text-sm text-muted mt-2">
+                  {exerciseDetails.equipment}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="text-center mb-6">
+              <div className="w-32 h-32 bg-muted/20 rounded-lg border border-border/50 mx-auto flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-sm text-muted">Cargando imagen...</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -290,6 +322,8 @@ function RestStep({
   onPauseToggle,
   onSkip,
   isLongRest,
+  nextExercise,
+  nextExerciseDetails,
 }: {
   restTime: number;
   isPaused: boolean;
@@ -297,6 +331,8 @@ function RestStep({
   onPauseToggle: () => void;
   onSkip: () => void;
   isLongRest?: boolean;
+  nextExercise?: ExerciseBlock;
+  nextExerciseDetails?: any;
 }) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -325,6 +361,54 @@ function RestStep({
             {formatTime(restTime)}
           </div>
           <p className="text-muted">{restMessage}</p>
+
+          {/* Información del próximo ejercicio */}
+          {nextExercise && (
+            <div className="mt-6 p-4 bg-surface/50 rounded-lg border border-border/50">
+              <p className="text-sm font-medium text-accent mb-3 text-center">
+                🏋️‍♂️ Próximo Ejercicio
+              </p>
+              <div className="flex items-center gap-4">
+                {/* Imagen del próximo ejercicio */}
+                {nextExerciseDetails?.gif_url ? (
+                  <div className="flex-shrink-0">
+                    <img
+                      src={nextExerciseDetails.gif_url}
+                      alt={nextExercise.name}
+                      className="w-16 h-16 rounded-lg object-cover border border-border/50 shadow-md"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/placeholder-exercise.svg";
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-muted/20 rounded-lg border border-border/50 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent mx-auto mb-1"></div>
+                      <p className="text-xs text-muted">...</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex-1">
+                  <h4 className="font-semibold text-txt text-lg">
+                    {nextExercise.name}
+                  </h4>
+                  <p className="text-sm text-muted">
+                    {nextExercise.sets} series × {nextExercise.reps[0]}-
+                    {nextExercise.reps[1]} reps
+                  </p>
+                  {nextExerciseDetails?.equipment && (
+                    <p className="text-xs text-accent mt-1">
+                      {nextExerciseDetails.equipment}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {isLongRest && (
             <p className="text-sm text-muted-foreground bg-accent/10 p-3 rounded-lg">
               💡 Aprovecha para hidratarte y prepararte mentalmente para el
@@ -554,10 +638,12 @@ function CompletedStep({
 // Componente principal del stepper
 export function WorkoutSession({
   planDay,
+  planId,
   onComplete,
   onExit,
 }: {
   planDay: PlanDay;
+  planId: string;
   onComplete: () => void;
   onExit: () => void;
 }) {
@@ -576,6 +662,8 @@ export function WorkoutSession({
   const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([]);
   const [currentLog, setCurrentLog] = useState<Partial<WorkoutLog>>({});
   const [sessionId, setSessionId] = useState<string>(""); // ID único de la sesión actual
+  const [exercisesWithDetails, setExercisesWithDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const currentExercise = planDay.blocks[currentExerciseIndex];
   const totalSets = planDay.blocks.reduce(
@@ -584,6 +672,90 @@ export function WorkoutSession({
   );
   const completedSets = workoutLogs.filter((log) => log.completed).length;
   const progress = (completedSets / totalSets) * 100;
+
+  // Debug: Log del estado de ejercicios
+  useEffect(() => {
+    console.log(`🔍 [WORKOUT] Current state:`, {
+      phase,
+      currentExerciseIndex,
+      currentExercise: currentExercise?.name,
+      exercisesWithDetails,
+      planDay: planDay.day,
+    });
+  }, [
+    phase,
+    currentExerciseIndex,
+    currentExercise,
+    exercisesWithDetails,
+    planDay.day,
+  ]);
+
+  // Obtener detalles de los ejercicios al iniciar
+  useEffect(() => {
+    const fetchExerciseDetails = async () => {
+      try {
+        setLoading(true);
+        console.log(
+          `🔍 [WORKOUT] Fetching exercises for plan: ${planId}, day: ${planDay.day}`
+        );
+
+        // Usar la API existente que ya funciona
+        const response = await fetch(`/api/plans/${planId}/exercises`);
+        console.log(`📡 [WORKOUT] API response status:`, response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`📋 [WORKOUT] API response data:`, data);
+          console.log(`🔍 [WORKOUT] Data structure:`, {
+            exercisesType: typeof data.exercises,
+            exercisesKeys: data.exercises
+              ? Object.keys(data.exercises)
+              : "undefined",
+            planDay: planDay.day,
+            exercisesForDay: data.exercises
+              ? data.exercises[planDay.day]
+              : "undefined",
+          });
+
+          if (data.success) {
+            // Los datos ya vienen en la estructura correcta: {day: exercises[]}
+            // Solo necesitamos agregar block_index a cada ejercicio
+            const transformedData = {};
+            if (data.exercises && data.exercises[planDay.day]) {
+              transformedData[planDay.day] = data.exercises[planDay.day].map(
+                (ex: any, index: number) => ({
+                  ...ex,
+                  block_index: index,
+                })
+              );
+            }
+
+            setExercisesWithDetails(transformedData);
+            console.log(
+              "✅ [WORKOUT] Exercise details loaded:",
+              transformedData
+            );
+          } else {
+            console.error(`❌ [WORKOUT] API returned success: false:`, data);
+          }
+        } else {
+          console.error(
+            `❌ [WORKOUT] API request failed:`,
+            response.status,
+            response.statusText
+          );
+        }
+      } catch (err) {
+        console.error("❌ [WORKOUT] Error fetching exercise details:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (phase === "warmup" && planId) {
+      fetchExerciseDetails();
+    }
+  }, [phase, planDay, planId]);
 
   // Generar session_id único al iniciar el entrenamiento
   useEffect(() => {
@@ -795,6 +967,16 @@ export function WorkoutSession({
             onCompleteSet={handleCompleteSet}
             onStartRest={handleStartRest}
             onLogChange={setCurrentLog}
+            exerciseDetails={(() => {
+              const details = exercisesWithDetails?.[planDay.day]?.find(
+                (ex: any) => ex.block_index === currentExerciseIndex
+              );
+              console.log(
+                `🔍 [WORKOUT] Exercise details for ${currentExercise.name}:`,
+                details
+              );
+              return details;
+            })()}
           />
 
           {/* Próximos ejercicios */}
@@ -807,25 +989,56 @@ export function WorkoutSession({
                 <div className="space-y-3">
                   {planDay.blocks
                     .slice(currentExerciseIndex + 1)
-                    .map((exercise, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-surface/50 rounded-lg border border-border/50"
-                      >
-                        <div>
-                          <h4 className="font-medium text-txt">
-                            {exercise.name}
-                          </h4>
-                          <p className="text-sm text-muted">
-                            {exercise.sets} series × {exercise.reps[0]}-
-                            {exercise.reps[1]} reps
-                          </p>
+                    .map((exercise, index) => {
+                      const nextExerciseIndex =
+                        currentExerciseIndex + 1 + index;
+                      const exerciseDetails = exercisesWithDetails?.[
+                        planDay.day
+                      ]?.find(
+                        (ex: any) => ex.block_index === nextExerciseIndex
+                      );
+
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center gap-4 p-3 bg-surface/50 rounded-lg border border-border/50 hover:border-primary/30 transition-colors"
+                        >
+                          {/* Imagen del ejercicio */}
+                          {exerciseDetails?.gif_url && (
+                            <div className="flex-shrink-0">
+                              <img
+                                src={exerciseDetails.gif_url}
+                                alt={exercise.name}
+                                className="w-12 h-12 rounded-lg object-cover border border-border/50"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = "/placeholder-exercise.svg";
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          <div className="flex-1">
+                            <h4 className="font-medium text-txt">
+                              {exercise.name}
+                            </h4>
+                            <p className="text-sm text-muted">
+                              {exercise.sets} series × {exercise.reps[0]}-
+                              {exercise.reps[1]} reps
+                            </p>
+                            {exerciseDetails?.equipment && (
+                              <p className="text-xs text-accent">
+                                {exerciseDetails.equipment}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="text-sm text-muted text-right">
+                            {exercise.rest_sec}s descanso
+                          </div>
                         </div>
-                        <div className="text-sm text-muted">
-                          {exercise.rest_sec}s descanso
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               </CardContent>
             </Card>
@@ -834,6 +1047,16 @@ export function WorkoutSession({
       );
 
     case "rest":
+      // Determinar cuál es el próximo ejercicio
+      const nextExercise = isLongRest
+        ? planDay.blocks[currentExerciseIndex] // Si es descanso entre ejercicios, el próximo es el actual
+        : planDay.blocks[currentExerciseIndex]; // Si es descanso entre series, el próximo es el mismo
+
+      // Obtener los detalles del próximo ejercicio
+      const nextExerciseDetails = exercisesWithDetails?.[planDay.day]?.find(
+        (ex: any) => ex.block_index === currentExerciseIndex
+      );
+
       return (
         <RestStep
           restTime={timer}
@@ -842,6 +1065,8 @@ export function WorkoutSession({
           onPauseToggle={() => setIsPaused(!isPaused)}
           onSkip={handleSkipRest}
           isLongRest={isLongRest}
+          nextExercise={nextExercise}
+          nextExerciseDetails={nextExerciseDetails}
         />
       );
 

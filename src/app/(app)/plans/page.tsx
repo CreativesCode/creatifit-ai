@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PlanDisplay } from "@/components/ui/plan-display";
 import { WorkoutSession } from "@/components/ui/workout-session";
 import { ArrowLeft, Calendar, Clock, Edit, Play, Target } from "lucide-react";
 import Link from "next/link";
@@ -158,6 +159,7 @@ export default function PlansPage() {
     return (
       <WorkoutSession
         planDay={selectedDay}
+        planId={selectedPlan!.id}
         onComplete={completeWorkout}
         onExit={exitWorkout}
       />
@@ -197,218 +199,22 @@ export default function PlansPage() {
           </div>
         </div>
 
-        {/* Plan Overview */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-primary" />
-              Resumen del Plan
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Calendar className="w-8 h-8 text-primary" />
-                </div>
-                <p className="text-2xl font-bold text-txt">
-                  {selectedPlan.weeks}
-                </p>
-                <p className="text-muted">Semanas</p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Clock className="w-8 h-8 text-accent" />
-                </div>
-                <p className="text-2xl font-bold text-txt">
-                  {selectedPlan.payload.days.length}
-                </p>
-                <p className="text-muted">Días de entrenamiento</p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Target className="w-8 h-8 text-secondary" />
-                </div>
-                <p className="text-2xl font-bold text-txt">
-                  {selectedPlan.payload.days.reduce(
-                    (total, day) => total + day.blocks.length,
-                    0
-                  )}
-                </p>
-                <p className="text-muted">Ejercicios totales</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Weekly Schedule */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Horario Semanal</CardTitle>
-            <CardDescription>
-              Repite este ciclo durante {selectedPlan.weeks} semanas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-2">
-              {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((day) => (
-                <div key={day} className="text-center">
-                  <div className="text-sm font-medium text-muted mb-1">
-                    {day}
-                  </div>
-                  <div className="w-10 h-10 bg-primary/20 text-primary rounded-full flex items-center justify-center text-sm font-bold mx-auto">
-                    {day === "Lun"
-                      ? "A"
-                      : day === "Mié"
-                      ? "B"
-                      : day === "Vie"
-                      ? "C"
-                      : day === "Dom"
-                      ? "D"
-                      : "—"}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 text-center text-sm text-muted">
-              <p>Semana 1-{selectedPlan.weeks}: A → B → C → D (repetir)</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Training Days - Now in Rows */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-txt text-center mb-6">
-            Días de Entrenamiento
-          </h2>
-
-          {selectedPlan.payload.days.map((day, dayIndex) => (
-            <Card
-              key={dayIndex}
-              className="border-2 border-border hover:border-primary/50 transition-colors"
-            >
-              <CardHeader className="bg-surface/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-xl">
-                      {day.day}
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl text-txt">
-                        {day.focus}
-                      </CardTitle>
-                      <CardDescription>
-                        {day.blocks.length} ejercicios •{" "}
-                        {day.blocks.reduce(
-                          (total, block) => total + block.sets,
-                          0
-                        )}{" "}
-                        series totales
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => startWorkout(day)}
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Iniciar Día {day.day}
-                  </Button>
-                </div>
-              </CardHeader>
-
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  {day.blocks.map((block, blockIndex) => (
-                    <div
-                      key={blockIndex}
-                      className="bg-bg/50 rounded-lg p-4 border border-border/50 hover:border-primary/30 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-txt text-lg mb-2">
-                            {block.name}
-                          </h4>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                <span className="text-primary font-bold text-sm">
-                                  {block.sets}
-                                </span>
-                              </div>
-                              <span className="text-sm text-muted">Series</span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-                                <span className="text-accent font-bold text-sm">
-                                  {block.reps[0]}-{block.reps[1]}
-                                </span>
-                              </div>
-                              <span className="text-sm text-muted">
-                                Repeticiones
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center">
-                                <span className="text-secondary font-bold text-sm">
-                                  {block.rest_sec}s
-                                </span>
-                              </div>
-                              <span className="text-sm text-muted">
-                                Descanso
-                              </span>
-                            </div>
-                          </div>
-
-                          {block.cues && block.cues.length > 0 && (
-                            <div className="mt-3">
-                              <p className="text-sm text-accent font-medium mb-2">
-                                Puntos clave:
-                              </p>
-                              <ul className="space-y-1">
-                                {block.cues.map((cue, cueIndex) => (
-                                  <li
-                                    key={cueIndex}
-                                    className="flex items-start text-sm text-muted"
-                                  >
-                                    <span className="text-accent mr-2">•</span>
-                                    {cue}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
-          <Button
-            onClick={goBackToList}
-            variant="outline"
-            className="px-8 py-3 text-lg"
-            size="lg"
-          >
-            Volver a Planes
-          </Button>
-          <Button
-            className="bg-primary hover:bg-primary/90 text-white shadow-glow px-8 py-3 text-lg"
-            size="lg"
-          >
-            Iniciar Primera Sesión
-          </Button>
-        </div>
+        {/* Usar el componente PlanDisplay que incluye las imágenes */}
+        <PlanDisplay
+          plan={{
+            weeks: selectedPlan.weeks,
+            days: selectedPlan.payload.days,
+          }}
+          planId={selectedPlan.id}
+          onStartSession={(day) => {
+            // Si se pasa un día específico, usar ese; si no, usar el primer día
+            const dayToStart = day || selectedPlan.payload.days[0];
+            if (dayToStart) {
+              startWorkout(dayToStart);
+            }
+          }}
+          onBackToForm={goBackToList}
+        />
       </div>
     );
   }

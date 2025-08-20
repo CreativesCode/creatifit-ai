@@ -156,6 +156,31 @@ export function IntakeForm({
           JSON.stringify(result.metadata, null, 2)
         );
 
+        // Validar que el plan tenga la estructura correcta
+        if (!result.plan || !result.plan.days || !Array.isArray(result.plan.days)) {
+          console.error("❌ [INTAKE FORM] Invalid plan structure:", result.plan);
+          throw new Error("Plan structure is invalid - missing days array");
+        }
+
+        // Validar que cada día tenga bloques válidos
+        for (let i = 0; i < result.plan.days.length; i++) {
+          const day = result.plan.days[i];
+          if (!day.blocks || !Array.isArray(day.blocks)) {
+            console.error(`❌ [INTAKE FORM] Day ${i} missing blocks:`, day);
+            throw new Error(`Day ${i} is missing blocks array`);
+          }
+          
+          for (let j = 0; j < day.blocks.length; j++) {
+            const block = day.blocks[j];
+            if (!block || typeof block.sets !== 'number') {
+              console.error(`❌ [INTAKE FORM] Block ${j} in day ${i} invalid:`, block);
+              throw new Error(`Block ${j} in day ${i} has invalid sets property`);
+            }
+          }
+        }
+
+        console.log("✅ [INTAKE FORM] Plan structure validation passed");
+
         // Guardar el plan en la base de datos
         console.log("💾 [INTAKE FORM] Saving plan to database...");
 

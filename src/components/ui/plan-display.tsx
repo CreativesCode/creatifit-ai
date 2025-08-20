@@ -2,11 +2,12 @@
 import { type GeneratedPlan } from "@/lib/validators/schemas";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
+import { useEffect, useState } from "react";
 
 interface PlanDisplayProps {
   plan: GeneratedPlan;
   planId: string;
-  onStartSession: () => void;
+  onStartSession: (day?: any) => void;
   onBackToForm: () => void;
 }
 
@@ -17,6 +18,42 @@ export function PlanDisplay({
   onBackToForm,
 }: PlanDisplayProps) {
   const { t } = useTranslation("common");
+  const [exercisesWithDetails, setExercisesWithDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Obtener ejercicios del plan con detalles (incluyendo GIFs)
+  useEffect(() => {
+    const fetchPlanExercises = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/plans/${planId}/exercises`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch plan exercises');
+        }
+        
+        const data = await response.json();
+        console.log('📋 [PLAN DISPLAY] Exercises data received:', data);
+        
+        if (data.success) {
+          setExercisesWithDetails(data.exercises);
+          console.log('✅ [PLAN DISPLAY] Exercises details set:', data.exercises);
+        } else {
+          throw new Error(data.error || 'Unknown error');
+        }
+      } catch (err) {
+        console.error('Error fetching plan exercises:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (planId) {
+      fetchPlanExercises();
+    }
+  }, [planId]);
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
@@ -33,57 +70,156 @@ export function PlanDisplay({
       </div>
 
       {/* Plan Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {loading && (
+        <div className="text-center py-8">
+          <div className="inline-flex items-center space-x-2 text-muted">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <span>Loading exercise details...</span>
+          </div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="text-center py-4">
+          <div className="inline-flex items-center space-x-2 text-red-500 bg-red-50 px-4 py-2 rounded-lg">
+            <span>⚠️ Error loading exercise details: {error}</span>
+          </div>
+        </div>
+      )}
+      
+      <div className="space-y-6">
         {plan.days.map((day) => (
           <div
             key={day.day}
             className="bg-surface border border-border rounded-2xl p-6 hover:shadow-soft transition-shadow"
           >
-            <div className="text-center mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-2">
-                {day.day}
-              </div>
-              <h3 className="text-lg font-semibold text-txt">{day.focus}</h3>
-            </div>
+                         <div className="flex items-center justify-between mb-4">
+               <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                   {day.day}
+                 </div>
+                 <div>
+                   <h3 className="text-lg font-semibold text-txt">{day.focus}</h3>
+                   <p className="text-sm text-muted">{day.blocks.length} ejercicios</p>
+                 </div>
+               </div>
+               
+               {/* Botón para iniciar este día específico */}
+               <Button
+                 onClick={() => onStartSession(day)}
+                 className="bg-primary hover:bg-primary/90 text-white px-4 py-2"
+                 size="sm"
+               >
+                 🏋️‍♂️ Iniciar Día {day.day}
+               </Button>
+             </div>
 
-            <div className="space-y-3">
-              {day.blocks.map((block, index) => (
-                <div
-                  key={index}
-                  className="bg-bg/50 rounded-lg p-3 border border-border/50"
-                >
-                  <h4 className="font-medium text-txt text-sm mb-2">
-                    {block.name}
-                  </h4>
-                  <div className="flex items-center justify-between text-xs text-muted">
-                    <span>
-                      {block.sets} {t("plan.sets")}
-                    </span>
-                    <span>
-                      {block.reps[0]}-{block.reps[1]} {t("plan.reps")}
-                    </span>
-                    <span>
-                      {block.rest_sec}s {t("plan.rest")}
-                    </span>
-                  </div>
-                  {block.cues && block.cues.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs text-accent font-medium mb-1">
-                        Cues:
-                      </p>
-                      <ul className="text-xs text-muted space-y-1">
-                        {block.cues.map((cue, cueIndex) => (
-                          <li key={cueIndex} className="flex items-start">
-                            <span className="text-accent mr-1">•</span>
-                            {cue}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                         <div className="space-y-3">
+               {day.blocks.map((block, index) => {
+                 // Buscar detalles del ejercicio usando block_index y day
+                 const exerciseDetails = exercisesWithDetails?.[day.day]?.find(
+                   (ex: any) => ex.block_index === index
+                 );
+                 
+                 console.log(`🔍 [PLAN DISPLAY] Day ${day.day}, Block ${index}:`, {
+                   blockName: block.name,
+                   exerciseDetails,
+                   availableExercises: exercisesWithDetails?.[day.day]
+                 });
+                 
+                 return (
+                   <div
+                     key={index}
+                     className="bg-bg/50 rounded-lg p-4 border border-border/50 hover:border-primary/30 transition-colors"
+                   >
+                     {/* Layout horizontal del ejercicio */}
+                     <div className="flex items-start gap-4">
+                       {/* Imagen del ejercicio */}
+                       {exerciseDetails?.gif_url && (
+                         <div className="flex-shrink-0">
+                           <img
+                             src={exerciseDetails.gif_url}
+                             alt={block.name}
+                             className="w-16 h-16 rounded-lg object-cover border border-border/50"
+                             onError={(e) => {
+                               // Fallback a placeholder si falla la imagen
+                               const target = e.target as HTMLImageElement;
+                               target.src = '/placeholder-exercise.svg';
+                             }}
+                           />
+                         </div>
+                       )}
+                       
+                       {/* Información del ejercicio */}
+                       <div className="flex-1 min-w-0">
+                         <div className="flex items-center gap-3 mb-2">
+                           <h4 className="font-medium text-txt text-sm">
+                             {block.name}
+                           </h4>
+                           {exerciseDetails?.equipment && (
+                             <span className="text-xs text-muted bg-muted/50 px-2 py-1 rounded">
+                               {exerciseDetails.equipment}
+                             </span>
+                           )}
+                           {exerciseDetails?.category && (
+                             <span className="text-xs text-accent bg-accent/10 px-2 py-1 rounded">
+                               {exerciseDetails.category}
+                             </span>
+                           )}
+                         </div>
+                         
+                         {/* Métricas del ejercicio en fila horizontal */}
+                         <div className="flex items-center gap-4">
+                           <div className="flex items-center gap-2">
+                             <div className="w-5 h-5 bg-primary/10 rounded-full flex items-center justify-center">
+                               <span className="text-primary font-bold text-xs">
+                                 {block.sets}
+                               </span>
+                             </div>
+                             <span className="text-xs text-muted">Series</span>
+                           </div>
+                           
+                           <div className="flex items-center gap-2">
+                             <div className="w-5 h-5 bg-accent/10 rounded-full flex items-center justify-center">
+                               <span className="text-accent font-bold text-xs">
+                                 {block.reps[0]}-{block.reps[1]}
+                               </span>
+                             </div>
+                             <span className="text-xs text-muted">Reps</span>
+                           </div>
+                           
+                           <div className="flex items-center gap-2">
+                             <div className="w-5 h-5 bg-secondary/10 rounded-full flex items-center justify-center">
+                               <span className="text-secondary font-bold text-xs">
+                                 {block.rest_sec}s
+                               </span>
+                             </div>
+                             <span className="text-xs text-muted">Descanso</span>
+                           </div>
+                         </div>
+                         
+                         {/* Cues del ejercicio */}
+                         {block.cues && block.cues.length > 0 && (
+                           <div className="mt-3 pt-3 border-t border-border/30">
+                             <p className="text-xs text-accent font-medium mb-2">
+                               Puntos clave:
+                             </p>
+                             <ul className="text-xs text-muted space-y-1">
+                               {block.cues.map((cue, cueIndex) => (
+                                 <li key={cueIndex} className="flex items-start">
+                                   <span className="text-accent mr-1">•</span>
+                                   {cue}
+                                 </li>
+                               ))}
+                             </ul>
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+                 );
+               })}
+             </div>
           </div>
         ))}
       </div>
@@ -116,24 +252,24 @@ export function PlanDisplay({
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Button
-          onClick={onStartSession}
-          className="bg-primary hover:bg-primary/90 text-white shadow-glow px-8 py-3 text-lg"
-          size="lg"
-        >
-          {t("plan.start_session")}
-        </Button>
-        <Button
-          onClick={onBackToForm}
-          variant="outline"
-          className="px-8 py-3 text-lg"
-          size="lg"
-        >
-          {t("plan.back_to_plan")}
-        </Button>
-      </div>
+             {/* Action Buttons */}
+       <div className="flex flex-col sm:flex-row gap-4 justify-center">
+         <Button
+           onClick={onStartSession}
+           className="bg-primary hover:bg-primary/90 text-white shadow-glow px-8 py-3 text-lg"
+           size="lg"
+         >
+           🏋️‍♂️ Iniciar Primera Sesión
+         </Button>
+         <Button
+           onClick={onBackToForm}
+           variant="outline"
+           className="px-8 py-3 text-lg"
+           size="lg"
+         >
+           ← Volver a Planes
+         </Button>
+       </div>
 
       {/* Plan ID */}
       <div className="text-center text-xs text-muted">Plan ID: {planId}</div>

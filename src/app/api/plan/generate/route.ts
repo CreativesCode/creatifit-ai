@@ -28,10 +28,140 @@ export async function POST(request: NextRequest) {
       JSON.stringify(validatedData, null, 2)
     );
 
-    // 2. Obtener ejercicios disponibles de la BD (OPTIMIZADO)
+    // 2. Obtener ejercicios disponibles de la BD (OPTIMIZADO CON FILTRADO SQL)
     console.log(
-      "📚 [PLAN GENERATION] Fetching available exercises from database..."
+      "📚 [PLAN GENERATION] Fetching filtered exercises from database..."
     );
+
+    // Función para obtener ejercicios filtrados usando la función SQL segura de Supabase
+    const getFilteredExercises = async (
+      userEquipment: Record<string, boolean>,
+      userLevel: string,
+      userObjective: string,
+      userAge: number,
+      userGender: string
+    ) => {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+      console.log("\n🔍 [SQL FILTER] Aplicando filtros SQL inteligentes...");
+
+      // Convertir equipamiento del usuario a array
+      const userEquipmentArray = Object.keys(userEquipment).filter(
+        (key) => userEquipment[key]
+      );
+      console.log("🔧 [SQL FILTER] Equipamiento del usuario:", userEquipmentArray);
+
+      try {
+        // Usar la función RPC segura get_filtered_exercises
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/rpc/get_filtered_exercises`,
+          {
+            method: "POST",
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              p_equipment: userEquipmentArray,
+              p_objective: userObjective,
+              p_age: userAge,
+              p_gender: userGender,
+              p_limit: 200
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const exercises = await response.json();
+          console.log(`✅ [SQL FILTER] Ejercicios filtrados obtenidos: ${exercises.length}`);
+          return exercises;
+        } else {
+          console.warn("⚠️ [SQL FILTER] RPC falló, usando método alternativo");
+          // Fallback: usar la función get_exercises_simple si existe
+          return await getExercisesWithFallback(userEquipmentArray, userLevel, userObjective);
+        }
+      } catch (error) {
+        console.warn("⚠️ [SQL FILTER] Error en RPC, usando método alternativo:", error);
+        return await getExercisesWithFallback(userEquipmentArray, userLevel, userObjective);
+      }
+    };
+
+    // Función de fallback usando get_exercises_simple
+    const getExercisesWithFallback = async (
+      userEquipment: string[],
+      userLevel: string,
+      userObjective: string
+    ) => {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+      console.log("🔄 [FALLBACK] Usando función get_exercises_simple...");
+
+      try {
+        // Obtener ejercicios en lotes usando la función existente
+        const exercises: any[] = [];
+        let page = 1;
+        const limit = 100;
+        let hasMore = true;
+
+        while (hasMore && exercises.length < 300) {
+          const response = await fetch(
+            `${supabaseUrl}/rest/v1/rpc/get_exercises_simple`,
+            {
+              method: "POST",
+              headers: {
+                apikey: supabaseKey,
+                Authorization: `Bearer ${supabaseKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                p_page: page,
+                p_limit: limit,
+                p_category: null,
+                p_kind: null,
+                p_equipment: null,
+                p_search: null
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const batch = await response.json();
+            if (batch.length === 0) {
+              hasMore = false;
+            } else {
+              // Filtrar por equipamiento en memoria (fallback)
+              const filteredBatch = batch.filter((ex: any) => {
+                if (!ex.equipment) return true;
+                const equipmentStr = String(ex.equipment).toLowerCase();
+                
+                // Si incluye "NO EQUIPMENT", siempre disponible
+                if (equipmentStr.includes("no equipment")) return true;
+                
+                // Verificar si el usuario tiene el equipamiento requerido
+                return userEquipment.some(userEq => 
+                  equipmentStr.includes(userEq) || 
+                  (userEq === "none" && equipmentStr.includes("no equipment"))
+                );
+              });
+              
+              exercises.push(...filteredBatch);
+              page++;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+
+        console.log(`🔄 [FALLBACK] Ejercicios obtenidos con fallback: ${exercises.length}`);
+        return exercises;
+      } catch (error) {
+        console.error("❌ [FALLBACK] Error en fallback:", error);
+        return [];
+      }
+    };
 
     // Función para filtrar ejercicios por equipamiento del usuario (INTELIGENTE)
     const filterExercisesByEquipment = (
@@ -272,6 +402,17 @@ export async function POST(request: NextRequest) {
         name: ex.name,
         kind: ex.kind,
         difficulty: ex.meta?.difficulty || "beginner",
+        equipment: ex.equipment || "none",
+        category: ex.category || "general",
+        primary_muscles: ex.primary_muscles || "general",
+        // Nuevos campos de la estructura actualizada
+        instructions: ex.instructions || [],
+        tips: ex.tips || [],
+        benefits: ex.benefits || [],
+        muscle_groups_primary: ex.muscle_groups_primary || [],
+        muscle_groups_secondary: ex.muscle_groups_secondary || [],
+        gif_url: ex.gif_url || null,
+        overview: ex.overview || null,
       }));
     };
 
@@ -296,77 +437,23 @@ export async function POST(request: NextRequest) {
       throw new Error("Variables de entorno de Supabase no configuradas");
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    console.log(`🔗 URL construida: ${supabaseUrl}/rest/v1/exercises?select=*`);
-    console.log(
-      `🔑 Key (primeros 10 chars): ${supabaseKey.substring(0, 10)}...`
-    );
-
-    const exercisesResponse = await fetch(
-      `${supabaseUrl}/rest/v1/exercises?select=*`,
-      {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-      }
-    );
-
-    console.log(`\n📡 [DATABASE] Response status: ${exercisesResponse.status}`);
-    console.log(`📡 [DATABASE] Response ok: ${exercisesResponse.ok}`);
-
-    let responseText = "";
-    if (!exercisesResponse.ok) {
-      responseText = await exercisesResponse.text();
-      console.log(`📡 [DATABASE] Response text: ${responseText}`);
-    }
-
+    // 3. Obtener ejercicios filtrados usando la nueva función inteligente
+    console.log("\n🔍 [SQL FILTER] Obteniendo ejercicios filtrados...");
+    
     let availableExercises: any[] = [];
     let exerciseCount = 0;
-    let allExercises: any[] = [];
 
-    if (exercisesResponse.ok) {
-      console.log("\n✅ [DATABASE] Respuesta exitosa de Supabase");
-
-      try {
-        allExercises = await exercisesResponse.json();
-        console.log(
-          `📚 [PLAN GENERATION] Total exercises in DB: ${allExercises.length}`
-        );
-
-        // Log de la estructura de los primeros ejercicios para debug
-        console.log("\n🔍 [DEBUG] Estructura de ejercicios:");
-        console.log("─".repeat(50));
-        if (allExercises.length > 0) {
-          console.log("📊 Primer ejercicio completo:");
-          console.log(JSON.stringify(allExercises[0], null, 2));
-
-          if (allExercises.length > 1) {
-            console.log("\n📊 Segundo ejercicio (meta solo):");
-            console.log("Meta:", allExercises[1].meta);
-          }
-        }
-      } catch (parseError) {
-        console.error(
-          "❌ [DATABASE] Error al parsear respuesta JSON:",
-          parseError
-        );
-        throw new Error(
-          `Error al parsear ejercicios de la base de datos: ${parseError}`
-        );
-      }
-
-      // 2. Filtrar ejercicios por equipamiento del usuario
-      console.log("\n🔧 [FILTER] Filtrando ejercicios por equipamiento...");
-      availableExercises = filterExercisesByEquipment(
-        allExercises,
-        validatedData.equipment
+    try {
+      // Usar la nueva función de filtrado SQL
+      availableExercises = await getFilteredExercises(
+        validatedData.equipment,
+        validatedData.level,
+        validatedData.objective,
+        validatedData.age,
+        validatedData.gender
       );
-      console.log(
-        `🔧 [FILTER] Después del filtro de equipamiento: ${availableExercises.length} ejercicios`
-      );
+
+      console.log(`✅ [SQL FILTER] Ejercicios filtrados obtenidos: ${availableExercises.length}`);
 
       // Mostrar algunos ejemplos de ejercicios disponibles
       if (availableExercises.length > 0) {
@@ -381,78 +468,55 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 3. Filtrar ejercicios por nivel del usuario
-      console.log("\n📊 [FILTER] Filtrando ejercicios por nivel...");
-      const levelFilteredExercises = availableExercises.filter((ex) => {
-        const difficulty = ex.meta?.difficulty || "intermediate";
-        const userLevel = validatedData.level;
+             // Limitar a máximo 200 ejercicios para optimizar el contexto y reducir costos
+       const maxExercises = 200;
+       if (availableExercises.length > maxExercises) {
+         availableExercises = availableExercises.slice(0, maxExercises);
+         console.log(`⚠️ [PLAN GENERATION] Limited to ${maxExercises} exercises to optimize context size and reduce costs`);
+       }
 
-        // Mapeo de niveles
-        if (userLevel === "beginner") {
-          return ["beginner", "intermediate"].includes(difficulty);
-        } else if (userLevel === "intermediate") {
-          return ["beginner", "intermediate", "advanced"].includes(difficulty);
-        } else return true;
-      });
+      exerciseCount = availableExercises.length;
 
-      console.log(
-        `📊 [FILTER] Después del filtro de nivel: ${levelFilteredExercises.length} ejercicios`
-      );
-
-      // Mostrar distribución por nivel
-      const levelDistribution = levelFilteredExercises.reduce((acc, ex) => {
-        const difficulty = ex.meta?.difficulty || "intermediate";
-        acc[difficulty] = (acc[difficulty] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      console.log("📊 [FILTER] Distribución por nivel:", levelDistribution);
-
-      // 3. Limitar a máximo 200 ejercicios para no saturar el contexto
-      const maxExercises = 200;
-      availableExercises = levelFilteredExercises.slice(0, maxExercises);
-      exerciseCount = allExercises.length;
-
-      console.log(
-        `🎯 [PLAN GENERATION] Final filtered exercises: ${availableExercises.length} (from ${exerciseCount} total)`
-      );
-
-      if (levelFilteredExercises.length > maxExercises) {
-        console.log(
-          `⚠️ [PLAN GENERATION] Limited to ${maxExercises} exercises to optimize context size`
-        );
-      }
-    } else {
-      console.warn(
-        "⚠️ [PLAN GENERATION] Could not fetch exercises, using fallback"
-      );
-
+    } catch (error) {
+      console.error("❌ [SQL FILTER] Error obteniendo ejercicios filtrados:", error);
+      
       // Plan de respaldo con ejercicios básicos
+      console.warn("⚠️ [PLAN GENERATION] Using fallback exercises");
       availableExercises = [
         {
           name: "Push-ups",
           kind: "strength",
-          meta: { difficulty: "beginner", equipment: ["none"] },
+          equipment: "NO EQUIPMENT",
+          category: "Strength",
+          primary_muscles: "Chest, Triceps, Shoulders",
         },
         {
           name: "Squats",
           kind: "strength",
-          meta: { difficulty: "beginner", equipment: ["none"] },
+          equipment: "NO EQUIPMENT",
+          category: "Strength",
+          primary_muscles: "Quadriceps, Glutes",
         },
         {
           name: "Plank",
           kind: "strength",
-          meta: { difficulty: "beginner", equipment: ["none"] },
+          equipment: "NO EQUIPMENT",
+          category: "Core",
+          primary_muscles: "Abs, Core",
         },
         {
           name: "Lunges",
           kind: "strength",
-          meta: { difficulty: "beginner", equipment: ["none"] },
+          equipment: "NO EQUIPMENT",
+          category: "Strength",
+          primary_muscles: "Quadriceps, Glutes",
         },
         {
           name: "Mountain Climbers",
           kind: "cardio",
-          meta: { difficulty: "beginner", equipment: ["none"] },
+          equipment: "NO EQUIPMENT",
+          category: "Cardio",
+          primary_muscles: "Core, Shoulders",
         },
       ];
       exerciseCount = availableExercises.length;
@@ -467,7 +531,7 @@ AVAILABLE EXERCISES (YOU MUST USE ONLY THESE - ${
       availableExercises.length
     } exercises):
 ${getEssentialExerciseInfo(availableExercises)
-  .map((ex) => `- ${ex.name} (${ex.kind}, ${ex.difficulty})`)
+  .map((ex) => `- ${ex.name} (${ex.kind}, ${ex.equipment}, ${ex.category})`)
   .join("\n")}
 
 TOTAL EXERCISES IN DATABASE: ${exerciseCount} (showing ${
@@ -634,7 +698,7 @@ REMEMBER: Only use exercises from the available exercises list provided in the s
     const essentialInfo = getEssentialExerciseInfo(availableExercises);
     console.log("\n📋 Lista de ejercicios en formato esencial:");
     essentialInfo.forEach((ex, index) => {
-      console.log(`   ${index + 1}. ${ex.name} (${ex.kind}, ${ex.difficulty})`);
+      console.log(`   ${index + 1}. ${ex.name} (${ex.kind}, ${ex.equipment}, ${ex.category})`);
     });
 
     console.log("=".repeat(80));
@@ -649,12 +713,47 @@ REMEMBER: Only use exercises from the available exercises list provided in the s
     console.log("─".repeat(50));
     console.log(userPrompt);
 
-    // Resumen de tokens
-    const totalChars = systemPrompt.length + userPrompt.length;
-    const estimatedTokens = Math.ceil(totalChars / 4);
-    console.log(
-      `\n📊 [TOKENS] Total caracteres: ${totalChars}, Estimado tokens: ~${estimatedTokens}`
-    );
+         // Resumen de tokens y cálculo de costos
+     const totalChars = systemPrompt.length + userPrompt.length;
+     const estimatedTokens = Math.ceil(totalChars / 4);
+     
+     // Calcular costos estimados
+     const calculateEstimatedCost = (inputTokens: number, outputTokens: number = 500) => {
+       const model = process.env.MODEL_NAME || "gpt-4o-mini";
+       
+       if (model === "gpt-4o-mini") {
+         const inputCost = (inputTokens / 1000) * 0.00015;
+         const outputCost = (outputTokens / 1000) * 0.0006;
+         return { inputCost, outputCost, totalCost: inputCost + outputCost, model };
+       } else if (model === "gpt-4o") {
+         const inputCost = (inputTokens / 1000) * 0.005;
+         const outputCost = (outputTokens / 1000) * 0.015;
+         return { inputCost, outputCost, totalCost: inputCost + outputCost, model };
+       } else {
+         // Modelo desconocido, usar estimación conservadora
+         const inputCost = (inputTokens / 1000) * 0.001;
+         const outputCost = (outputTokens / 1000) * 0.002;
+         return { inputCost, outputCost, totalCost: inputCost + outputCost, model: "unknown" };
+       }
+     };
+     
+     const costEstimate = calculateEstimatedCost(estimatedTokens);
+     
+     console.log(
+       `\n📊 [TOKENS] Total caracteres: ${totalChars}, Estimado tokens: ~${estimatedTokens}`
+     );
+     console.log(
+       `💰 [COST ESTIMATE] Modelo: ${costEstimate.model}`
+     );
+     console.log(
+       `💰 [COST ESTIMATE] Costo entrada: $${costEstimate.inputCost.toFixed(6)}`
+     );
+     console.log(
+       `💰 [COST ESTIMATE] Costo salida estimado: $${costEstimate.outputCost.toFixed(6)}`
+     );
+     console.log(
+       `💰 [COST ESTIMATE] Costo total estimado: $${costEstimate.totalCost.toFixed(6)}`
+     );
 
     // Guardar prompts en archivo para análisis
     const promptData = {
@@ -730,14 +829,38 @@ REMEMBER: Only use exercises from the available exercises list provided in the s
     // 📥 RESPUESTA DE GPT (SIMPLIFICADA)
     // ═══════════════════════════════════════════════════════════════
 
-    console.log("\n📥 [GPT RESPONSE] Respuesta recibida de OpenAI");
-    console.log(`⏱️ Tiempo: ${responseTime} ms`);
-    console.log(`🎯 Tokens: ${completion.usage?.total_tokens || "?"}`);
-    console.log(
-      `📝 Longitud respuesta: ${
-        completion.choices[0]?.message?.content?.length || 0
-      } caracteres`
-    );
+         console.log("\n📥 [GPT RESPONSE] Respuesta recibida de OpenAI");
+     console.log(`⏱️ Tiempo: ${responseTime} ms`);
+     console.log(`🎯 Tokens totales: ${completion.usage?.total_tokens || "?"}`);
+     console.log(`🎯 Tokens entrada: ${completion.usage?.prompt_tokens || "?"}`);
+     console.log(`🎯 Tokens salida: ${completion.usage?.completion_tokens || "?"}`);
+     console.log(
+       `📝 Longitud respuesta: ${
+         completion.choices[0]?.message?.content?.length || 0
+       } caracteres`
+     );
+     
+     // Calcular costo real
+     const actualCost = calculateEstimatedCost(
+       completion.usage?.prompt_tokens || 0,
+       completion.usage?.completion_tokens || 0
+     );
+     
+     console.log(
+       `💰 [ACTUAL COST] Costo entrada: $${actualCost.inputCost.toFixed(6)}`
+     );
+     console.log(
+       `💰 [ACTUAL COST] Costo salida: $${actualCost.outputCost.toFixed(6)}`
+     );
+     console.log(
+       `💰 [ACTUAL COST] Costo total real: $${actualCost.totalCost.toFixed(6)}`
+     );
+     
+     // Comparar con estimación
+     const costDifference = actualCost.totalCost - costEstimate.totalCost;
+     console.log(
+       `💰 [COST COMPARISON] Diferencia: $${costDifference.toFixed(6)} (${costDifference > 0 ? 'más caro' : 'más barato'} que estimado)`
+     );
 
     console.log("\n" + "=".repeat(80));
     console.log("🔍 [PROCESSING] Procesando respuesta...");
@@ -811,7 +934,7 @@ REMEMBER: Only use exercises from the available exercises list provided in the s
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     // ═══════════════════════════════════════════════════════════════
-    // 💥 ERROR EN GENERACIÓN DE PLAN
+    // �� ERROR EN GENERACIÓN DE PLAN
     // ═══════════════════════════════════════════════════════════════
 
     console.log("\n💥 [ERROR] Error en generación de plan:");

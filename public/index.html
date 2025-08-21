@@ -186,12 +186,21 @@
         </div>
 
         <div class="action-buttons">
-          <a href="/onboarding" class="btn primary"> 🚀 Crear Nuevo Plan </a>
-          <a href="/plans" class="btn"> 📋 Ver Mis Planes </a>
-          <a href="/exercises" class="btn"> 💪 Biblioteca de Ejercicios </a>
-          <a href="/workout-history" class="btn">
+          <button onclick="openFullApp()" class="btn primary">
+            🌐 Abrir Aplicación Completa
+          </button>
+          <button onclick="navigateTo('/onboarding')" class="btn">
+            🚀 Crear Nuevo Plan
+          </button>
+          <button onclick="navigateTo('/plans')" class="btn">
+            📋 Ver Mis Planes
+          </button>
+          <button onclick="navigateTo('/exercises')" class="btn">
+            💪 Biblioteca de Ejercicios
+          </button>
+          <button onclick="navigateTo('/workout-history')" class="btn">
             📊 Historial de Entrenamientos
-          </a>
+          </button>
         </div>
       </div>
 
@@ -234,10 +243,65 @@
       console.log("CreatiFit AI - Aplicación cargada");
       console.log("Entorno nativo:", isNativeApp);
 
+      // Función para abrir la aplicación completa
+      function openFullApp() {
+        const webAppUrl = "https://creatifit-ai.vercel.app/dashboard";
+        console.log("Abriendo aplicación completa:", webAppUrl);
+
+        if (isNativeApp) {
+          // En app nativa, abrir en navegador externo
+          if (window.Capacitor && window.Capacitor.Plugins.Browser) {
+            window.Capacitor.Plugins.Browser.open({ url: webAppUrl });
+          } else {
+            window.open(webAppUrl, "_blank");
+          }
+        } else {
+          // En web, navegar normalmente
+          window.location.href = webAppUrl;
+        }
+      }
+
+      // Función para navegar según el entorno
+      function navigateTo(route) {
+        console.log("Navegando a:", route);
+
+        if (isNativeApp) {
+          // En app nativa, redirigir a la aplicación web
+          const webAppUrl = "https://creatifit-ai.vercel.app" + route;
+          console.log("Abriendo en navegador:", webAppUrl);
+
+          // Intentar abrir en navegador externo
+          if (window.Capacitor && window.Capacitor.Plugins.Browser) {
+            window.Capacitor.Plugins.Browser.open({ url: webAppUrl });
+          } else {
+            // Fallback: abrir en el mismo webview
+            window.open(webAppUrl, "_blank");
+          }
+        } else {
+          // En web, navegar normalmente
+          window.location.href = route;
+        }
+      }
+
+      // Función para obtener títulos amigables
+      function getRouteTitle(route) {
+        const titles = {
+          "/onboarding": "Crear Nuevo Plan",
+          "/plans": "Ver Mis Planes",
+          "/exercises": "Biblioteca de Ejercicios",
+          "/workout-history": "Historial de Entrenamientos",
+        };
+        return titles[route] || route;
+      }
+
       // En una app nativa, las rutas se manejarán internamente
       // En web, las rutas funcionarán normalmente
       if (isNativeApp) {
         console.log("Ejecutando en aplicación móvil nativa");
+
+        // Agregar información adicional para móvil
+        document.querySelector(".welcome-text").innerHTML +=
+          '<br><br><small style="opacity: 0.7;">📱 Versión móvil - Algunas funciones están en desarrollo</small>';
       } else {
         console.log("Ejecutando en navegador web");
       }

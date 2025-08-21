@@ -17,6 +17,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+// URL base para las imágenes de ejercicios desde Supabase Storage
+const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
+
 interface ExerciseBlock {
   name: string;
   sets: number;
@@ -590,7 +593,7 @@ function CompletedStep({
                       <div className="mt-3">
                         <p className="text-sm text-muted mb-2">Notas:</p>
                         <div className="space-y-1">
-                          {stats.notes.map((note, index) => (
+                          {stats.notes.map((note: string, index: number) => (
                             <p
                               key={index}
                               className="text-sm bg-accent/10 p-2 rounded"
@@ -613,7 +616,7 @@ function CompletedStep({
               Ver Historial Completo
             </Button>
             <Button
-              onClick={() => router.push("/workout-history")}
+              onClick={() => window.location.href = "/workout-history"}
               variant="outline"
               className="px-8"
               size="lg"
@@ -649,9 +652,6 @@ export function WorkoutSession({
 }) {
   const { t } = useTranslation("common");
   const router = useRouter();
-  
-  // URL base para las imágenes de ejercicios desde Supabase Storage
-  const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
 
   // Estado principal unificado
   const [phase, setPhase] = useState<
@@ -723,7 +723,7 @@ export function WorkoutSession({
           if (data.success) {
             // Los datos ya vienen en la estructura correcta: {day: exercises[]}
             // Solo necesitamos agregar block_index a cada ejercicio
-            const transformedData = {};
+            const transformedData: Record<string, any> = {};
             if (data.exercises && data.exercises[planDay.day]) {
               transformedData[planDay.day] = data.exercises[planDay.day].map(
                 (ex: any, index: number) => ({

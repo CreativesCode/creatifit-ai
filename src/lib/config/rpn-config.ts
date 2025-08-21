@@ -232,7 +232,7 @@ export function getRPNConfig(userProfile: {
       },
       intensity: objectiveConfig.intensity,
       focus: objectiveConfig.focus || [],
-      restrictions: objectiveConfig.restrictions || [],
+      restrictions: (objectiveConfig as any).restrictions || [],
     },
   };
 }

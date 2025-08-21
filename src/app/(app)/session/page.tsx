@@ -68,7 +68,9 @@ export default function SessionPage() {
 
       // Si hay un día específico, seleccionarlo
       if (dayId && fetchedPlan) {
-        const day = fetchedPlan.payload.days.find((d) => d.day === dayId);
+        const day = fetchedPlan.payload.days.find(
+          (d: { day: string }) => d.day === dayId
+        );
         if (day) {
           setSelectedDay(day);
           setIsInWorkout(true);

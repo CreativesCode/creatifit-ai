@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const planId = params.id;
+  const { id: planId } = await params;
   console.log(`📋 [PLAN API] Fetching plan: ${planId}`);
 
   try {

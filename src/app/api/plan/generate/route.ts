@@ -396,9 +396,9 @@ export async function POST(request: NextRequest) {
         .filter((ex) => ex && ex.name) // Filtrar ejercicios válidos
         .map(
           (ex) =>
-            `- ${ex.name} (${ex.kind || "general"}, ${
-              ex.equipment || "none"
-            }, ${ex.category || "general"})`
+            `- ${ex!.name} (${ex!.kind || "general"}, ${
+              ex!.equipment || "none"
+            }, ${ex!.category || "general"})`
         )
         .join("\n");
       console.log(

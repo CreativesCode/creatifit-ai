@@ -386,10 +386,6 @@ export default function ExercisesPage() {
               {/* Exercise Image */}
               {selectedExercise.gif_url && (
                 <div className="bg-surface border border-border rounded-lg p-4">
-                  {console.log(
-                    "🔍 [EXERCISE DETAIL] Image URL:",
-                    `${EXERCISE_IMAGES_BASE_URL}/${selectedExercise.gif_url}`
-                  )}
                   <img
                     src={`${EXERCISE_IMAGES_BASE_URL}/${selectedExercise.gif_url}`}
                     alt={selectedExercise.name}

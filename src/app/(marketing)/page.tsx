@@ -2,6 +2,9 @@ import { AppHeader } from "@/components/ui/app-header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+// Disable static generation for this page
+export const dynamic = "force-dynamic";
+
 export default function MarketingPage() {
   return (
     <div className="min-h-screen bg-bg">

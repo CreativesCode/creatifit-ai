@@ -132,7 +132,7 @@ function ExerciseStep({
           {exerciseDetails?.gif_url ? (
             <div className="text-center mb-6">
               <img
-                src={exerciseDetails.gif_url}
+                src={`${EXERCISE_IMAGES_BASE_URL}/${exerciseDetails.gif_url}`}
                 alt={currentExercise.name}
                 className="w-32 h-32 rounded-lg object-cover border border-border/50 mx-auto shadow-md"
                 onError={(e) => {
@@ -373,7 +373,7 @@ function RestStep({
                 {nextExerciseDetails?.gif_url ? (
                   <div className="flex-shrink-0">
                     <img
-                      src={nextExerciseDetails.gif_url}
+                      src={`${EXERCISE_IMAGES_BASE_URL}/${nextExerciseDetails.gif_url}`}
                       alt={nextExercise.name}
                       className="w-16 h-16 rounded-lg object-cover border border-border/50 shadow-md"
                       onError={(e) => {
@@ -649,6 +649,9 @@ export function WorkoutSession({
 }) {
   const { t } = useTranslation("common");
   const router = useRouter();
+  
+  // URL base para las imágenes de ejercicios desde Supabase Storage
+  const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
 
   // Estado principal unificado
   const [phase, setPhase] = useState<
@@ -1007,7 +1010,7 @@ export function WorkoutSession({
                           {exerciseDetails?.gif_url && (
                             <div className="flex-shrink-0">
                               <img
-                                src={exerciseDetails.gif_url}
+                                src={`${EXERCISE_IMAGES_BASE_URL}/${exerciseDetails.gif_url}`}
                                 alt={exercise.name}
                                 className="w-12 h-12 rounded-lg object-cover border border-border/50"
                                 onError={(e) => {

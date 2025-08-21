@@ -28,7 +28,13 @@ interface WorkoutSession {
   avgRPE: number;
 }
 
-export function WorkoutHistory({ onBack }: { onBack: () => void }) {
+interface WorkoutHistoryProps {
+  onBack: () => void;
+  selectedSession?: WorkoutSession | null;
+  onSessionClick?: (sessionId: string) => void;
+}
+
+export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: WorkoutHistoryProps) {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -160,6 +166,131 @@ export function WorkoutHistory({ onBack }: { onBack: () => void }) {
     );
   }
 
+  // Si hay una sesión seleccionada, mostrar la vista detallada
+  if (selectedSession) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-txt">
+            Detalles de la Sesión
+          </h1>
+          <Button onClick={onBack} variant="outline" size="sm">
+            <XCircle className="w-4 h-4 mr-2" />
+            Volver al Historial
+          </Button>
+        </div>
+
+        {/* Información de la Sesión */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary" />
+              Sesión del {formatDate(selectedSession.date)}
+            </CardTitle>
+            <p className="text-muted">Día del Plan: {selectedSession.planDayId}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-primary">
+                  {selectedSession.totalSets}
+                </div>
+                <p className="text-muted">Series Completadas</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-accent">
+                  {selectedSession.totalVolume.toFixed(1)}
+                </div>
+                <p className="text-muted">Volumen Total (kg)</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-secondary">
+                  {selectedSession.avgRPE.toFixed(1)}
+                </div>
+                <p className="text-muted">RPE Promedio</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-success">
+                  {selectedSession.logs.length}
+                </div>
+                <p className="text-muted">Ejercicios</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Detalles de Cada Ejercicio */}
+        <div className="space-y-6">
+          {Array.from(getExerciseStats(selectedSession.logs).entries()).map(
+            ([exerciseName, stats]) => (
+              <Card key={exerciseName}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{exerciseName}</CardTitle>
+                  <p className="text-muted">
+                    {stats.sets} series • {stats.totalReps} reps totales
+                    {stats.avgWeight > 0 && ` • ${stats.avgWeight.toFixed(1)} kg promedio`}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {/* Detalles de cada set */}
+                  <div className="space-y-3">
+                    {selectedSession.logs
+                      .filter(log => log.exercise_name === exerciseName)
+                      .sort((a, b) => a.set_index - b.set_index)
+                      .map((log, index) => (
+                        <div
+                          key={`${log.id}-${index}`}
+                          className="flex items-center justify-between p-3 bg-surface/50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-4">
+                            <span className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                              {log.set_index}
+                            </span>
+                            <div>
+                              <p className="font-medium text-txt">
+                                {log.actual_reps} reps
+                                {log.target_reps && (
+                                  <span className="text-muted ml-2">
+                                    (objetivo: {log.target_reps[0]}-{log.target_reps[1]})
+                                  </span>
+                                )}
+                              </p>
+                              {log.weight && (
+                                <p className="text-sm text-muted">
+                                  <Weight className="w-3 h-3 inline mr-1" />
+                                  {log.weight} kg
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right space-y-1">
+                            {log.rpe && (
+                              <div className="text-sm">
+                                <span className="text-muted">RPE:</span>
+                                <span className="ml-2 font-semibold text-accent">
+                                  {log.rpe}
+                                </span>
+                              </div>
+                            )}
+                            {log.notes && (
+                              <div className="text-xs text-muted max-w-xs text-right">
+                                {log.notes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -219,15 +350,22 @@ export function WorkoutHistory({ onBack }: { onBack: () => void }) {
       {/* Lista de Sesiones */}
       <div className="space-y-6">
         {sessions.map((session) => (
-          <Card key={session.id} className="border-border/50">
+          <Card 
+            key={session.id} 
+            className="border-border/50 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => onSessionClick?.(session.id)}
+          >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-primary" />
-                    Día {session.planDayId}
+                    Sesión del {formatDate(session.date)}
                   </CardTitle>
-                  <p className="text-muted mt-1">{formatDate(session.date)}</p>
+                  <p className="text-muted mt-1">Día del Plan: {session.planDayId}</p>
+                  <p className="text-sm text-muted mt-1">
+                    ID de Sesión: {session.id.substring(0, 8)}...
+                  </p>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-accent">
@@ -291,6 +429,13 @@ export function WorkoutHistory({ onBack }: { onBack: () => void }) {
                     )
                   )}
                 </div>
+              </div>
+
+              {/* Indicador de click */}
+              <div className="mt-4 text-center">
+                <p className="text-xs text-muted">
+                  💡 Haz click para ver detalles completos de esta sesión
+                </p>
               </div>
             </CardContent>
           </Card>

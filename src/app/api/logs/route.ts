@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const planDayId = searchParams.get("planDayId");
+    const sessionId = searchParams.get("sessionId");
 
     let query = supabase
       .from("workout_logs")
@@ -109,6 +110,10 @@ export async function GET(request: NextRequest) {
       query = query.eq("plan_day_id", planDayId);
     }
 
+    if (sessionId) {
+      query = query.eq("session_id", sessionId);
+    }
+
     const { data: logs, error } = await query;
 
     if (error) {
@@ -117,6 +122,12 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`✅ [LOGS API] Successfully fetched ${logs?.length || 0} logs`);
+    if (sessionId) {
+      console.log(`🔍 [LOGS API] Filtered by session ID: ${sessionId}`);
+    }
+    if (planDayId) {
+      console.log(`🔍 [LOGS API] Filtered by plan day ID: ${planDayId}`);
+    }
 
     return NextResponse.json({
       success: true,

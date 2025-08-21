@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PlanDisplay } from "@/components/ui/plan-display";
-import { WorkoutSession } from "@/components/ui/workout-session";
 import { ArrowLeft, Calendar, Clock, Edit, Play, Target } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -46,8 +45,9 @@ export default function PlansPage() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInWorkout, setIsInWorkout] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<PlanDay | null>(null);
+  // Ya no necesitamos estos estados cuando usamos la ruta /session
+  // const [isInWorkout, setIsInWorkout] = useState(false);
+  // const [selectedDay, setSelectedDay] = useState<PlanDay | null>(null);
 
   const planId = searchParams.get("id");
 
@@ -58,6 +58,8 @@ export default function PlansPage() {
     } else {
       // Si no hay ID, cargar la lista de planes
       fetchPlans();
+      // Limpiar el plan seleccionado cuando volvemos al listado
+      setSelectedPlan(null);
     }
   }, [planId]);
 
@@ -108,31 +110,35 @@ export default function PlansPage() {
   };
 
   const goBackToList = () => {
-    router.push("/plans");
+    // Usar replace para no agregar entradas al historial
+    router.replace("/plans");
     setSelectedPlan(null);
   };
 
-  const startWorkout = (day: PlanDay) => {
-    setSelectedDay(day);
-    setIsInWorkout(true);
-  };
+  // Estas funciones ya no son necesarias cuando usamos la ruta /session
+  // const startWorkout = (day: PlanDay) => {
+  //   setSelectedDay(day);
+  //   setIsInWorkout(true);
+  // };
 
-  const completeWorkout = () => {
-    setIsInWorkout(false);
-    setSelectedDay(null);
-  };
+  // const completeWorkout = () => {
+  //   setIsInWorkout(false);
+  //   setSelectedDay(null);
+  // };
 
-  const exitWorkout = () => {
-    setIsInWorkout(false);
-    setSelectedDay(null);
-  };
+  // const exitWorkout = () => {
+  //   setIsInWorkout(false);
+  //   setSelectedDay(null);
+  // };
 
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted">Cargando planes...</p>
+          <p className="mt-4 text-muted">
+            {planId ? "Cargando plan..." : "Cargando planes..."}
+          </p>
         </div>
       </div>
     );
@@ -154,17 +160,17 @@ export default function PlansPage() {
     );
   }
 
-  // Si está en sesión de entrenamiento, mostrar la sesión
-  if (isInWorkout && selectedDay) {
-    return (
-      <WorkoutSession
-        planDay={selectedDay}
-        planId={selectedPlan!.id}
-        onComplete={completeWorkout}
-        onExit={exitWorkout}
-      />
-    );
-  }
+  // Ya no necesitamos esta lógica cuando usamos la ruta /session
+  // if (isInWorkout && selectedDay) {
+  //   return (
+  //     <WorkoutSession
+  //       planDay={selectedDay}
+  //       planId={selectedPlan!.id}
+  //       onComplete={completeWorkout}
+  //       onExit={exitWorkout}
+  //     />
+  //   );
+  // }
 
   // Si hay un plan seleccionado, mostrar el detalle
   if (selectedPlan) {
@@ -172,6 +178,18 @@ export default function PlansPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-2 mb-4 text-sm text-muted">
+            <button
+              onClick={goBackToList}
+              className="hover:text-primary transition-colors"
+            >
+              Planes
+            </button>
+            <span>→</span>
+            <span className="text-primary">Detalles del Plan</span>
+          </div>
+
           <div className="flex items-center justify-between mb-6">
             <Button onClick={goBackToList} variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -182,7 +200,12 @@ export default function PlansPage() {
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
               </Button>
-              <Button className="bg-primary hover:bg-primary/90 text-white">
+              <Button
+                className="bg-primary hover:bg-primary/90 text-white"
+                onClick={() =>
+                  router.replace(`/session?planId=${selectedPlan.id}`)
+                }
+              >
                 <Play className="w-4 h-4 mr-2" />
                 Iniciar Sesión
               </Button>
@@ -206,14 +229,7 @@ export default function PlansPage() {
             days: selectedPlan.payload.days,
           }}
           planId={selectedPlan.id}
-          onStartSession={(day) => {
-            // Si se pasa un día específico, usar ese; si no, usar el primer día
-            const dayToStart = day || selectedPlan.payload.days[0];
-            if (dayToStart) {
-              startWorkout(dayToStart);
-            }
-          }}
-          onBackToForm={goBackToList}
+          useRouter={true}
         />
       </div>
     );
@@ -223,6 +239,10 @@ export default function PlansPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="text-center mb-8">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <Calendar className="w-6 h-6 text-primary" />
+          <span className="text-sm text-muted">Planes</span>
+        </div>
         <h1 className="text-3xl font-bold text-txt mb-2">
           Mis Planes de Entrenamiento
         </h1>
@@ -295,7 +315,11 @@ export default function PlansPage() {
 
                 <div className="mt-6 pt-4 border-t border-border">
                   <Button
-                    onClick={() => router.push(`/plans?id=${plan.id}`)}
+                    onClick={() => {
+                      // Navegación SPA fluida
+                      router.replace(`/plans?id=${plan.id}`);
+                      setSelectedPlan(plan); // Establecer el plan inmediatamente
+                    }}
                     className="w-full"
                     variant="outline"
                   >

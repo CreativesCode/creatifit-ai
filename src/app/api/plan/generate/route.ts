@@ -190,8 +190,20 @@ export async function POST(request: NextRequest) {
 
     // Función para obtener solo información esencial
     const getEssentialExerciseInfo = (exercises: any[]) => {
+      console.log(
+        "🔍 [ESSENTIAL INFO] Iniciando procesamiento de ejercicios..."
+      );
+      console.log(
+        `🔍 [ESSENTIAL INFO] Total de ejercicios a procesar: ${exercises.length}`
+      );
+
       return exercises
-        .map((ex) => {
+        .map((ex, index) => {
+          console.log(
+            `🔍 [ESSENTIAL INFO] Procesando ejercicio ${index + 1}:`,
+            ex ? ex.name || "SIN NOMBRE" : "NULL/UNDEFINED"
+          );
+
           // Validar que el ejercicio tenga las propiedades básicas
           if (!ex || typeof ex !== "object") {
             console.warn("⚠️ [ESSENTIAL INFO] Exercise object is invalid:", ex);
@@ -203,7 +215,15 @@ export async function POST(request: NextRequest) {
             return null;
           }
 
-          return {
+          // Verificar si el ejercicio tiene la propiedad 'sets' (que no debería tener)
+          if (ex.sets !== undefined) {
+            console.warn(
+              "⚠️ [ESSENTIAL INFO] Exercise has unexpected 'sets' property:",
+              ex.sets
+            );
+          }
+
+          const result = {
             name: ex.name || "Unknown Exercise",
             kind: ex.kind || "general",
             difficulty: ex.meta?.difficulty || ex.difficulty || "beginner",
@@ -223,6 +243,14 @@ export async function POST(request: NextRequest) {
             gif_url: ex.gif_url || null,
             overview: ex.overview || null,
           };
+
+          console.log(
+            `✅ [ESSENTIAL INFO] Ejercicio ${
+              index + 1
+            } procesado exitosamente:`,
+            result.name
+          );
+          return result;
         })
         .filter(Boolean); // Filtrar ejercicios nulos
     };
@@ -562,7 +590,21 @@ REMEMBER: Only use exercises from the available exercises list provided in the s
     console.log("🎯 [ESSENTIAL INFO] INFORMACIÓN ESENCIAL ENVIADA A GPT");
     console.log("=".repeat(80));
 
-    const essentialInfo = getEssentialExerciseInfo(availableExercises);
+    console.log("🔍 [DEBUG] Llamando getEssentialExerciseInfo segunda vez...");
+    let essentialInfo;
+    try {
+      essentialInfo = getEssentialExerciseInfo(availableExercises);
+      console.log(
+        "✅ [DEBUG] Segunda llamada a getEssentialExerciseInfo exitosa"
+      );
+    } catch (error) {
+      console.error(
+        "❌ [DEBUG] Error en segunda llamada a getEssentialExerciseInfo:",
+        error
+      );
+      throw error;
+    }
+
     console.log("\n📋 Lista de ejercicios en formato esencial:");
     essentialInfo.forEach((ex, index) => {
       if (ex && ex.name) {
@@ -795,6 +837,119 @@ REMEMBER: Only use exercises from the available exercises list provided in the s
     console.log("📋 [VALIDATION] Plan recibido de GPT:");
     console.log(JSON.stringify(parsedPlan, null, 2));
 
+    // Validación manual antes de Zod para identificar problemas específicos
+    console.log("\n🔍 [MANUAL VALIDATION] Validación manual del plan...");
+
+    if (!parsedPlan.days || !Array.isArray(parsedPlan.days)) {
+      console.error("❌ [MANUAL VALIDATION] Plan no tiene array 'days' válido");
+      throw new Error("Plan no tiene estructura de días válida");
+    }
+
+    // Validar cada día
+    for (let i = 0; i < parsedPlan.days.length; i++) {
+      const day = parsedPlan.days[i];
+      console.log(
+        `🔍 [MANUAL VALIDATION] Validando día ${i}:`,
+        JSON.stringify(day, null, 2)
+      );
+
+      if (!day.blocks || !Array.isArray(day.blocks)) {
+        console.error(
+          `❌ [MANUAL VALIDATION] Día ${i} no tiene array 'blocks' válido:`,
+          day
+        );
+        throw new Error(`Día ${i} no tiene estructura de bloques válida`);
+      }
+
+      // Validar cada bloque
+      for (let j = 0; j < day.blocks.length; j++) {
+        const block = day.blocks[j];
+        console.log(
+          `🔍 [MANUAL VALIDATION] Validando bloque ${j} del día ${i}:`,
+          JSON.stringify(block, null, 2)
+        );
+
+        if (!block) {
+          console.error(
+            `❌ [MANUAL VALIDATION] Bloque ${j} del día ${i} es null/undefined`
+          );
+          throw new Error(`Bloque ${j} del día ${i} es null/undefined`);
+        }
+
+        // Verificar que el bloque sea un objeto válido
+        if (typeof block !== "object") {
+          console.error(
+            `❌ [MANUAL VALIDATION] Bloque ${j} del día ${i} no es un objeto:`,
+            typeof block,
+            block
+          );
+          throw new Error(`Bloque ${j} del día ${i} no es un objeto válido`);
+        }
+
+        // Verificar la propiedad 'sets'
+        if (!("sets" in block)) {
+          console.error(
+            `❌ [MANUAL VALIDATION] Bloque ${j} del día ${i} no tiene propiedad 'sets':`,
+            Object.keys(block)
+          );
+          throw new Error(`Bloque ${j} del día ${i} no tiene propiedad 'sets'`);
+        }
+
+        if (typeof block.sets !== "number") {
+          console.error(
+            `❌ [MANUAL VALIDATION] Bloque ${j} del día ${i} no tiene 'sets' válido:`,
+            block
+          );
+          console.error(
+            `❌ [MANUAL VALIDATION] Tipo de 'sets': ${typeof block.sets}, Valor: ${
+              block.sets
+            }`
+          );
+          throw new Error(
+            `Bloque ${j} del día ${i} no tiene propiedad 'sets' válida (número)`
+          );
+        }
+
+        if (!block.name || typeof block.name !== "string") {
+          console.error(
+            `❌ [MANUAL VALIDATION] Bloque ${j} del día ${i} no tiene 'name' válido:`,
+            block
+          );
+          throw new Error(
+            `Bloque ${j} del día ${i} no tiene propiedad 'name' válida`
+          );
+        }
+
+        if (
+          !block.reps ||
+          !Array.isArray(block.reps) ||
+          block.reps.length !== 2
+        ) {
+          console.error(
+            `❌ [MANUAL VALIDATION] Bloque ${j} del día ${i} no tiene 'reps' válido:`,
+            block
+          );
+          throw new Error(
+            `Bloque ${j} del día ${i} no tiene propiedad 'reps' válida [min, max]`
+          );
+        }
+
+        if (typeof block.rest_sec !== "number") {
+          console.error(
+            `❌ [MANUAL VALIDATION] Bloque ${j} del día ${i} no tiene 'rest_sec' válido:`,
+            block
+          );
+          throw new Error(
+            `Bloque ${j} del día ${i} no tiene propiedad 'rest_sec' válida (número)`
+          );
+        }
+      }
+    }
+
+    console.log(
+      "✅ [MANUAL VALIDATION] Validación manual completada exitosamente"
+    );
+
     let validatedPlan;
     try {
       validatedPlan = GeneratedPlanSchema.parse(parsedPlan);
@@ -852,7 +1007,7 @@ REMEMBER: Only use exercises from the available exercises list provided in the s
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     // ═══════════════════════════════════════════════════════════════
-    // �� ERROR EN GENERACIÓN DE PLAN
+    // 💥 ERROR EN GENERACIÓN DE PLAN
     // ═══════════════════════════════════════════════════════════════
 
     console.log("\n💥 [ERROR] Error en generación de plan:");

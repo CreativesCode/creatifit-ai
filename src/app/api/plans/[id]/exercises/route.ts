@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  console.log("💪 [PLAN EXERCISES] Fetching exercises for plan:", params.id);
+  const { id } = await params;
+  console.log("💪 [PLAN EXERCISES] Fetching exercises for plan:", id);
 
   try {
-    const planId = params.id;
-    
+    const planId = id;
+
     if (!planId) {
       throw new Error("Plan ID is required");
     }
@@ -32,7 +33,7 @@ export async function GET(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          p_plan_id: planId
+          p_plan_id: planId,
         }),
       }
     );
@@ -44,8 +45,6 @@ export async function GET(
     }
 
     const exercises = await response.json();
-    
-    console.log(`✅ [PLAN EXERCISES] Retrieved ${exercises.length} exercises for plan ${planId}`);
 
     // Agrupar ejercicios por día
     const exercisesByDay = exercises.reduce((acc: any, exercise: any) => {
@@ -53,11 +52,11 @@ export async function GET(
       if (!acc[day]) {
         acc[day] = [];
       }
-      
-      // Agregar información del ejercicio con gif_url
+
+      // Agregar información del ejercicio con gif_url (solo el nombre del archivo)
       acc[day].push({
         ...exercise,
-        gif_url: exercise.gif_url ? `${process.env.NEXT_PUBLIC_STATICS_IMAGES}/${exercise.gif_url}` : null,
+        gif_url: exercise.gif_url, // Solo el nombre del archivo, no la URL completa
         // Agregar información adicional del ejercicio
         exercise_details: {
           id: exercise.exercise_id,
@@ -65,10 +64,10 @@ export async function GET(
           equipment: exercise.equipment,
           category: exercise.category,
           primary_muscles: exercise.primary_muscles,
-          gif_url: exercise.gif_url ? `${process.env.NEXT_PUBLIC_STATICS_IMAGES}/${exercise.gif_url}` : null
-        }
+          gif_url: exercise.gif_url, // Solo el nombre del archivo, no la URL completa
+        },
       });
-      
+
       return acc;
     }, {});
 
@@ -77,11 +76,10 @@ export async function GET(
       planId,
       exercises: exercisesByDay,
       totalExercises: exercises.length,
-      retrievedAt: new Date().toISOString()
+      retrievedAt: new Date().toISOString(),
     };
 
     return NextResponse.json(responseData, { status: 200 });
-
   } catch (error) {
     console.error("💥 [PLAN EXERCISES] Error:", error);
 

@@ -1,11 +1,11 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'com.creatifit.ai.app',
-  appName: 'CreatiFit AI',
-  webDir: 'public',
+  appId: "com.creatifit.ai.app",
+  appName: "CreatiFit AI",
+  webDir: ".next",
   server: {
-    androidScheme: 'https'
+    androidScheme: "https",
   },
   android: {
     buildOptions: {
@@ -13,8 +13,8 @@ const config: CapacitorConfig = {
       keystoreAlias: undefined,
       keystorePassword: undefined,
       keystoreAliasPassword: undefined,
-    }
-  }
+    },
+  },
 };
 
 export default config;

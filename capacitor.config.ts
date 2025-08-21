@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "com.creatifit.ai.app",
   appName: "CreatiFit AI",
-  webDir: "public",
+  webDir: "out",
   server: {
     androidScheme: "https",
   },

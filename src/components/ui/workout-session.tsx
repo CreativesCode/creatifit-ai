@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { supabaseClient } from "@/lib/supabase-client";
 import {
   CheckCircle,
   Clock,
@@ -19,6 +20,18 @@ import { useTranslation } from "react-i18next";
 
 // URL base para las imágenes de ejercicios desde Supabase Storage
 const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
+
+// Función helper para construir URLs limpias sin doble slash (igual que plan-display.tsx)
+const buildImageUrl = (gifUrl: string) => {
+  if (!gifUrl || !EXERCISE_IMAGES_BASE_URL) return null;
+
+  // Limpiar la URL base (remover trailing slash si existe)
+  const cleanBase = EXERCISE_IMAGES_BASE_URL.replace(/\/$/, "");
+  // Limpiar el nombre del archivo (remover leading slash si existe)
+  const cleanFileName = gifUrl.replace(/^\//, "");
+
+  return `${cleanBase}/${cleanFileName}`;
+};
 
 interface ExerciseBlock {
   name: string;
@@ -49,7 +62,6 @@ interface WorkoutLog {
 function WarmupStep({
   warmupTime,
   isPaused,
-  onComplete,
   onPauseToggle,
   onSkip,
 }: {
@@ -135,7 +147,10 @@ function ExerciseStep({
           {exerciseDetails?.gif_url ? (
             <div className="text-center mb-6">
               <img
-                src={`${EXERCISE_IMAGES_BASE_URL}/${exerciseDetails.gif_url}`}
+                src={
+                  buildImageUrl(exerciseDetails.gif_url) ||
+                  "/placeholder-exercise.svg"
+                }
                 alt={currentExercise.name}
                 className="w-32 h-32 rounded-lg object-cover border border-border/50 mx-auto shadow-md"
                 onError={(e) => {
@@ -152,10 +167,13 @@ function ExerciseStep({
             </div>
           ) : (
             <div className="text-center mb-6">
-              <div className="w-32 h-32 bg-muted/20 rounded-lg border border-border/50 mx-auto flex items-center justify-center">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                  <p className="text-sm text-muted">Cargando imagen...</p>
+              <div className="w-32 h-32 bg-blue-500 rounded-lg border-2 border-red-500 mx-auto flex items-center justify-center shadow-md">
+                <div className="text-center text-white">
+                  <div className="w-12 h-12 bg-white rounded-full mx-auto mb-2 flex items-center justify-center">
+                    <Target className="w-8 h-8 text-blue-500" />
+                  </div>
+                  <p className="text-sm font-bold">{currentExercise.name}</p>
+                  <p className="text-xs mt-1">EJERCICIO</p>
                 </div>
               </div>
             </div>
@@ -321,7 +339,6 @@ function ExerciseStep({
 function RestStep({
   restTime,
   isPaused,
-  onComplete,
   onPauseToggle,
   onSkip,
   isLongRest,
@@ -376,7 +393,10 @@ function RestStep({
                 {nextExerciseDetails?.gif_url ? (
                   <div className="flex-shrink-0">
                     <img
-                      src={`${EXERCISE_IMAGES_BASE_URL}/${nextExerciseDetails.gif_url}`}
+                      src={
+                        buildImageUrl(nextExerciseDetails.gif_url) ||
+                        "/placeholder-exercise.svg"
+                      }
                       alt={nextExercise.name}
                       className="w-16 h-16 rounded-lg object-cover border border-border/50 shadow-md"
                       onError={(e) => {
@@ -447,7 +467,6 @@ function CompletedStep({
   completedSets,
   totalSets,
   workoutLogs,
-  planDay,
   onComplete,
   onExit,
 }: {
@@ -616,7 +635,7 @@ function CompletedStep({
               Ver Historial Completo
             </Button>
             <Button
-              onClick={() => window.location.href = "/workout-history"}
+              onClick={() => (window.location.href = "/workout-history")}
               variant="outline"
               className="px-8"
               size="lg"
@@ -642,7 +661,6 @@ function CompletedStep({
 export function WorkoutSession({
   planDay,
   planId,
-  onComplete,
   onExit,
 }: {
   planDay: PlanDay;
@@ -676,88 +694,54 @@ export function WorkoutSession({
   const completedSets = workoutLogs.filter((log) => log.completed).length;
   const progress = (completedSets / totalSets) * 100;
 
-  // Debug: Log del estado de ejercicios
-  useEffect(() => {
-    console.log(`🔍 [WORKOUT] Current state:`, {
-      phase,
-      currentExerciseIndex,
-      currentExercise: currentExercise?.name,
-      exercisesWithDetails,
-      planDay: planDay.day,
-    });
-  }, [
-    phase,
-    currentExerciseIndex,
-    currentExercise,
-    exercisesWithDetails,
-    planDay.day,
-  ]);
-
-  // Obtener detalles de los ejercicios al iniciar
+  // Obtener ejercicios reales con imágenes desde Supabase
   useEffect(() => {
     const fetchExerciseDetails = async () => {
-      try {
-        setLoading(true);
-        console.log(
-          `🔍 [WORKOUT] Fetching exercises for plan: ${planId}, day: ${planDay.day}`
-        );
+      if (phase === "warmup" && planId) {
+        try {
+          setLoading(true);
 
-        // Usar la API existente que ya funciona
-        const response = await fetch(`/api/plans/${planId}/exercises`);
-        console.log(`📡 [WORKOUT] API response status:`, response.status);
+          // Usar el mismo método que plan-display.tsx
+          const exercisesData = await supabaseClient.getPlanExercises(planId);
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`📋 [WORKOUT] API response data:`, data);
-          console.log(`🔍 [WORKOUT] Data structure:`, {
-            exercisesType: typeof data.exercises,
-            exercisesKeys: data.exercises
-              ? Object.keys(data.exercises)
-              : "undefined",
-            planDay: planDay.day,
-            exercisesForDay: data.exercises
-              ? data.exercises[planDay.day]
-              : "undefined",
-          });
-
-          if (data.success) {
-            // Los datos ya vienen en la estructura correcta: {day: exercises[]}
-            // Solo necesitamos agregar block_index a cada ejercicio
-            const transformedData: Record<string, any> = {};
-            if (data.exercises && data.exercises[planDay.day]) {
-              transformedData[planDay.day] = data.exercises[planDay.day].map(
-                (ex: any, index: number) => ({
-                  ...ex,
+          if (exercisesData) {
+            setExercisesWithDetails(exercisesData);
+          } else {
+            // Fallback a datos del plan sin imágenes
+            const fallbackData: Record<string, any> = {};
+            if (planDay.blocks && planDay.blocks.length > 0) {
+              fallbackData[planDay.day] = planDay.blocks.map(
+                (block, index) => ({
+                  ...block,
                   block_index: index,
+                  gif_url: null,
+                  equipment: null,
+                  instructions: null,
                 })
               );
             }
-
-            setExercisesWithDetails(transformedData);
-            console.log(
-              "✅ [WORKOUT] Exercise details loaded:",
-              transformedData
-            );
-          } else {
-            console.error(`❌ [WORKOUT] API returned success: false:`, data);
+            setExercisesWithDetails(fallbackData);
           }
-        } else {
-          console.error(
-            `❌ [WORKOUT] API request failed:`,
-            response.status,
-            response.statusText
-          );
+        } catch (error) {
+          // Fallback a datos del plan sin imágenes
+          const fallbackData: Record<string, any> = {};
+          if (planDay.blocks && planDay.blocks.length > 0) {
+            fallbackData[planDay.day] = planDay.blocks.map((block, index) => ({
+              ...block,
+              block_index: index,
+              gif_url: null,
+              equipment: null,
+              instructions: null,
+            }));
+          }
+          setExercisesWithDetails(fallbackData);
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        console.error("❌ [WORKOUT] Error fetching exercise details:", err);
-      } finally {
-        setLoading(false);
       }
     };
 
-    if (phase === "warmup" && planId) {
-      fetchExerciseDetails();
-    }
+    fetchExerciseDetails();
   }, [phase, planDay, planId]);
 
   // Generar session_id único al iniciar el entrenamiento
@@ -765,7 +749,6 @@ export function WorkoutSession({
     if (phase === "warmup" && !sessionId) {
       const newSessionId = crypto.randomUUID();
       setSessionId(newSessionId);
-      console.log(`🆔 [WORKOUT] New session started with ID: ${newSessionId}`);
     }
   }, [phase, sessionId]);
 
@@ -782,23 +765,15 @@ export function WorkoutSession({
 
   // Timer único para calentamiento Y descanso
   useEffect(() => {
-    console.log(
-      `⏱️ [WORKOUT] Timer effect - Phase: ${phase}, Timer: ${timer}, Paused: ${isPaused}`
-    );
-
     if ((phase === "warmup" || phase === "rest") && timer > 0 && !isPaused) {
-      console.log(`🔄 [WORKOUT] Starting ${phase} timer: ${timer} seconds`);
       const interval = setTimeout(() => {
-        console.log(`⏰ [WORKOUT] Timer tick: ${timer} -> ${timer - 1}`);
         setTimer((prev) => prev - 1);
       }, 1000);
       return () => clearTimeout(interval);
     } else if (timer === 0) {
       if (phase === "warmup") {
-        console.log(`✅ [WORKOUT] Warmup completed, moving to exercise`);
         setPhase("exercise");
       } else if (phase === "rest") {
-        console.log(`✅ [WORKOUT] Rest completed, moving to exercise`);
         setPhase("exercise");
       }
     }
@@ -814,16 +789,10 @@ export function WorkoutSession({
   };
 
   const handleStartRest = useCallback(() => {
-    console.log(
-      `🕐 [WORKOUT] Starting rest for ${currentExercise.rest_sec} seconds`
-    );
     setTimer(currentExercise.rest_sec);
     setPhase("rest");
     setIsLongRest(false); // Es descanso normal entre series
     setIsPaused(false); // Resetear pausa para que inicie activo
-    console.log(
-      `⏱️ [WORKOUT] Rest timer set to: ${currentExercise.rest_sec}, Phase: rest, Paused: false`
-    );
   }, [currentExercise.rest_sec]);
 
   const handleCompleteSet = async () => {
@@ -845,24 +814,20 @@ export function WorkoutSession({
 
     // Guardar en Supabase
     try {
-      await fetch("/api/logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exerciseName: newLog.exerciseName,
-          setIndex: newLog.setIndex,
-          targetReps: newLog.targetReps,
-          actualReps: newLog.actualReps,
-          weight: newLog.weight,
-          rpe: newLog.rpe,
-          notes: newLog.notes,
-          planDayId: planDay.day,
-          sessionId: sessionId, // ← Agregar session_id único
-          timestamp: new Date().toISOString(),
-        }),
+      await supabaseClient.saveLog({
+        exercise_name: newLog.exerciseName,
+        set_index: newLog.setIndex,
+        target_reps: newLog.targetReps,
+        actual_reps: newLog.actualReps,
+        weight: newLog.weight,
+        rpe: newLog.rpe,
+        notes: newLog.notes,
+        plan_day_id: planDay.day,
+        session_id: sessionId, // ← Agregar session_id único
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error("Error saving log:", error);
+      // Error saving log silently
     }
 
     // Resetear formulario
@@ -870,25 +835,13 @@ export function WorkoutSession({
 
     // Verificar si hay más series
     if (currentSetIndex + 1 < currentExercise.sets) {
-      console.log(
-        `🔄 [WORKOUT] Moving to next set: ${currentSetIndex + 1}/${
-          currentExercise.sets
-        }`
-      );
       setCurrentSetIndex(currentSetIndex + 1);
       handleStartRest();
     } else {
       // Verificar si hay más ejercicios
       if (currentExerciseIndex + 1 < planDay.blocks.length) {
-        console.log(
-          `🏋️ [WORKOUT] Exercise completed! Starting rest before next exercise`
-        );
-
         // Descanso más largo entre ejercicios (90 segundos)
         const betweenExerciseRest = 90;
-        console.log(
-          `🕐 [WORKOUT] Starting between-exercise rest for ${betweenExerciseRest} seconds`
-        );
 
         setTimer(betweenExerciseRest);
         setPhase("rest");
@@ -900,7 +853,7 @@ export function WorkoutSession({
         setCurrentSetIndex(0);
       } else {
         // Entrenamiento completado
-        console.log(`🎉 [WORKOUT] All exercises completed!`);
+
         setPhase("completed");
       }
     }
@@ -971,13 +924,10 @@ export function WorkoutSession({
             onStartRest={handleStartRest}
             onLogChange={setCurrentLog}
             exerciseDetails={(() => {
-              const details = exercisesWithDetails?.[planDay.day]?.find(
-                (ex: any) => ex.block_index === currentExerciseIndex
-              );
-              console.log(
-                `🔍 [WORKOUT] Exercise details for ${currentExercise.name}:`,
-                details
-              );
+              const details = exercisesWithDetails?.exercises?.[
+                planDay.day
+              ]?.find((ex: any) => ex.block_index === currentExerciseIndex);
+
               return details;
             })()}
           />
@@ -995,7 +945,7 @@ export function WorkoutSession({
                     .map((exercise, index) => {
                       const nextExerciseIndex =
                         currentExerciseIndex + 1 + index;
-                      const exerciseDetails = exercisesWithDetails?.[
+                      const exerciseDetails = exercisesWithDetails?.exercises?.[
                         planDay.day
                       ]?.find(
                         (ex: any) => ex.block_index === nextExerciseIndex
@@ -1010,7 +960,10 @@ export function WorkoutSession({
                           {exerciseDetails?.gif_url && (
                             <div className="flex-shrink-0">
                               <img
-                                src={`${EXERCISE_IMAGES_BASE_URL}/${exerciseDetails.gif_url}`}
+                                src={
+                                  buildImageUrl(exerciseDetails.gif_url) ||
+                                  "/placeholder-exercise.svg"
+                                }
                                 alt={exercise.name}
                                 className="w-12 h-12 rounded-lg object-cover border border-border/50"
                                 onError={(e) => {
@@ -1056,9 +1009,9 @@ export function WorkoutSession({
         : planDay.blocks[currentExerciseIndex]; // Si es descanso entre series, el próximo es el mismo
 
       // Obtener los detalles del próximo ejercicio
-      const nextExerciseDetails = exercisesWithDetails?.[planDay.day]?.find(
-        (ex: any) => ex.block_index === currentExerciseIndex
-      );
+      const nextExerciseDetails = exercisesWithDetails?.exercises?.[
+        planDay.day
+      ]?.find((ex: any) => ex.block_index === currentExerciseIndex);
 
       return (
         <RestStep

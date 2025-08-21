@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { supabaseClient } from "@/lib/supabase-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -32,30 +33,29 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Obtener estadísticas básicas
-        const [plansResponse, exercisesResponse] = await Promise.all([
-          fetch("/api/plans"),
-          fetch("/api/exercises/paginated?page=1&limit=1"),
+        console.log("🚀 [DASHBOARD] Starting data fetch...");
+
+        // Obtener estadísticas básicas usando Supabase directo
+        const [plansData, exercisesData] = await Promise.all([
+          supabaseClient.getPlans(),
+          supabaseClient.getExercises(1, 1),
         ]);
 
-        if (plansResponse.ok) {
-          const plansData = await plansResponse.json();
-          setStats((prev) => ({
-            ...prev,
-            totalPlans: plansData.plans?.length || 0,
-            recentPlans: plansData.plans?.slice(0, 3) || [],
-          }));
-        }
+        console.log("📊 [DASHBOARD] Fetched data:", {
+          plansData,
+          exercisesData,
+          plansCount: plansData?.length || 0,
+          exercisesCount: exercisesData?.count || 0,
+        });
 
-        if (exercisesResponse.ok) {
-          const exercisesData = await exercisesResponse.json();
-          setStats((prev) => ({
-            ...prev,
-            totalExercises: exercisesData.count || 0,
-          }));
-        }
+        setStats((prev) => ({
+          ...prev,
+          totalPlans: plansData?.length || 0,
+          recentPlans: plansData?.slice(0, 3) || [],
+          totalExercises: exercisesData?.count || 0,
+        }));
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        console.error("💥 [DASHBOARD] Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }

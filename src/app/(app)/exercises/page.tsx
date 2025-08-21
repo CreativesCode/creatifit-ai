@@ -13,6 +13,7 @@ import { ArrowLeft, Dumbbell, Filter, Search, Target } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { supabaseClient } from "@/lib/supabase-client";
 
 interface Exercise {
   id: string;
@@ -106,55 +107,47 @@ export default function ExercisesPage() {
         setLoading(true);
       }
 
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: "20",
-        ...(searchTerm && { search: searchTerm }),
-        ...(selectedKind && { kind: selectedKind }),
-        ...(selectedEquipment && { equipment: selectedEquipment }),
-      });
+      const data = await supabaseClient.getExercises(
+        page,
+        20,
+        searchTerm || undefined,
+        selectedKind || undefined
+      );
 
-      const response = await fetch(`/api/exercises/paginated?${params}`);
+      console.log("📋 [EXERCISES] Supabase Response:", data);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch exercises");
-      }
-
-      const data = await response.json();
-      console.log("📋 [EXERCISES] API Response:", data);
-
-      if (data.success && data.data) {
+      if (data && data.data) {
         if (append) {
           // Agregar nuevos ejercicios a la lista existente
           setExercises((prev) => {
-            const newExercises = [...prev, ...data.data.exercises];
+            const newExercises = [...prev, ...data.data];
             console.log("🔄 [EXERCISES] Appending exercises:", {
               previousCount: prev.length,
-              newCount: data.data.exercises.length,
+              newCount: data.data.length,
               totalCount: newExercises.length,
             });
             return newExercises;
           });
         } else {
           // Reemplazar toda la lista (nueva búsqueda o filtro)
-          setExercises(data.data.exercises || []);
+          setExercises(data.data || []);
           console.log("🔄 [EXERCISES] Replacing exercises:", {
-            newCount: data.data.exercises?.length || 0,
+            newCount: data.data?.length || 0,
           });
         }
 
-        setHasMore(data.data.pagination.hasNextPage);
+        setHasMore(data.hasMore);
         setCurrentPage(page);
 
         console.log("📊 [EXERCISES] State updated:", {
           page,
-          hasMore: data.data.pagination.hasNextPage,
+          hasMore: data.hasMore,
           totalExercises: append
-            ? exercises.length + data.data.exercises.length
-            : data.data.exercises.length,
+            ? exercises.length + data.data.length
+            : data.data.length,
         });
       } else {
-        throw new Error(data.error || "Error en la respuesta del API");
+        throw new Error("Error en la respuesta de Supabase");
       }
     } catch (err) {
       console.error("Error fetching exercises:", err);
@@ -173,45 +166,38 @@ export default function ExercisesPage() {
     try {
       setLoading(true);
       console.log("🔍 [EXERCISES] Fetching exercise with ID:", id);
-      const response = await fetch(`/api/exercises/${id}`);
+      const exerciseData = await supabaseClient.getExerciseById(id);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch exercise");
-      }
-
-      const data = await response.json();
-      console.log("📥 [EXERCISES] Exercise API response:", data);
-
-      if (data.success && data.data) {
-        setSelectedExercise(data.data);
+      if (exerciseData) {
+        setSelectedExercise(exerciseData);
         console.log(
           "✅ [EXERCISES] Exercise set successfully:",
-          data.data.name
+          exerciseData.name
         );
         console.log(
           "📋 [EXERCISES] Complete exercise data:",
-          JSON.stringify(data.data, null, 2)
+          JSON.stringify(exerciseData, null, 2)
         );
 
         // Debug: Log available fields
-        const availableFields = Object.keys(data.data);
+        const availableFields = Object.keys(exerciseData);
         console.log("🔍 [EXERCISES] Available fields:", availableFields);
 
         // Debug: Log specific fields we're looking for
         console.log("🔍 [EXERCISES] Field analysis:", {
-          hasInstructions: !!data.data.instructions,
-          instructionsType: typeof data.data.instructions,
-          hasTips: !!data.data.tips,
-          tipsLength: data.data.tips?.length,
-          hasBenefits: !!data.data.benefits,
-          benefitsLength: data.data.benefits?.length,
-          hasOverview: !!data.data.overview,
-          hasPrimaryMuscles: !!data.data.muscle_groups_primary,
-          hasSecondaryMuscles: !!data.data.muscle_groups_secondary,
-          hasPrimaryMusclesString: !!data.data.primary_muscles,
+          hasInstructions: !!exerciseData.instructions,
+          instructionsType: typeof exerciseData.instructions,
+          hasTips: !!exerciseData.tips,
+          tipsLength: exerciseData.tips?.length,
+          hasBenefits: !!exerciseData.benefits,
+          benefitsLength: exerciseData.benefits?.length,
+          hasOverview: !!exerciseData.overview,
+          hasPrimaryMuscles: !!exerciseData.muscle_groups_primary,
+          hasSecondaryMuscles: !!exerciseData.muscle_groups_secondary,
+          hasPrimaryMusclesString: !!exerciseData.primary_muscles,
         });
       } else {
-        throw new Error(data.error || "Error en la respuesta del API");
+        throw new Error("Error en la respuesta de Supabase");
       }
     } catch (err) {
       console.error("Error fetching exercise:", err);

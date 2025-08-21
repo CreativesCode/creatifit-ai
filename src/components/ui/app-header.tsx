@@ -13,7 +13,12 @@ export function AppHeader() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => {
+    // Comparar solo la ruta base, ignorando query parameters y trailing slashes
+    const currentPath = pathname.split("?")[0].replace(/\/$/, "");
+    const cleanPath = path.replace(/\/$/, "");
+    return currentPath === cleanPath;
+  };
 
   const navigationItems = [
     { href: "/dashboard", icon: Home, label: t("nav.dashboard") },

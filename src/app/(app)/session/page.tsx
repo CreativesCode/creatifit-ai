@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { WorkoutSession } from "@/components/ui/workout-session";
+import { supabaseClient } from "@/lib/supabase-client";
 import { ArrowLeft, Clock, Target } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -56,14 +57,7 @@ export default function SessionPage() {
   const fetchPlan = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/plans/${id}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch plan");
-      }
-
-      const data = await response.json();
-      const fetchedPlan = data.plan;
+      const fetchedPlan = await supabaseClient.getPlanById(id);
       setPlan(fetchedPlan);
 
       // Si hay un día específico, seleccionarlo

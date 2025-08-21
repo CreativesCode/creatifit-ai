@@ -2,6 +2,7 @@
 import { WorkoutHistory } from "@/components/ui/workout-history";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import { supabaseClient } from "@/lib/supabase-client";
 
 interface WorkoutLog {
   id: string;
@@ -43,12 +44,10 @@ export default function WorkoutHistoryPage() {
   const fetchSessionDetails = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/logs?sessionId=${id}`);
-      const data = await response.json();
+      const logs = await supabaseClient.getLogs(id);
 
-      if (data.success && data.logs.length > 0) {
+      if (logs && logs.length > 0) {
         // Agrupar logs por sesión
-        const logs = data.logs;
         const session: WorkoutSession = {
           id: id,
           planDayId: logs[0].plan_day_id,

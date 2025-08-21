@@ -1,4 +1,5 @@
 "use client";
+import { supabaseClient } from "@/lib/supabase-client";
 import { type GeneratedPlan } from "@/lib/validators/schemas";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -45,18 +46,12 @@ export function PlanDisplay({
     const fetchPlanExercises = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/plans/${planId}/exercises`);
+        const exercisesData = await supabaseClient.getPlanExercises(planId);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch plan exercises");
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-          setExercisesWithDetails(data.exercises);
+        if (exercisesData) {
+          setExercisesWithDetails(exercisesData);
         } else {
-          throw new Error(data.error || "Unknown error");
+          throw new Error("No exercises found");
         }
       } catch (err) {
         console.error("Error fetching plan exercises:", err);
@@ -142,9 +137,9 @@ export function PlanDisplay({
             <div className="space-y-3">
               {day.blocks.map((block, index) => {
                 // Buscar detalles del ejercicio usando block_index y day
-                const exerciseDetails = exercisesWithDetails?.[day.day]?.find(
-                  (ex: any) => ex.block_index === index
-                );
+                const exerciseDetails = exercisesWithDetails?.exercises?.[
+                  day.day
+                ]?.find((ex: any) => ex.block_index === index);
 
                 return (
                   <div

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, TrendingUp, Weight, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { supabaseClient } from "@/lib/supabase-client";
 
 interface WorkoutLog {
   id: string;
@@ -44,14 +45,13 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
 
   const fetchWorkoutHistory = async () => {
     try {
-      const response = await fetch("/api/logs");
-      const data = await response.json();
+      const logs = await supabaseClient.getLogs();
 
-      if (data.success) {
+      if (logs) {
         // Agrupar logs por sesión (plan_day_id + fecha)
         const sessionMap = new Map<string, WorkoutSession>();
 
-        data.logs.forEach((log: WorkoutLog) => {
+        logs.forEach((log: WorkoutLog) => {
           // Usar session_id para agrupar (más preciso que plan_day_id + fecha)
           const sessionKey = log.session_id;
 

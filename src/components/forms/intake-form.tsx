@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { EQUIPMENT_BY_CATEGORY } from "@/lib/constants/equipment";
+import { supabaseClient } from "@/lib/supabase-client";
 import { type GeneratedPlan, type Intake } from "@/lib/validators/schemas";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -115,111 +116,99 @@ export function IntakeForm({
         JSON.stringify(apiData, null, 2)
       );
 
-      // Llamar a la API de generación de planes
-      const response = await fetch("/api/plan/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(apiData),
-      });
+      // Generar plan usando OpenAI directamente
+      console.log("🤖 [INTAKE FORM] Generating plan with OpenAI...");
 
-      console.log("📥 [INTAKE FORM] API response status:", response.status);
+      const { generateFitnessPlan } = await import("@/lib/ai/openai");
+      const generatedPlan = await generateFitnessPlan(apiData);
+
+      console.log("✅ [INTAKE FORM] Plan generated successfully");
       console.log(
-        "📥 [INTAKE FORM] API response headers:",
-        Object.fromEntries(response.headers.entries())
+        "📋 [INTAKE FORM] Generated plan details:",
+        JSON.stringify(generatedPlan, null, 2)
       );
 
-      const result = await response.json();
-      console.log(
-        "📥 [INTAKE FORM] API response body:",
-        JSON.stringify(result, null, 2)
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          result.error || `HTTP ${response.status}: ${response.statusText}`
+      // Validar que el plan tenga la estructura correcta
+      if (
+        !generatedPlan ||
+        !generatedPlan.days ||
+        !Array.isArray(generatedPlan.days)
+      ) {
+        console.error(
+          "❌ [INTAKE FORM] Invalid plan structure:",
+          generatedPlan
         );
+        throw new Error("Plan structure is invalid - missing days array");
       }
 
-      if (result.success) {
-        console.log(
-          "✅ [INTAKE FORM] Plan generated successfully:",
-          result.planId
-        );
-        console.log(
-          "📋 [INTAKE FORM] Generated plan details:",
-          JSON.stringify(result.plan, null, 2)
-        );
-        console.log(
-          "📊 [INTAKE FORM] Metadata:",
-          JSON.stringify(result.metadata, null, 2)
-        );
-
-        // Validar que el plan tenga la estructura correcta
-        if (!result.plan || !result.plan.days || !Array.isArray(result.plan.days)) {
-          console.error("❌ [INTAKE FORM] Invalid plan structure:", result.plan);
-          throw new Error("Plan structure is invalid - missing days array");
+      // Validar que cada día tenga bloques válidos
+      for (let i = 0; i < generatedPlan.days.length; i++) {
+        const day = generatedPlan.days[i];
+        if (!day.blocks || !Array.isArray(day.blocks)) {
+          console.error(`❌ [INTAKE FORM] Day ${i} missing blocks:`, day);
+          throw new Error(`Day ${i} is missing blocks array`);
         }
 
-        // Validar que cada día tenga bloques válidos
-        for (let i = 0; i < result.plan.days.length; i++) {
-          const day = result.plan.days[i];
-          if (!day.blocks || !Array.isArray(day.blocks)) {
-            console.error(`❌ [INTAKE FORM] Day ${i} missing blocks:`, day);
-            throw new Error(`Day ${i} is missing blocks array`);
-          }
-          
-          for (let j = 0; j < day.blocks.length; j++) {
-            const block = day.blocks[j];
-            if (!block || typeof block.sets !== 'number') {
-              console.error(`❌ [INTAKE FORM] Block ${j} in day ${i} invalid:`, block);
-              throw new Error(`Block ${j} in day ${i} has invalid sets property`);
-            }
-          }
-        }
-
-        console.log("✅ [INTAKE FORM] Plan structure validation passed");
-
-        // Guardar el plan en la base de datos
-        console.log("💾 [INTAKE FORM] Saving plan to database...");
-
-        try {
-          const saveResponse = await fetch("/api/plan/save", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              planId: result.planId,
-              plan: result.plan,
-              intakeData: formData,
-            }),
-          });
-
-          const saveResult = await saveResponse.json();
-
-          if (saveResponse.ok && saveResult.success) {
-            console.log("✅ [INTAKE FORM] Plan saved to database successfully");
-            onPlanGenerated(result.planId, result.plan);
-          } else {
+        for (let j = 0; j < day.blocks.length; j++) {
+          const block = day.blocks[j];
+          if (!block || typeof block.sets !== "number") {
             console.error(
-              "❌ [INTAKE FORM] Failed to save plan to database:",
-              saveResult
+              `❌ [INTAKE FORM] Block ${j} in day ${i} invalid:`,
+              block
             );
-            throw new Error("Plan generated but failed to save to database");
+            throw new Error(`Block ${j} in day ${i} has invalid sets property`);
           }
-        } catch (saveError) {
-          console.error(
-            "💥 [INTAKE FORM] Error saving plan to database:",
-            saveError
-          );
-          throw new Error("Plan generated but failed to save to database");
         }
-      } else {
-        throw new Error(
-          result.error || "Error desconocido en la generación del plan"
+      }
+
+      console.log("✅ [INTAKE FORM] Plan structure validation passed");
+
+      // Guardar el plan en la base de datos
+      console.log("💾 [INTAKE FORM] Saving plan to database...");
+
+      try {
+        // Generar un ID único para el plan
+        const planId = crypto.randomUUID();
+
+        const savedPlan = await supabaseClient.savePlan({
+          id: planId,
+          user_id: null, // Temporal: sin autenticación por ahora
+          weeks: formData.weeks || 8,
+          version: 1,
+          source_hash: planId, // Usar el planId como hash por ahora
+          payload: {
+            // Metadatos del plan
+            meta: {
+              name: `Plan de ${formData.objective} - ${formData.level}`,
+              description: `Plan personalizado de ${formData.weeks} semanas para ${formData.objective}`,
+              objective: formData.objective,
+              level: formData.level,
+              gender: formData.gender,
+              age: formData.age,
+              weight_kg: formData.weightKg,
+              height_cm: formData.heightCm,
+              equipment: formData.equipment,
+              steps_day: formData.stepsDay,
+              constraints: formData.constraints || {},
+              created_at: new Date().toISOString(),
+            },
+            // Datos generados del plan
+            ...generatedPlan,
+          },
+        });
+
+        if (savedPlan) {
+          console.log("✅ [INTAKE FORM] Plan saved to database successfully");
+          onPlanGenerated(planId, generatedPlan);
+        } else {
+          throw new Error("Failed to save plan to database");
+        }
+      } catch (saveError) {
+        console.error(
+          "💥 [INTAKE FORM] Error saving plan to database:",
+          saveError
         );
+        throw new Error("Failed to save plan to database");
       }
     } catch (error) {
       console.error("💥 [INTAKE FORM] Error generating plan:", error);

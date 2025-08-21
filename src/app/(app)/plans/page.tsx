@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { supabaseClient } from "@/lib/supabase-client";
 
 interface ExerciseBlock {
   name: string;
@@ -66,14 +67,8 @@ export default function PlansPage() {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/plans");
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch plans");
-      }
-
-      const data = await response.json();
-      setPlans(data.plans || []);
+      const plansData = await supabaseClient.getPlans();
+      setPlans(plansData || []);
     } catch (err) {
       console.error("Error fetching plans:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -85,14 +80,8 @@ export default function PlansPage() {
   const fetchPlan = async (id: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/plans/${id}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch plan");
-      }
-
-      const data = await response.json();
-      setSelectedPlan(data.plan);
+      const planData = await supabaseClient.getPlanById(id);
+      setSelectedPlan(planData);
     } catch (err) {
       console.error("Error fetching plan:", err);
       setError(err instanceof Error ? err.message : "Unknown error");

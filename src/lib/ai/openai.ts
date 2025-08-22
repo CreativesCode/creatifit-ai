@@ -1,13 +1,22 @@
 import OpenAI from "openai";
 import { GeneratedPlanSchema } from "../validators/schemas";
+import { envConfig, logEnvConfigStatus } from "../env-config";
+
+// Log de configuración al importar
+logEnvConfigStatus();
 
 const openai = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+  apiKey: envConfig.OPENAI_API_KEY,
   dangerouslyAllowBrowser: true,
 });
 
 export async function generateFitnessPlan(intake: any): Promise<any> {
   try {
+    // Validar configuración antes de proceder
+    if (!envConfig.OPENAI_API_KEY) {
+      throw new Error("OpenAI API Key no configurada. Verifica que las variables de entorno estén configuradas correctamente.");
+    }
+
     const systemPrompt = `You are an expert fitness coach. Generate a personalized workout plan based on the user's profile.
 
     Return ONLY valid JSON following this exact schema:
@@ -51,7 +60,7 @@ export async function generateFitnessPlan(intake: any): Promise<any> {
     - Daily steps: ${intake.stepsDay || "not specified"}`;
 
     const completion = await openai.chat.completions.create({
-      model: process.env.NEXT_PUBLIC_MODEL_NAME || "gpt-4o-mini",
+      model: envConfig.MODEL_NAME,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -73,6 +82,16 @@ export async function generateFitnessPlan(intake: any): Promise<any> {
     return validatedPlan;
   } catch (error) {
     console.error("Error generating fitness plan:", error);
-    throw new Error("Failed to generate fitness plan");
+    
+    // Mensaje de error más específico para la aplicación móvil
+    if (error instanceof Error) {
+      if (error.message.includes("API Key")) {
+        throw new Error("Configuración de OpenAI incompleta. Verifica que las variables de entorno estén configuradas correctamente.");
+      } else if (error.message.includes("Failed to fetch")) {
+        throw new Error("Error de conexión. Verifica tu conexión a internet.");
+      }
+    }
+    
+    throw new Error("Error al generar el plan de fitness. Por favor, inténtalo de nuevo.");
   }
 }

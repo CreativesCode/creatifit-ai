@@ -1,4 +1,29 @@
 {
+  "auth": {
+    "tagline": "Tus planes de entrenamiento con IA",
+    "signin": "Iniciar sesión",
+    "signup": "Crear cuenta",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "password_hint": "Mínimo 6 caracteres",
+    "processing": "Procesando...",
+    "sending": "Enviando...",
+    "errors": {
+      "required": "Ingresa correo y contraseña",
+      "password_short": "La contraseña debe tener al menos 6 caracteres",
+      "invalid_credentials": "Correo o contraseña incorrectos",
+      "not_confirmed": "Confirma tu correo antes de iniciar sesión",
+      "already_registered": "Este correo ya está registrado",
+      "rate_limit": "Demasiados intentos. Espera un momento e inténtalo de nuevo"
+    },
+    "confirm": {
+      "title": "Revisa tu correo",
+      "body": "Te enviamos un enlace de confirmación a",
+      "then_signin": "Confírmalo y luego inicia sesión.",
+      "resend": "Reenviar correo de confirmación",
+      "back_to_signin": "Volver a iniciar sesión"
+    }
+  },
   "app": {
     "title": "CreatiFit AI",
     "generate": "Generar con IA",
@@ -126,6 +151,12 @@
     "previous": "Anterior"
   },
   "settings": {
+    "account": {
+      "title": "Cuenta",
+      "description": "Gestiona tu sesión",
+      "email": "Correo",
+      "sign_out": "Cerrar sesión"
+    },
     "title": "Configuración",
     "subtitle": "Personaliza tu experiencia en CreatiFit AI",
     "language": {

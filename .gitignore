@@ -15,6 +15,11 @@
 # production
 /build
 
+# capacitor / mobile build artifacts (se generan con `next build`/`npx cap copy` — NO versionar: hornean claves NEXT_PUBLIC_*)
+/mobile-build
+/android/app/src/main/assets/public
+/ios/App/App/public
+
 # misc
 .DS_Store
 *.pem

@@ -1,22 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
-import { supabaseConfig } from "./supabase-config";
-
-// Cliente con clave anónima (con RLS)
-export const supabase = createClient(
-  supabaseConfig.url,
-  supabaseConfig.anonKey
-);
-
-// Cliente temporal con service role (bypass RLS) - solo para testing
-const serviceRoleKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
-export const supabaseAdmin = serviceRoleKey
-  ? createClient(supabaseConfig.url, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : supabase;
+// Reexportamos el cliente único (autenticado vía RLS con el JWT del usuario).
+import { supabase } from "./supabase-config";
+export { supabase };
 
 // Funciones para reemplazar las APIs de Next.js
 export const supabaseClient = {
@@ -61,30 +45,13 @@ export const supabaseClient = {
   // Planes
   async getPlans() {
     try {
-      // Intentar primero con el cliente normal (con RLS)
-      const { data: normalData, error: normalError } = await supabase
+      // RLS devuelve solo los planes del usuario autenticado.
+      const { data, error } = await supabase
         .from("plans")
         .select("*")
         .order("created_at", { ascending: false });
 
-      let data = normalData;
-
-      // Si hay error de permisos, intentar con admin
-      if (normalError && normalError.code === "PGRST116") {
-        if (serviceRoleKey) {
-          const { data: adminData, error: adminError } = await supabaseAdmin
-            .from("plans")
-            .select("*")
-            .order("created_at", { ascending: false });
-
-          if (adminError) throw adminError;
-          data = adminData;
-        } else {
-          throw new Error("No admin access available and RLS denied access");
-        }
-      } else if (normalError) {
-        throw normalError;
-      }
+      if (error) throw error;
 
       // Parsear el payload JSON string a objeto
       const parsedData =
@@ -105,32 +72,14 @@ export const supabaseClient = {
 
   async getPlanById(id: string) {
     try {
-      // Intentar primero con el cliente normal (con RLS)
-      const { data: normalData, error: normalError } = await supabase
+      // RLS asegura que solo el dueño pueda leer su plan.
+      const { data, error } = await supabase
         .from("plans")
         .select("*")
         .eq("id", id)
         .single();
 
-      let data = normalData;
-
-      // Si hay error de permisos, intentar con admin
-      if (normalError && normalError.code === "PGRST116") {
-        if (serviceRoleKey) {
-          const { data: adminData, error: adminError } = await supabaseAdmin
-            .from("plans")
-            .select("*")
-            .eq("id", id)
-            .single();
-
-          if (adminError) throw adminError;
-          data = adminData;
-        } else {
-          throw new Error("No admin access available and RLS denied access");
-        }
-      } else if (normalError) {
-        throw normalError;
-      }
+      if (error) throw error;
 
       // Parsear el payload JSON string a objeto
       const parsedData = data
@@ -204,7 +153,7 @@ export const supabaseClient = {
   },
 
   async savePlan(planData: any) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from("plans")
       .insert([planData])
       .select()
@@ -237,7 +186,7 @@ export const supabaseClient = {
         });
 
         // Llamar a la función RPC insert_plan_exercises
-        const { error: insertError } = await supabaseAdmin.rpc(
+        const { error: insertError } = await supabase.rpc(
           "insert_plan_exercises",
           {
             p_plan_id: data.id,
@@ -258,7 +207,7 @@ export const supabaseClient = {
 
   // Logs
   async getLogs(sessionId?: string) {
-    let query = supabaseAdmin
+    let query = supabase
       .from("workout_logs")
       .select("*")
       .order("created_at", { ascending: false });
@@ -274,7 +223,7 @@ export const supabaseClient = {
   },
 
   async saveLog(logData: any) {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from("workout_logs")
       .insert([logData])
       .select()

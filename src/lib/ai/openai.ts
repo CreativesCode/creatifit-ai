@@ -1,97 +1,41 @@
-import OpenAI from "openai";
 import { GeneratedPlanSchema } from "../validators/schemas";
-import { envConfig, logEnvConfigStatus } from "../env-config";
+import { supabase } from "../supabase-config";
 
-// Log de configuración al importar
-logEnvConfigStatus();
-
-const openai = new OpenAI({
-  apiKey: envConfig.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
-
+// Genera el plan de fitness llamando a la Edge Function `generate-plan`.
+//
+// La API key de OpenAI vive como secret en el servidor (Supabase Edge Function),
+// nunca en el cliente. Esto evita exponerla en el bundle web o en el .apk.
 export async function generateFitnessPlan(intake: any): Promise<any> {
   try {
-    // Validar configuración antes de proceder
-    if (!envConfig.OPENAI_API_KEY) {
-      throw new Error("OpenAI API Key no configurada. Verifica que las variables de entorno estén configuradas correctamente.");
-    }
-
-    const systemPrompt = `You are an expert fitness coach. Generate a personalized workout plan based on the user's profile.
-
-    Return ONLY valid JSON following this exact schema:
-    {
-      "weeks": number,
-      "days": [
-        {
-          "day": "A|B|C|D",
-          "focus": "string describing the focus",
-          "blocks": [
-            {
-              "name": "exercise name",
-              "sets": number,
-              "reps": [min_reps, max_reps],
-              "rest_sec": number,
-              "cues": ["cue1", "cue2"]
-            }
-          ]
-        }
-      ]
-    }
-
-    Guidelines:
-    - Create a balanced plan with push/pull/squat/hinge/core movements
-    - Adjust difficulty based on user level
-    - Use available equipment only
-    - Respect any constraints (no jumps, etc.)
-    - Rest periods: 30-120 seconds based on intensity
-    - Rep ranges: 8-15 for hypertrophy, 3-8 for strength, 15+ for endurance
-    - Include 3-6 exercises per day
-    - Rotate between A/B/C/D days for variety`;
-
-    const userPrompt = `Generate a ${intake.weeks}-week fitness plan for:
-    - Objective: ${intake.objective}
-    - Level: ${intake.level}
-    - Age: ${intake.age}
-    - Weight: ${intake.weightKg}kg
-    - Height: ${intake.heightCm}cm
-    - Equipment: ${JSON.stringify(intake.equipment)}
-    - Constraints: ${JSON.stringify(intake.constraints || {})}
-    - Daily steps: ${intake.stepsDay || "not specified"}`;
-
-    const completion = await openai.chat.completions.create({
-      model: envConfig.MODEL_NAME,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
+    const { data, error } = await supabase.functions.invoke("generate-plan", {
+      body: intake,
     });
 
-    const responseText = completion.choices[0]?.message?.content;
-    if (!responseText) {
-      throw new Error("No response from OpenAI");
+    if (error) {
+      console.error("Error invoking generate-plan function:", error);
+      throw new Error("Error de conexión al generar el plan. Inténtalo de nuevo.");
     }
 
-    const plan = JSON.parse(responseText);
+    if (!data?.plan) {
+      throw new Error("No se recibió un plan válido del servidor.");
+    }
 
-    // Validar con Zod
-    const validatedPlan = GeneratedPlanSchema.parse(plan);
-
+    // Validar la estructura con Zod
+    const validatedPlan = GeneratedPlanSchema.parse(data.plan);
     return validatedPlan;
   } catch (error) {
     console.error("Error generating fitness plan:", error);
-    
-    // Mensaje de error más específico para la aplicación móvil
+
     if (error instanceof Error) {
-      if (error.message.includes("API Key")) {
-        throw new Error("Configuración de OpenAI incompleta. Verifica que las variables de entorno estén configuradas correctamente.");
-      } else if (error.message.includes("Failed to fetch")) {
+      if (error.message.includes("Failed to fetch")) {
         throw new Error("Error de conexión. Verifica tu conexión a internet.");
       }
+      // Re-lanzar mensajes ya legibles
+      if (error.message.startsWith("Error") || error.message.startsWith("No se")) {
+        throw error;
+      }
     }
-    
+
     throw new Error("Error al generar el plan de fitness. Por favor, inténtalo de nuevo.");
   }
 }

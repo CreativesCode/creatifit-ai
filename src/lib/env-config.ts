@@ -2,10 +2,9 @@
 // Esto asegura que las variables estén disponibles en la aplicación móvil
 
 export const envConfig = {
-  // OpenAI
-  OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
-  MODEL_NAME: process.env.NEXT_PUBLIC_MODEL_NAME || 'gpt-4o-mini',
-  
+  // OpenAI: la API key NO vive en el cliente. La generación de planes se hace
+  // desde la Edge Function `generate-plan`, que tiene OPENAI_API_KEY como secret.
+
   // Supabase
   SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
@@ -34,11 +33,7 @@ export const getEnvConfig = () => {
 export const validateEnvConfig = (): { isValid: boolean; errors: string[] } => {
   const config = getEnvConfig();
   const errors: string[] = [];
-  
-  if (!config.OPENAI_API_KEY) {
-    errors.push('OpenAI API Key no configurada');
-  }
-  
+
   if (!config.SUPABASE_URL) {
     errors.push('Supabase URL no configurada');
   }
@@ -61,8 +56,6 @@ export const logEnvConfigStatus = (): void => {
   console.log('🔧 [ENV CONFIG] Environment configuration status:');
   console.log('Environment:', config.IS_DEVELOPMENT ? 'Development' : 'Production');
   console.log('Mobile App:', config.IS_MOBILE ? 'Yes' : 'No');
-  console.log('OpenAI API Key:', config.OPENAI_API_KEY ? '✅ Configurada' : '❌ No configurada');
-  console.log('Model Name:', config.MODEL_NAME);
   console.log('Supabase URL:', config.SUPABASE_URL ? '✅ Configurada' : '❌ No configurada');
   console.log('Supabase Anon Key:', config.SUPABASE_ANON_KEY ? '✅ Configurada' : '❌ No configurada');
   console.log('Supabase Service Role Key:', config.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurada' : '❌ No configurada');

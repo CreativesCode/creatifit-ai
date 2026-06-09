@@ -1,4 +1,29 @@
 {
+  "auth": {
+    "tagline": "Your AI-powered workout plans",
+    "signin": "Sign in",
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "password_hint": "At least 6 characters",
+    "processing": "Processing...",
+    "sending": "Sending...",
+    "errors": {
+      "required": "Enter email and password",
+      "password_short": "Password must be at least 6 characters",
+      "invalid_credentials": "Invalid email or password",
+      "not_confirmed": "Confirm your email before signing in",
+      "already_registered": "This email is already registered",
+      "rate_limit": "Too many attempts. Please wait and try again"
+    },
+    "confirm": {
+      "title": "Check your email",
+      "body": "We sent a confirmation link to",
+      "then_signin": "Confirm it and then sign in.",
+      "resend": "Resend confirmation email",
+      "back_to_signin": "Back to sign in"
+    }
+  },
   "app": {
     "title": "CreatiFit AI",
     "generate": "Generate with AI",
@@ -126,6 +151,12 @@
     "previous": "Previous"
   },
   "settings": {
+    "account": {
+      "title": "Account",
+      "description": "Manage your session",
+      "email": "Email",
+      "sign_out": "Sign out"
+    },
     "title": "Settings",
     "subtitle": "Customize your CreatiFit AI experience",
     "language": {

@@ -6,6 +6,7 @@ import { supabaseClient } from "@/lib/supabase-client";
 import { type GeneratedPlan, type Intake } from "@/lib/validators/schemas";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth/auth-context";
 
 interface IntakeFormProps {
   onPlanGenerated: (planId: string, plan: GeneratedPlan) => void;
@@ -19,6 +20,7 @@ export function IntakeForm({
   setIsGenerating,
 }: IntakeFormProps) {
   const { t } = useTranslation("common");
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState<Partial<Intake>>({
     objective: "general_health",
@@ -172,7 +174,7 @@ export function IntakeForm({
 
         const savedPlan = await supabaseClient.savePlan({
           id: planId,
-          user_id: null, // Temporal: sin autenticación por ahora
+          user_id: user?.id ?? null, // Usuario autenticado (RLS)
           weeks: formData.weeks || 8,
           version: 1,
           source_hash: planId, // Usar el planId como hash por ahora

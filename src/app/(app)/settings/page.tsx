@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -7,10 +9,13 @@ import {
 } from "@/components/ui/card";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth/auth-context";
 
 export default function SettingsPage() {
   const { t } = useTranslation("common");
+  const { user, signOut } = useAuth();
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -20,6 +25,23 @@ export default function SettingsPage() {
         </h1>
         <p className="text-muted">{t("settings.subtitle")}</p>
       </div>
+
+      {/* Cuenta */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.account.title")}</CardTitle>
+          <CardDescription>{t("settings.account.description")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted">{t("settings.account.email")}</span>
+            <span className="text-sm font-medium">{user?.email}</span>
+          </div>
+          <Button onClick={signOut} variant="outline" className="w-full">
+            {t("settings.account.sign_out")}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Preferencias de Idioma */}
       <Card>

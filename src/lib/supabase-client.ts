@@ -175,6 +175,9 @@ export const supabaseClient = {
           day.blocks.forEach((block: any, blockIndex: number) => {
             exercises.push({
               name: block.name,
+              // id real resuelto por la Edge Function; la RPC lo usa directamente
+              // y solo cae al matching por nombre si falta.
+              exercise_id: block.exercise_id ?? null,
               day: dayLetter,
               block_index: blockIndex,
               sets: block.sets,

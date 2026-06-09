@@ -121,6 +121,10 @@ export const GeneratedPlanSchema = z.object({
       blocks: z.array(
         z.object({
           name: z.string(),
+          // id real del ejercicio en la BD, resuelto por la Edge Function a partir
+          // del `ref` que devuelve el modelo. Permite enlazar GIF/músculos sin
+          // depender del frágil matching por nombre.
+          exercise_id: z.string().uuid().optional(),
           sets: z.number(),
           reps: z.array(z.number()).length(2), // [min, max]
           rest_sec: z.number(),

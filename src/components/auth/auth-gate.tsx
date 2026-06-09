@@ -1,22 +1,21 @@
 "use client";
 
+import { PageLoader } from "@/components/ui/loader";
 import { useAuth } from "@/lib/auth/auth-context";
-import { AuthScreen } from "./auth-screen";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-// Protege las rutas de la app: si no hay sesión, muestra la pantalla de login.
+// Protege las rutas de la app: si no hay sesión, redirige a /login.
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
+  const router = useRouter();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center safe-top safe-bottom">
-        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!loading && !session) router.replace("/login");
+  }, [loading, session, router]);
 
-  if (!session) {
-    return <AuthScreen />;
+  if (loading || !session) {
+    return <PageLoader full />;
   }
 
   return <>{children}</>;

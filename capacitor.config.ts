@@ -11,10 +11,11 @@ const config: CapacitorConfig = {
     // Configuración para inyectar variables de entorno
     SplashScreen: {
       launchShowDuration: 0,
+      backgroundColor: "#08060F",
     },
     StatusBar: {
       style: "dark",
-      backgroundColor: "#7c3aed",
+      backgroundColor: "#08060F",
       overlaysWebView: false,
     },
     SafeArea: {

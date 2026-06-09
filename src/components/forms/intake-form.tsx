@@ -1,18 +1,54 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { EQUIPMENT_BY_CATEGORY } from "@/lib/constants/equipment";
+import { useAuth } from "@/lib/auth/auth-context";
 import { supabaseClient } from "@/lib/supabase-client";
 import { type GeneratedPlan, type Intake } from "@/lib/validators/schemas";
+import {
+  Activity,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Dumbbell,
+  Flame,
+  Heart,
+  HeartPulse,
+  Move,
+  Repeat,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Trophy,
+  Zap,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/lib/auth/auth-context";
 
 interface IntakeFormProps {
   onPlanGenerated: (planId: string, plan: GeneratedPlan) => void;
   isGenerating: boolean;
   setIsGenerating: (value: boolean) => void;
 }
+
+const OBJECTIVE_ICONS: Record<string, LucideIcon> = {
+  fat_loss: Flame,
+  muscle_gain: Dumbbell,
+  body_recomposition: Repeat,
+  strength: ShieldCheck,
+  power: Zap,
+  endurance: Activity,
+  mobility: Move,
+  rehabilitation: HeartPulse,
+  sports_performance: Trophy,
+  functional_fitness: Target,
+  general_health: Heart,
+};
+
+const OBJECTIVES = Object.keys(OBJECTIVE_ICONS);
+const LEVELS = ["beginner", "intermediate", "advanced"] as const;
+const GENDERS = ["male", "female", "other"] as const;
+const TOTAL_STEPS = 5;
 
 export function IntakeForm({
   onPlanGenerated,
@@ -22,6 +58,7 @@ export function IntakeForm({
   const { t } = useTranslation("common");
   const { user } = useAuth();
 
+  const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<Partial<Intake>>({
     objective: "general_health",
     level: "beginner",
@@ -33,69 +70,48 @@ export function IntakeForm({
     stepsDay: 8000,
     weeks: 8,
   });
-
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleInputChange = (field: keyof Intake, value: any) => {
+  const set = (field: keyof Intake, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  const handleEquipmentChange = (equipment: string, checked: boolean) => {
+  const toggleEquipment = (key: string) => {
     setFormData((prev) => ({
       ...prev,
       equipment: {
         ...prev.equipment,
-        [equipment]: checked,
+        [key]: !prev.equipment?.[key as keyof typeof prev.equipment],
       },
     }));
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.objective) newErrors.objective = t("validation.required");
-    if (!formData.level) newErrors.level = t("validation.required");
-    if (!formData.gender) newErrors.gender = t("validation.required");
-    if (!formData.age || formData.age < 16 || formData.age > 80) {
-      newErrors.age = t("validation.age_range");
-    }
-    if (
-      !formData.weightKg ||
-      formData.weightKg < 30 ||
-      formData.weightKg > 200
-    ) {
-      newErrors.weightKg = t("validation.weight_range");
-    }
-    if (
-      !formData.heightCm ||
-      formData.heightCm < 120 ||
-      formData.heightCm > 250
-    ) {
-      newErrors.heightCm = t("validation.height_range");
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validateMeasures = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!formData.age || formData.age < 16 || formData.age > 80)
+      e.age = t("validation.age_range");
+    if (!formData.weightKg || formData.weightKg < 30 || formData.weightKg > 200)
+      e.weightKg = t("validation.weight_range");
+    if (!formData.heightCm || formData.heightCm < 120 || formData.heightCm > 250)
+      e.heightCm = t("validation.height_range");
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const next = () => {
+    if (step === 2 && !validateMeasures()) return;
+    if (step < TOTAL_STEPS - 1) setStep(step + 1);
+  };
+  const back = () => step > 0 && setStep(step - 1);
 
-    if (!validateForm()) return;
-
+  const handleSubmit = async () => {
+    if (!validateMeasures()) {
+      setStep(2);
+      return;
+    }
     setIsGenerating(true);
-
     try {
-      console.log(
-        "🚀 [INTAKE FORM] Starting plan generation with data:",
-        JSON.stringify(formData, null, 2)
-      );
-
-      // Preparar datos para la API
       const apiData = {
         weeks: formData.weeks || 8,
         objective: formData.objective,
@@ -106,112 +122,56 @@ export function IntakeForm({
         heightCm: formData.heightCm,
         equipment: formData.equipment,
         stepsDay: formData.stepsDay,
-        constraints: {
-          jumps: false, // Por defecto
-          high_impact: false,
-          heavy_lifting: false,
-        },
+        constraints: { jumps: false, high_impact: false, heavy_lifting: false },
       };
-
-      console.log(
-        "📤 [INTAKE FORM] Sending data to API:",
-        JSON.stringify(apiData, null, 2)
-      );
-
-      // Generar plan usando OpenAI directamente
-      console.log("🤖 [INTAKE FORM] Generating plan with OpenAI...");
 
       const { generateFitnessPlan } = await import("@/lib/ai/openai");
       const generatedPlan = await generateFitnessPlan(apiData);
 
-      console.log("✅ [INTAKE FORM] Plan generated successfully");
-      console.log(
-        "📋 [INTAKE FORM] Generated plan details:",
-        JSON.stringify(generatedPlan, null, 2)
-      );
-
-      // Validar que el plan tenga la estructura correcta
-      if (
-        !generatedPlan ||
-        !generatedPlan.days ||
-        !Array.isArray(generatedPlan.days)
-      ) {
-        console.error(
-          "❌ [INTAKE FORM] Invalid plan structure:",
-          generatedPlan
-        );
+      if (!generatedPlan || !generatedPlan.days || !Array.isArray(generatedPlan.days)) {
         throw new Error("Plan structure is invalid - missing days array");
       }
-
-      // Validar que cada día tenga bloques válidos
       for (let i = 0; i < generatedPlan.days.length; i++) {
         const day = generatedPlan.days[i];
         if (!day.blocks || !Array.isArray(day.blocks)) {
-          console.error(`❌ [INTAKE FORM] Day ${i} missing blocks:`, day);
           throw new Error(`Day ${i} is missing blocks array`);
         }
-
         for (let j = 0; j < day.blocks.length; j++) {
           const block = day.blocks[j];
           if (!block || typeof block.sets !== "number") {
-            console.error(
-              `❌ [INTAKE FORM] Block ${j} in day ${i} invalid:`,
-              block
-            );
             throw new Error(`Block ${j} in day ${i} has invalid sets property`);
           }
         }
       }
 
-      console.log("✅ [INTAKE FORM] Plan structure validation passed");
-
-      // Guardar el plan en la base de datos
-      console.log("💾 [INTAKE FORM] Saving plan to database...");
-
-      try {
-        // Generar un ID único para el plan
-        const planId = crypto.randomUUID();
-
-        const savedPlan = await supabaseClient.savePlan({
-          id: planId,
-          user_id: user?.id ?? null, // Usuario autenticado (RLS)
-          weeks: formData.weeks || 8,
-          version: 1,
-          source_hash: planId, // Usar el planId como hash por ahora
-          payload: {
-            // Metadatos del plan
-            meta: {
-              name: `Plan de ${formData.objective} - ${formData.level}`,
-              description: `Plan personalizado de ${formData.weeks} semanas para ${formData.objective}`,
-              objective: formData.objective,
-              level: formData.level,
-              gender: formData.gender,
-              age: formData.age,
-              weight_kg: formData.weightKg,
-              height_cm: formData.heightCm,
-              equipment: formData.equipment,
-              steps_day: formData.stepsDay,
-              constraints: formData.constraints || {},
-              created_at: new Date().toISOString(),
-            },
-            // Datos generados del plan
-            ...generatedPlan,
+      const planId = crypto.randomUUID();
+      const savedPlan = await supabaseClient.savePlan({
+        id: planId,
+        user_id: user?.id ?? null,
+        weeks: formData.weeks || 8,
+        version: 1,
+        source_hash: planId,
+        payload: {
+          meta: {
+            name: `Plan de ${formData.objective} - ${formData.level}`,
+            description: `Plan personalizado de ${formData.weeks} semanas para ${formData.objective}`,
+            objective: formData.objective,
+            level: formData.level,
+            gender: formData.gender,
+            age: formData.age,
+            weight_kg: formData.weightKg,
+            height_cm: formData.heightCm,
+            equipment: formData.equipment,
+            steps_day: formData.stepsDay,
+            constraints: formData.constraints || {},
+            created_at: new Date().toISOString(),
           },
-        });
+          ...generatedPlan,
+        },
+      });
 
-        if (savedPlan) {
-          console.log("✅ [INTAKE FORM] Plan saved to database successfully");
-          onPlanGenerated(planId, generatedPlan);
-        } else {
-          throw new Error("Failed to save plan to database");
-        }
-      } catch (saveError) {
-        console.error(
-          "💥 [INTAKE FORM] Error saving plan to database:",
-          saveError
-        );
-        throw new Error("Failed to save plan to database");
-      }
+      if (savedPlan) onPlanGenerated(planId, generatedPlan);
+      else throw new Error("Failed to save plan to database");
     } catch (error) {
       console.error("💥 [INTAKE FORM] Error generating plan:", error);
       setErrors({ submit: t("validation.submit_error") });
@@ -220,344 +180,286 @@ export function IntakeForm({
     }
   };
 
+  const allEquipment = [
+    ...EQUIPMENT_BY_CATEGORY.basic,
+    ...EQUIPMENT_BY_CATEGORY.resistance,
+    ...EQUIPMENT_BY_CATEGORY.weight,
+    ...EQUIPMENT_BY_CATEGORY.specialized,
+  ];
+
+  const stepEyebrow = [
+    t("onboarding.objective.label"),
+    t("onboarding.level.label"),
+    t("onboarding.personal.age"),
+    t("onboarding.equipment.label"),
+    t("onboarding.weeks.label"),
+  ][step];
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Objective */}
-      <div>
-        <label className="block text-sm font-medium text-txt mb-2">
-          {t("onboarding.objective.label")}
-        </label>
-        <select
-          value={formData.objective}
-          onChange={(e) => handleInputChange("objective", e.target.value)}
-          className="w-full p-3 border border-border rounded-lg bg-bg text-txt focus:ring-2 focus:ring-primary focus:border-transparent"
+    <div className="container mx-auto max-w-xl px-5 pt-2 pb-32">
+      {/* progress header */}
+      <div className="flex items-center gap-3 mb-5">
+        <button
+          onClick={back}
+          disabled={step === 0}
+          className="cf-icon-tile bg-surface-2 border border-border"
+          style={{ width: 40, height: 40, opacity: step === 0 ? 0.4 : 1 }}
+          aria-label="Atrás"
         >
-          <option value="fat_loss">{t("onboarding.objective.fat_loss")}</option>
-          <option value="muscle_gain">
-            {t("onboarding.objective.muscle_gain")}
-          </option>
-          <option value="body_recomposition">
-            {t("onboarding.objective.body_recomposition")}
-          </option>
-          <option value="strength">{t("onboarding.objective.strength")}</option>
-          <option value="power">{t("onboarding.objective.power")}</option>
-          <option value="endurance">
-            {t("onboarding.objective.endurance")}
-          </option>
-          <option value="mobility">{t("onboarding.objective.mobility")}</option>
-          <option value="rehabilitation">
-            {t("onboarding.objective.rehabilitation")}
-          </option>
-          <option value="sports_performance">
-            {t("onboarding.objective.sports_performance")}
-          </option>
-          <option value="functional_fitness">
-            {t("onboarding.objective.functional_fitness")}
-          </option>
-          <option value="general_health">
-            {t("onboarding.objective.general_health")}
-          </option>
-        </select>
-        {errors.objective && (
-          <p className="text-danger text-sm mt-1">{errors.objective}</p>
-        )}
-      </div>
-
-      {/* Level */}
-      <div>
-        <label className="block text-sm font-medium text-txt mb-2">
-          {t("onboarding.level.label")}
-        </label>
-        <select
-          value={formData.level}
-          onChange={(e) => handleInputChange("level", e.target.value)}
-          className="w-full p-3 border border-border rounded-lg bg-bg text-txt focus:ring-2 focus:ring-primary focus:border-transparent"
-        >
-          <option value="beginner">{t("onboarding.level.beginner")}</option>
-          <option value="intermediate">
-            {t("onboarding.level.intermediate")}
-          </option>
-          <option value="advanced">{t("onboarding.level.advanced")}</option>
-        </select>
-        {errors.level && (
-          <p className="text-danger text-sm mt-1">{errors.level}</p>
-        )}
-      </div>
-
-      {/* Gender */}
-      <div>
-        <label className="block text-sm font-medium text-txt mb-2">
-          {t("onboarding.personal.gender")}
-        </label>
-        <select
-          value={formData.gender || "other"}
-          onChange={(e) => handleInputChange("gender", e.target.value)}
-          className="w-full p-3 border border-border rounded-lg bg-bg text-txt focus:ring-2 focus:ring-primary focus:border-transparent"
-        >
-          <option value="male">{t("onboarding.personal.gender_male")}</option>
-          <option value="female">
-            {t("onboarding.personal.gender_female")}
-          </option>
-          <option value="other">{t("onboarding.personal.gender_other")}</option>
-        </select>
-        {errors.gender && (
-          <p className="text-danger text-sm mt-1">{errors.gender}</p>
-        )}
-      </div>
-
-      {/* Age, Weight, Height */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-txt mb-2">
-            {t("onboarding.personal.age")}
-          </label>
-          <input
-            type="number"
-            value={formData.age}
-            onChange={(e) => handleInputChange("age", parseInt(e.target.value))}
-            className="w-full p-3 border border-border rounded-lg bg-bg text-txt focus:ring-2 focus:ring-primary focus:border-transparent"
-            min="16"
-            max="80"
-          />
-          {errors.age && (
-            <p className="text-danger text-sm mt-1">{errors.age}</p>
-          )}
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex-1">
+          <div className="cf-bar-track">
+            <div className="cf-bar-fill" style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }} />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-txt mb-2">
-            {t("onboarding.personal.weight")}
-          </label>
-          <input
-            type="number"
-            value={formData.weightKg}
-            onChange={(e) =>
-              handleInputChange("weightKg", parseFloat(e.target.value))
-            }
-            className="w-full p-3 border border-border rounded-lg bg-bg text-txt focus:ring-2 focus:ring-primary focus:border-transparent"
-            min="30"
-            max="200"
-            step="0.1"
-          />
-          {errors.weightKg && (
-            <p className="text-danger text-sm mt-1">{errors.weightKg}</p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-txt mb-2">
-            {t("onboarding.personal.height")}
-          </label>
-          <input
-            type="number"
-            value={formData.heightCm}
-            onChange={(e) =>
-              handleInputChange("heightCm", parseInt(e.target.value))
-            }
-            className="w-full p-3 border border-border rounded-lg bg-bg text-txt focus:ring-2 focus:ring-primary focus:border-transparent"
-            min="120"
-            max="250"
-          />
-          {errors.heightCm && (
-            <p className="text-danger text-sm mt-1">{errors.heightCm}</p>
-          )}
-        </div>
+        <span className="cf-muted text-[12px] font-bold">
+          {step + 1}/{TOTAL_STEPS}
+        </span>
       </div>
 
-      {/* Equipment */}
-      <div>
-        <label className="block text-sm font-medium text-txt mb-3">
-          {t("onboarding.equipment.label")}
-        </label>
+      <span className="cf-chip cf-chip-brand">
+        <Sparkles size={12} fill="currentColor" />
+        {t("onboarding.title", "Plan con IA")}
+      </span>
+      <div className="cf-h1 text-[26px] mt-3.5 mb-1.5">{stepEyebrow}</div>
 
-        {/* Basic Equipment */}
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-muted mb-2">
-            {t("onboarding.equipment.categories.basic")}
-          </h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {EQUIPMENT_BY_CATEGORY.basic.map(({ key, label, description }) => (
-              <label
-                key={key}
-                className="flex items-center space-x-2 group cursor-pointer"
+      {/* STEP 0 · Objetivo */}
+      {step === 0 && (
+        <div className="flex flex-col gap-3 mt-5">
+          {OBJECTIVES.map((obj) => {
+            const Icon = OBJECTIVE_ICONS[obj];
+            const on = formData.objective === obj;
+            return (
+              <button
+                key={obj}
+                onClick={() => set("objective", obj)}
+                className="cf-card flex items-center gap-3.5 text-left"
+                style={{
+                  padding: "15px 16px",
+                  borderRadius: 18,
+                  border: on ? "1.5px solid var(--primary)" : "1px solid var(--border)",
+                  boxShadow: on ? "var(--glow-brand)" : "var(--shadow-card)",
+                }}
               >
-                <input
-                  type="checkbox"
-                  checked={
-                    !!formData.equipment?.[
-                      key as keyof typeof formData.equipment
-                    ]
-                  }
-                  onChange={(e) => handleEquipmentChange(key, e.target.checked)}
-                  className="rounded border-border text-primary focus:ring-primary"
-                />
-                <div className="flex flex-col">
-                  <span className="text-sm text-txt font-medium">{label}</span>
-                  <span className="text-xs text-muted group-hover:text-txt transition-colors">
-                    {description}
-                  </span>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Resistance Equipment */}
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-muted mb-2">
-            {t("onboarding.equipment.categories.resistance")}
-          </h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {EQUIPMENT_BY_CATEGORY.resistance.map(
-              ({ key, label, description }) => (
-                <label
-                  key={key}
-                  className="flex items-center space-x-2 group cursor-pointer"
+                <div
+                  className="cf-icon-tile"
+                  style={{
+                    background: on ? "var(--grad-brand)" : "var(--surface-2)",
+                    color: on ? "#fff" : "var(--muted)",
+                  }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={
-                      !!formData.equipment?.[
-                        key as keyof typeof formData.equipment
-                      ]
-                    }
-                    onChange={(e) =>
-                      handleEquipmentChange(key, e.target.checked)
-                    }
-                    className="rounded border-border text-primary focus:ring-primary"
-                  />
-                  <div className="flex flex-col">
-                    <span className="text-sm text-txt font-medium">
-                      {label}
-                    </span>
-                    <span className="text-xs text-muted group-hover:text-txt transition-colors">
-                      {description}
-                    </span>
-                  </div>
-                </label>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Weight Equipment */}
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-muted mb-2">
-            {t("onboarding.equipment.categories.weight")}
-          </h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {EQUIPMENT_BY_CATEGORY.weight.map(({ key, label, description }) => (
-              <label
-                key={key}
-                className="flex items-center space-x-2 group cursor-pointer"
-              >
-                <input
-                  type="checkbox"
-                  checked={
-                    !!formData.equipment?.[
-                      key as keyof typeof formData.equipment
-                    ]
-                  }
-                  onChange={(e) => handleEquipmentChange(key, e.target.checked)}
-                  className="rounded border-border text-primary focus:ring-primary"
-                />
-                <div className="flex flex-col">
-                  <span className="text-sm text-txt font-medium">{label}</span>
-                  <span className="text-xs text-muted group-hover:text-txt transition-colors">
-                    {description}
-                  </span>
+                  <Icon size={21} />
                 </div>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Specialized Equipment */}
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-muted mb-2">
-            {t("onboarding.equipment.categories.specialized")}
-          </h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {EQUIPMENT_BY_CATEGORY.specialized.map(
-              ({ key, label, description }) => (
-                <label
-                  key={key}
-                  className="flex items-center space-x-2 group cursor-pointer"
+                <div className="flex-1 font-bold text-[15px]">
+                  {t(`onboarding.objective.${obj}`)}
+                </div>
+                <div
+                  className="flex items-center justify-center rounded-full"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    border: on ? "none" : "2px solid var(--border-2)",
+                    background: on ? "var(--grad-brand)" : "transparent",
+                  }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={
-                      !!formData.equipment?.[
-                        key as keyof typeof formData.equipment
-                      ]
-                    }
-                    onChange={(e) =>
-                      handleEquipmentChange(key, e.target.checked)
-                    }
-                    className="rounded border-border text-primary focus:ring-primary"
-                  />
-                  <div className="flex flex-col">
-                    <span className="text-sm text-txt font-medium">
-                      {label}
-                    </span>
-                    <span className="text-xs text-muted group-hover:text-txt transition-colors">
-                      {description}
-                    </span>
-                  </div>
-                </label>
-              )
-            )}
-          </div>
+                  {on && <Check size={13} color="#fff" strokeWidth={3} />}
+                </div>
+              </button>
+            );
+          })}
         </div>
-      </div>
-
-      {/* Plan Duration */}
-      <div>
-        <label className="block text-sm font-medium text-txt mb-2">
-          {t("onboarding.weeks.label")}
-        </label>
-        <select
-          value={formData.weeks || 8}
-          onChange={(e) => handleInputChange("weeks", parseInt(e.target.value))}
-          className="w-full p-3 border border-border rounded-lg bg-bg text-txt focus:ring-2 focus:ring-primary focus:border-transparent"
-        >
-          <option value={6}>6 {t("plan.weeks")}</option>
-          <option value={8}>8 {t("plan.weeks")}</option>
-          <option value={10}>10 {t("plan.weeks")}</option>
-          <option value={12}>12 {t("plan.weeks")}</option>
-        </select>
-      </div>
-
-      {/* Daily Steps */}
-      <div>
-        <label className="block text-sm font-medium text-txt mb-2">
-          {t("onboarding.steps.label")}
-        </label>
-        <input
-          type="number"
-          value={formData.stepsDay}
-          onChange={(e) =>
-            handleInputChange("stepsDay", parseInt(e.target.value))
-          }
-          className="w-full p-3 border border-border rounded-lg bg-bg text-txt focus:ring-2 focus:ring-primary focus:border-transparent"
-          min="1000"
-          max="20000"
-          step="1000"
-        />
-      </div>
-
-      {/* Submit Error */}
-      {errors.submit && (
-        <p className="text-danger text-sm text-center">{errors.submit}</p>
       )}
 
-      {/* Submit Button */}
-      <Button
-        type="submit"
-        disabled={isGenerating}
-        className="w-full bg-primary hover:bg-primary/90 text-white shadow-glow"
-        size="lg"
-      >
-        {isGenerating ? t("onboarding.generating") : t("onboarding.submit")}
-      </Button>
-    </form>
+      {/* STEP 1 · Nivel + género */}
+      {step === 1 && (
+        <div className="flex flex-col gap-4 mt-5">
+          <div className="flex flex-col gap-3">
+            {LEVELS.map((lvl) => {
+              const on = formData.level === lvl;
+              return (
+                <button
+                  key={lvl}
+                  onClick={() => set("level", lvl)}
+                  className="cf-card flex items-center gap-3.5 text-left"
+                  style={{
+                    padding: "15px 16px",
+                    borderRadius: 18,
+                    border: on ? "1.5px solid var(--primary)" : "1px solid var(--border)",
+                    boxShadow: on ? "var(--glow-brand)" : "var(--shadow-card)",
+                  }}
+                >
+                  <div className="flex-1 font-bold text-[15px]">
+                    {t(`onboarding.level.${lvl}`)}
+                  </div>
+                  <div
+                    className="flex items-center justify-center rounded-full"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      border: on ? "none" : "2px solid var(--border-2)",
+                      background: on ? "var(--grad-brand)" : "transparent",
+                    }}
+                  >
+                    {on && <Check size={13} color="#fff" strokeWidth={3} />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="cf-muted text-[12px] font-semibold mt-1">
+            {t("onboarding.personal.gender")}
+          </div>
+          <div className="flex gap-2" style={{ background: "var(--surface-2)", padding: 5, borderRadius: 14 }}>
+            {GENDERS.map((g) => {
+              const on = formData.gender === g;
+              return (
+                <button
+                  key={g}
+                  onClick={() => set("gender", g)}
+                  className="flex-1 font-semibold text-[13px]"
+                  style={{
+                    padding: "10px 0",
+                    borderRadius: 10,
+                    background: on ? "var(--grad-brand)" : "transparent",
+                    color: on ? "#fff" : "var(--muted)",
+                    boxShadow: on ? "var(--glow-brand)" : "none",
+                  }}
+                >
+                  {t(`onboarding.personal.gender_${g}`)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2 · Medidas */}
+      {step === 2 && (
+        <div className="flex flex-col gap-3 mt-5">
+          {([
+            ["age", t("onboarding.personal.age"), "16", "80", "1"],
+            ["weightKg", t("onboarding.personal.weight"), "30", "200", "0.1"],
+            ["heightCm", t("onboarding.personal.height"), "120", "250", "1"],
+          ] as const).map(([field, label, min, max, stepv]) => (
+            <div key={field} className="cf-card" style={{ padding: 16, borderRadius: 18 }}>
+              <div className="cf-muted text-[12px] font-semibold mb-2">{label}</div>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={(formData[field] as number) ?? ""}
+                min={min}
+                max={max}
+                step={stepv}
+                onChange={(e) =>
+                  set(field, field === "weightKg" ? parseFloat(e.target.value) : parseInt(e.target.value))
+                }
+                className="cf-num bg-transparent outline-none w-full"
+                style={{ fontSize: 28, color: "var(--txt)" }}
+              />
+              {errors[field] && <p className="text-danger text-xs mt-1">{errors[field]}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* STEP 3 · Equipo */}
+      {step === 3 && (
+        <div className="flex flex-wrap gap-2 mt-5">
+          {allEquipment.map(({ key, label }) => {
+            const on = !!formData.equipment?.[key as keyof typeof formData.equipment];
+            return (
+              <button
+                key={key}
+                onClick={() => toggleEquipment(key)}
+                className={`cf-chip ${on ? "cf-chip-brand" : ""}`}
+                style={{ padding: "10px 14px", fontSize: 13 }}
+              >
+                {on && <Check size={13} strokeWidth={3} />}
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* STEP 4 · Duración + pasos */}
+      {step === 4 && (
+        <div className="flex flex-col gap-4 mt-5">
+          <div className="cf-card" style={{ padding: 16, borderRadius: 18 }}>
+            <div className="cf-muted text-[12px] font-semibold mb-3">
+              {t("onboarding.weeks.label")}
+            </div>
+            <div className="flex gap-2">
+              {[6, 8, 10, 12].map((w) => {
+                const on = (formData.weeks || 8) === w;
+                return (
+                  <button
+                    key={w}
+                    onClick={() => set("weeks", w)}
+                    className="flex-1 cf-num font-bold"
+                    style={{
+                      padding: "12px 0",
+                      borderRadius: 12,
+                      fontSize: 16,
+                      background: on ? "var(--grad-brand)" : "var(--surface-2)",
+                      color: on ? "#fff" : "var(--muted)",
+                      boxShadow: on ? "var(--glow-brand)" : "none",
+                    }}
+                  >
+                    {w}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="cf-card" style={{ padding: 16, borderRadius: 18 }}>
+            <div className="cf-muted text-[12px] font-semibold mb-2">
+              {t("onboarding.steps.label")}
+            </div>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={formData.stepsDay ?? ""}
+              min="1000"
+              max="20000"
+              step="1000"
+              onChange={(e) => set("stepsDay", parseInt(e.target.value))}
+              className="cf-num bg-transparent outline-none w-full"
+              style={{ fontSize: 28, color: "var(--txt)" }}
+            />
+          </div>
+
+          {errors.submit && (
+            <p className="text-danger text-sm text-center">{errors.submit}</p>
+          )}
+        </div>
+      )}
+
+      {/* sticky CTA */}
+      <div className="fixed left-0 right-0 lg:left-60 bottom-0 z-40 px-5 pb-6 pt-3 safe-bottom"
+        style={{ background: "linear-gradient(to top, var(--bg) 70%, transparent)" }}>
+        <div className="container mx-auto max-w-xl px-0">
+          {step < TOTAL_STEPS - 1 ? (
+            <button className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg" onClick={next}>
+              {t("onboarding.continue", "Continuar")}
+              <ArrowRight size={18} />
+            </button>
+          ) : (
+            <button
+              className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg"
+              onClick={handleSubmit}
+              disabled={isGenerating}
+              style={{ opacity: isGenerating ? 0.7 : 1 }}
+            >
+              <Sparkles size={18} fill="currentColor" />
+              {isGenerating ? t("onboarding.generating") : t("onboarding.submit")}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

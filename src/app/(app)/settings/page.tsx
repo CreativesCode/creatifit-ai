@@ -1,151 +1,192 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Button } from "@/components/ui/button";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth/auth-context";
+import {
+  Bell,
+  ChevronRight,
+  Globe,
+  Heart,
+  LogOut,
+  Monitor,
+  Moon,
+  ShieldCheck,
+  Sun,
+  Trophy,
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+function Toggle({ on }: { on: boolean }) {
+  return (
+    <div
+      className="flex items-center"
+      style={{
+        width: 44,
+        height: 26,
+        borderRadius: 13,
+        padding: 3,
+        justifyContent: on ? "flex-end" : "flex-start",
+        background: on ? "var(--grad-brand)" : "var(--ring-track)",
+        boxShadow: on ? "var(--glow-brand)" : "none",
+      }}
+    >
+      <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff" }} />
+    </div>
+  );
+}
+
+function Row({
+  icon: Icon,
+  label,
+  sub,
+  right,
+  last,
+  onClick,
+}: {
+  icon: React.ElementType;
+  label: string;
+  sub?: string;
+  right?: React.ReactNode;
+  last?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={!onClick}
+      className="flex items-center gap-3.5 w-full text-left"
+      style={{
+        padding: "13px 0",
+        borderBottom: last ? "none" : "1px solid var(--border)",
+      }}
+    >
+      <div className="cf-icon-tile bg-surface-2 border border-border text-txt-2" style={{ width: 38, height: 38 }}>
+        <Icon size={18} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-[14.5px]">{label}</div>
+        {sub && <div className="cf-muted text-[11.5px] mt-px">{sub}</div>}
+      </div>
+      {right}
+    </button>
+  );
+}
 
 export default function SettingsPage() {
   const { t } = useTranslation("common");
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const current = mounted ? theme ?? "system" : "system";
+  const themeOptions: [string, React.ElementType, string][] = [
+    ["dark", Moon, t("settings.theme.dark", "Oscuro")],
+    ["light", Sun, t("settings.theme.light", "Claro")],
+    ["system", Monitor, t("settings.theme.auto", "Auto")],
+  ];
+
+  const initial = (user?.email?.trim().charAt(0) || "A").toUpperCase();
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-txt mb-2">
-          {t("settings.title")}
-        </h1>
-        <p className="text-muted">{t("settings.subtitle")}</p>
+    <div className="container mx-auto max-w-xl lg:max-w-2xl px-5 lg:px-8 pt-4 lg:pt-8">
+      {/* header */}
+      <div className="pt-1 mb-4">
+        <div className="cf-eyebrow">{t("settings.account.title", "Cuenta")}</div>
+        <div className="cf-h1 text-[26px] mt-1.5">{t("settings.title")}</div>
       </div>
 
-      {/* Cuenta */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.account.title")}</CardTitle>
-          <CardDescription>{t("settings.account.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted">{t("settings.account.email")}</span>
-            <span className="text-sm font-medium">{user?.email}</span>
+      {/* profile */}
+      <div className="cf-card flex items-center gap-3.5 mb-4" style={{ padding: 16, borderRadius: 22 }}>
+        <div
+          className="rounded-full flex items-center justify-center text-white font-display font-bold text-xl shrink-0"
+          style={{ width: 54, height: 54, background: "var(--grad-brand-soft)" }}
+        >
+          {initial}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="cf-h2 text-[16px] truncate">{user?.email ?? "—"}</div>
+          <div className="cf-muted text-[12px] font-semibold mt-0.5">
+            {t("settings.account.description", "Tu cuenta")}
           </div>
-          <Button onClick={signOut} variant="outline" className="w-full">
-            {t("settings.account.sign_out")}
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+        <button
+          onClick={signOut}
+          className="cf-icon-tile bg-surface-2 border border-border"
+          style={{ width: 36, height: 36 }}
+          aria-label={t("settings.account.sign_out")}
+        >
+          <LogOut size={17} />
+        </button>
+      </div>
 
-      {/* Preferencias de Idioma */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.language.title")}</CardTitle>
-          <CardDescription>
-            {t("settings.language.description")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted">
-              {t("settings.language.app_language")}
-            </span>
-            <LanguageSwitcher />
-          </div>
-        </CardContent>
-      </Card>
+      {/* theme segmented */}
+      <div className="cf-card mb-3.5" style={{ padding: 16, borderRadius: 20 }}>
+        <div className="font-bold text-[14px] mb-3">{t("settings.theme.title")}</div>
+        <div className="flex gap-2" style={{ background: "var(--surface-2)", padding: 5, borderRadius: 14 }}>
+          {themeOptions.map(([value, Icon, label]) => {
+            const active = current === value;
+            return (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                className="flex-1 flex items-center justify-center gap-1.5 font-semibold text-[12.5px]"
+                style={{
+                  padding: "9px 0",
+                  borderRadius: 10,
+                  background: active ? "var(--grad-brand)" : "transparent",
+                  color: active ? "#fff" : "var(--muted)",
+                  boxShadow: active ? "var(--glow-brand)" : "none",
+                }}
+              >
+                <Icon size={15} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-      {/* Preferencias de Tema */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.theme.title")}</CardTitle>
-          <CardDescription>{t("settings.theme.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted">
-              {t("settings.theme.visual_theme")}
-            </span>
-            <ThemeToggle />
-          </div>
-        </CardContent>
-      </Card>
+      {/* prefs */}
+      <div className="cf-card mb-3.5" style={{ padding: "4px 16px", borderRadius: 20 }}>
+        <Row
+          icon={Globe}
+          label={t("settings.language.title")}
+          sub={t("settings.language.app_language")}
+          right={<LanguageSwitcher />}
+        />
+        <Row
+          icon={Bell}
+          label={t("settings.notifications.workout_reminders")}
+          sub={t("settings.notifications.workout_reminders_desc")}
+          right={<Toggle on />}
+        />
+        <Row
+          icon={Trophy}
+          label={t("settings.notifications.achievements_progress")}
+          sub={t("settings.notifications.achievements_progress_desc")}
+          right={<Toggle on />}
+          last
+        />
+      </div>
 
-      {/* Información de la App */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.about.title")}</CardTitle>
-          <CardDescription>{t("settings.about.description")}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted">
-              {t("settings.about.version")}
-            </span>
-            <span className="text-sm font-medium">1.0.0</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted">
-              {t("settings.about.developed_by")}
-            </span>
-            <span className="text-sm font-medium">CreatiFit Team</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted">
-              {t("settings.about.app_type")}
-            </span>
-            <span className="text-sm font-medium">
-              {t("settings.about.mobile_native")}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Configuración de Notificaciones */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.notifications.title")}</CardTitle>
-          <CardDescription>
-            {t("settings.notifications.description")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">
-                  {t("settings.notifications.workout_reminders")}
-                </p>
-                <p className="text-xs text-muted">
-                  {t("settings.notifications.workout_reminders_desc")}
-                </p>
-              </div>
-              <div className="w-12 h-6 bg-muted rounded-full relative">
-                <div className="w-5 h-5 bg-primary rounded-full absolute left-0.5 top-0.5 transition-transform"></div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">
-                  {t("settings.notifications.achievements_progress")}
-                </p>
-                <p className="text-xs text-muted">
-                  {t("settings.notifications.achievements_progress_desc")}
-                </p>
-              </div>
-              <div className="w-12 h-6 bg-muted rounded-full relative">
-                <div className="w-5 h-5 bg-primary rounded-full absolute left-0.5 top-0.5 transition-transform"></div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* about */}
+      <div className="cf-card" style={{ padding: "4px 16px", borderRadius: 20 }}>
+        <Row
+          icon={ShieldCheck}
+          label={t("settings.about.title", "Privacidad")}
+          right={<ChevronRight size={17} className="text-faint" />}
+        />
+        <Row
+          icon={Heart}
+          label={t("settings.about.developed_by", "Acerca de")}
+          sub={`CreatiFit AI · v1.0.0`}
+          right={<ChevronRight size={17} className="text-faint" />}
+          last
+        />
+      </div>
     </div>
   );
 }

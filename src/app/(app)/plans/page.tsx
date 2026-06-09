@@ -1,17 +1,16 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { PlanDisplay } from "@/components/ui/plan-display";
+import { PageLoader } from "@/components/ui/loader";
 import { supabaseClient } from "@/lib/supabase-client";
 
-import { ArrowLeft, Calendar, Clock, Edit, Play, Target } from "lucide-react";
-import Link from "next/link";
+import {
+  ArrowLeft,
+  ChevronRight,
+  Dumbbell,
+  Edit,
+  Play,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -47,20 +46,14 @@ export default function PlansPage() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Ya no necesitamos estos estados cuando usamos la ruta /session
-  // const [isInWorkout, setIsInWorkout] = useState(false);
-  // const [selectedDay, setSelectedDay] = useState<PlanDay | null>(null);
 
   const planId = searchParams.get("id");
 
   useEffect(() => {
     if (planId) {
-      // Si hay un ID en la URL, cargar el plan específico
       fetchPlan(planId);
     } else {
-      // Si no hay ID, cargar la lista de planes
       fetchPlans();
-      // Limpiar el plan seleccionado cuando volvemos al listado
       setSelectedPlan(null);
     }
   }, [planId]);
@@ -91,251 +84,258 @@ export default function PlansPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("es-ES", {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString(undefined, {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-  };
 
   const goBackToList = () => {
-    // Usar replace para no agregar entradas al historial
     router.replace("/plans");
     setSelectedPlan(null);
   };
 
-  // Estas funciones ya no son necesarias cuando usamos la ruta /session
-  // const startWorkout = (day: PlanDay) => {
-  //   setSelectedDay(day);
-  //   setIsInWorkout(true);
-  // };
-
-  // const completeWorkout = () => {
-  //   setIsInWorkout(false);
-  //   setSelectedDay(null);
-  // };
-
-  // const exitWorkout = () => {
-  //   setIsInWorkout(false);
-  //   setSelectedDay(null);
-  // };
-
+  // ---------- Loading ----------
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted">
-            {planId ? t("plans.loading.plan") : t("plans.loading.plans")}
-          </p>
-        </div>
-      </div>
+      <PageLoader />
     );
   }
 
+  // ---------- Error ----------
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <p className="text-danger mb-4">Error: {error}</p>
-          <Button
-            onClick={planId ? () => fetchPlan(planId!) : fetchPlans}
-            variant="outline"
-          >
-            {t("plans.retry")}
-          </Button>
-        </div>
+      <div className="container mx-auto max-w-xl px-5 py-10 text-center">
+        <p className="text-danger mb-4">Error: {error}</p>
+        <button
+          className="cf-btn cf-btn-ghost"
+          onClick={planId ? () => fetchPlan(planId!) : fetchPlans}
+        >
+          {t("plans.retry")}
+        </button>
       </div>
     );
   }
 
-  // Ya no necesitamos esta lógica cuando usamos la ruta /session
-  // if (isInWorkout && selectedDay) {
-  //   return (
-  //     <WorkoutSession
-  //       planDay={selectedDay}
-  //       planId={selectedPlan!.id}
-  //       onComplete={completeWorkout}
-  //       onExit={exitWorkout}
-  //     />
-  //   );
-  // }
-
-  // Si hay un plan seleccionado, mostrar el detalle
+  // ---------- Plan detail ----------
   if (selectedPlan) {
+    const days = selectedPlan.payload?.days || [];
+    const totalExercises = days.reduce(
+      (acc, d) => acc + (d.blocks?.length || 0),
+      0
+    );
+    const heroStats: [string, string][] = [
+      [String(selectedPlan.weeks), t("plan.weeks")],
+      [String(days.length), `${t("plan.day")}s`],
+      [String(totalExercises), t("nav.exercises")],
+    ];
+
     return (
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 mb-4 text-sm text-muted">
-            <button
-              onClick={goBackToList}
-              className="hover:text-primary transition-colors"
-            >
-              {t("nav.plans")}
-            </button>
-            <span>→</span>
-            <span className="text-primary">
-              {t("plans.plan_details.title")}
+      <div className="container mx-auto max-w-xl lg:max-w-3xl px-5 lg:px-8 pt-4 lg:pt-8">
+        {/* top bar */}
+        <div className="flex items-center gap-3 pt-1 mb-4">
+          <button
+            onClick={goBackToList}
+            className="cf-icon-tile bg-surface-2 border border-border"
+            style={{ width: 40, height: 40 }}
+            aria-label={t("plans.plan_details.back_to_plans")}
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <span className="cf-h2 flex-1 text-[16px]">
+            {t("plans.plan_details.title")}
+          </span>
+          <button
+            className="cf-icon-tile bg-surface-2 border border-border"
+            style={{ width: 40, height: 40 }}
+            aria-label={t("plans.plan_details.edit")}
+          >
+            <Edit size={18} />
+          </button>
+        </div>
+
+        {/* plan hero */}
+        <div
+          className="cf-card relative overflow-hidden mb-4"
+          style={{ padding: 20, borderRadius: 24 }}
+        >
+          <div
+            className="absolute inset-0 bg-grad-brand"
+            style={{ opacity: 0.14 }}
+            aria-hidden
+          />
+          <div className="relative">
+            <span className="cf-chip cf-chip-brand">
+              <Sparkles size={12} fill="currentColor" />
+              {t("plan.ai_generated", "Generado por IA")}
             </span>
-          </div>
-
-          <div className="flex items-center justify-between mb-6">
-            <Button onClick={goBackToList} variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t("plans.plan_details.back_to_plans")}
-            </Button>
-            <div className="flex gap-3">
-              <Button variant="outline" size="sm">
-                <Edit className="w-4 h-4 mr-2" />
-                {t("plans.plan_details.edit")}
-              </Button>
-              <Button
-                className="bg-primary hover:bg-primary/90 text-white"
-                onClick={() =>
-                  router.replace(`/session?planId=${selectedPlan.id}`)
-                }
-              >
-                <Play className="w-4 h-4 mr-2" />
-                {t("plans.plan_details.start_session")}
-              </Button>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-txt mb-2">
+            <div className="cf-h1 text-[24px] mt-3">
               {t("plans.plan_details.plan_duration", {
                 weeks: selectedPlan.weeks,
               })}
-            </h1>
-            <p className="text-muted text-lg">
+            </div>
+            <div className="cf-muted text-[12px] mt-1.5">
               {t("plans.plan_details.created_on", {
                 date: formatDate(selectedPlan.created_at),
               })}
-            </p>
+            </div>
+            <div className="flex gap-[18px] mt-4">
+              {heroStats.map((s, i) => (
+                <div key={i}>
+                  <div className="cf-num text-[21px]">{s[0]}</div>
+                  <div className="cf-muted text-[11px] font-semibold">{s[1]}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Usar el componente PlanDisplay que incluye las imágenes */}
-        <PlanDisplay
-          plan={{
-            weeks: selectedPlan.weeks,
-            days: selectedPlan.payload.days,
-          }}
-          planId={selectedPlan.id}
-          useRouter={true}
-        />
+        {/* days */}
+        <div className="flex justify-between items-center mb-3">
+          <span className="cf-h2 text-[15px]">
+            {t("session.select_day", "Días de entrenamiento")}
+          </span>
+          <span className="cf-muted text-[12px] font-semibold">
+            {days.map((d) => d.day).join(" → ")}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2">
+          {days.map((d, i) => (
+            <button
+              key={i}
+              onClick={() =>
+                router.push(`/session?planId=${selectedPlan.id}`)
+              }
+              className="cf-card flex items-center gap-3.5 text-left"
+              style={{ padding: "14px 15px", borderRadius: 18 }}
+            >
+              <div
+                className="cf-icon-tile bg-surface-2 font-display font-bold text-[18px] text-muted"
+                style={{ width: 46, height: 46, borderRadius: 14 }}
+              >
+                {d.day}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[15.5px]">
+                  {t("plan.day")} {d.day} · {d.focus}
+                </div>
+                <div className="cf-muted text-[12px] font-semibold mt-0.5">
+                  {d.blocks?.length || 0} {t("nav.exercises")}
+                </div>
+              </div>
+              <ChevronRight size={18} className="text-faint" />
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-5 pb-2">
+          <button
+            className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg"
+            onClick={() => router.replace(`/session?planId=${selectedPlan.id}`)}
+          >
+            <Play size={17} fill="currentColor" />
+            {t("plans.plan_details.start_session")}
+          </button>
+        </div>
       </div>
     );
   }
 
+  // ---------- Plans list ----------
+  const GRADS = ["brand", "cyan", "mint"] as const;
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Calendar className="w-6 h-6 text-primary" />
-          <span className="text-sm text-muted">{t("nav.plans")}</span>
+    <div className="container mx-auto max-w-xl lg:max-w-6xl px-5 lg:px-8 pt-4 lg:pt-8">
+      {/* header */}
+      <div className="flex justify-between items-start pt-1 mb-5">
+        <div>
+          <div className="cf-eyebrow">{t("nav.plans")}</div>
+          <div className="cf-h1 text-[26px] mt-1.5">{t("plans.title")}</div>
         </div>
-        <h1 className="text-3xl font-bold text-txt mb-2">{t("plans.title")}</h1>
-        <p className="text-muted text-lg">{t("plans.subtitle")}</p>
+        <button
+          onClick={() => router.push("/onboarding")}
+          className="cf-icon-tile bg-grad-brand text-white shadow-glow-brand"
+          aria-label={t("plans.create_new_plan")}
+        >
+          <Plus size={22} strokeWidth={2.4} />
+        </button>
       </div>
 
-      {/* Create New Plan Button */}
-      <div className="text-center mb-8">
-        <Link href="/dashboard">
-          <Button className="bg-primary hover:bg-primary/90 text-white shadow-glow px-8 py-3 text-lg">
-            {t("plans.create_new_plan")}
-          </Button>
-        </Link>
-      </div>
-
-      {/* Plans Grid */}
       {plans.length === 0 ? (
         <div className="text-center py-12">
-          <div className="w-24 h-24 bg-surface border border-border rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-12 h-12 text-muted" />
+          <div
+            className="cf-icon-tile bg-surface-2 border border-border mx-auto mb-4"
+            style={{ width: 88, height: 88, borderRadius: 28 }}
+          >
+            <Sparkles className="w-10 h-10 text-muted" />
           </div>
-          <h3 className="text-xl font-semibold text-txt mb-2">
-            {t("plans.no_plans.title")}
-          </h3>
-          <p className="text-muted mb-6">{t("plans.no_plans.description")}</p>
-          <Link href="/dashboard">
-            <Button className="bg-primary hover:bg-primary/90 text-white">
-              {t("plans.no_plans.create_first")}
-            </Button>
-          </Link>
+          <h3 className="cf-h2 text-[18px] mb-2">{t("plans.no_plans.title")}</h3>
+          <p className="cf-muted mb-6 text-sm">
+            {t("plans.no_plans.description")}
+          </p>
+          <button
+            className="cf-btn cf-btn-primary"
+            onClick={() => router.push("/onboarding")}
+          >
+            <Plus size={18} />
+            {t("plans.no_plans.create_first")}
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {plans.map((plan) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {plans.map((plan, idx) => {
+            const focus = plan.payload?.days?.[0]?.focus;
+            const grad = GRADS[idx % GRADS.length];
             return (
-              <Card
+              <button
                 key={plan.id}
-                className="hover:shadow-soft transition-shadow"
+                onClick={() => {
+                  router.replace(`/plans?id=${plan.id}`);
+                  setSelectedPlan(plan);
+                }}
+                className="cf-card relative overflow-hidden text-left"
+                style={{ padding: 18, borderRadius: 22 }}
               >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg text-txt">
-                      {t("plans.plan_details.plan_duration", {
-                        weeks: plan.weeks,
-                      })}
-                    </CardTitle>
-                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white text-sm font-bold">
-                      {plan.weeks}
-                    </div>
+                <div className="flex justify-between items-start mb-3.5">
+                  <div className="flex gap-1.5">
+                    <span className={`cf-chip cf-chip-${grad}`}>
+                      {plan.weeks} {t("plan.weeks")}
+                    </span>
+                    <span className="cf-chip">
+                      {plan.payload?.days?.length || 0} {t("plan.day")}s
+                    </span>
                   </div>
-                  <CardDescription className="text-muted">
-                    {t("plans.plan_details.created_on", {
-                      date: formatDate(plan.created_at),
-                    })}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm text-muted">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>
-                        {t("plans.plan_details.training_days", {
-                          count: plan.payload.days.length,
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span>
-                        {t("plans.plan_details.duration", {
-                          weeks: plan.weeks,
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted">
-                      <Target className="w-4 h-4 mr-2" />
-                      <span>
-                        {t("plans.plan_details.focus", {
-                          focus: plan.payload.days[0]?.focus,
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-border">
-                    <Button
-                      onClick={() => {
-                        // Navegación SPA fluida
-                        router.replace(`/plans?id=${plan.id}`);
-                        setSelectedPlan(plan); // Establecer el plan inmediatamente
-                      }}
-                      className="w-full"
-                      variant="outline"
-                    >
-                      {t("plans.plan_details.view_details")}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  {idx === 0 && (
+                    <span className="cf-chip cf-chip-mint">
+                      <span
+                        className="rounded-full"
+                        style={{ width: 6, height: 6, background: "var(--mint)" }}
+                      />
+                      {t("plans.active", "Activo")}
+                    </span>
+                  )}
+                </div>
+                <div className="cf-h2 text-[18px]">
+                  {t("plans.plan_details.plan_duration", { weeks: plan.weeks })}
+                </div>
+                <div className="cf-muted text-[12.5px] font-semibold mt-1.5">
+                  {focus
+                    ? t("plans.plan_details.focus", { focus })
+                    : t("plan.ai_generated", "Generado por IA")}
+                </div>
+                <div className="flex items-center gap-2 mt-3.5 cf-muted text-[12px] font-semibold">
+                  <Dumbbell size={14} />
+                  <span>
+                    {plan.payload?.days?.reduce(
+                      (a, d) => a + (d.blocks?.length || 0),
+                      0
+                    )}{" "}
+                    {t("nav.exercises")}
+                  </span>
+                  <ChevronRight size={16} className="ml-auto text-faint" />
+                </div>
+              </button>
             );
           })}
         </div>

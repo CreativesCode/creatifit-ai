@@ -1,10 +1,10 @@
 "use client";
 import { useMobileApp } from "@/hooks/useMobileApp";
 import { MoreVertical } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Wordmark } from "./brand";
 import { Button } from "./button";
 import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
@@ -20,32 +20,20 @@ export function AppHeader() {
 
   return (
     <header
-      className={`border-b border-border bg-gradient-to-r from-primary to-primary/0 bg-surface/50 backdrop-blur-md sticky top-0 z-50 safe-top ${
+      className={`border-b border-border bg-surface/60 backdrop-blur-xl sticky top-0 z-50 safe-top ${
         isCapacitor ? "capacitor-header" : ""
       }`}
     >
-      <div className="container mx-auto px-3 sm:px-4 py-1 sm:py-2">
+      <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-2.5">
         <div className="flex items-center justify-between">
-          {/* Logo y Título */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <Link
-              href="/dashboard"
-              className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity active:scale-95"
-            >
-              <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
-                <Image
-                  src="/logo.png"
-                  alt="Logo"
-                  width={50}
-                  height={50}
-                  className="w-12 h-12 sm:w-14 sm:h-14"
-                />
-              </div>
-              <h1 className="text-xl sm:text-2xl text-white md:text-2xl font-bold text-shadow-2xs">
-                {t("app.title")}
-              </h1>
-            </Link>
-          </div>
+          {/* Marca */}
+          <Link
+            href="/dashboard"
+            className="hover:opacity-80 transition-opacity active:scale-95"
+            aria-label={t("app.title")}
+          >
+            <Wordmark size={28} />
+          </Link>
 
           {/* Menú de Opciones */}
           <div className="flex items-center space-x-2">

@@ -1,24 +1,38 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { PageLoader } from "@/components/ui/loader";
+import { Ring } from "@/components/ui/ring";
+import { StatTile } from "@/components/ui/stat-tile";
+import { Mark } from "@/components/ui/brand";
 import { supabaseClient } from "@/lib/supabase-client";
+import {
+  Activity,
+  ClipboardList,
+  Clock,
+  Dumbbell,
+  Play,
+  Plus,
+  Sparkles,
+  Target,
+  Zap,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+interface RecentPlan {
+  id: string;
+  name: string;
+  weeks: number;
+  days: number;
+  created_at: string;
+}
 
 interface DashboardStats {
   totalPlans: number;
   totalSessions: number;
   totalExercises: number;
-  recentPlans: Array<{
-    id: string;
-    name: string;
-    weeks: number;
-    days: number;
-    created_at: string;
-  }>;
+  recentPlans: RecentPlan[];
 }
 
 export default function DashboardPage() {
@@ -31,24 +45,24 @@ export default function DashboardPage() {
     recentPlans: [],
   });
   const [loading, setLoading] = useState(true);
+  const [today, setToday] = useState("");
 
   useEffect(() => {
+    // Fecha en cliente para evitar mismatch de hidratación
+    setToday(
+      new Date().toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "short",
+      })
+    );
+
     const fetchDashboardData = async () => {
       try {
-        console.log("🚀 [DASHBOARD] Starting data fetch...");
-
-        // Obtener estadísticas básicas usando Supabase directo
         const [plansData, exercisesData] = await Promise.all([
           supabaseClient.getPlans(),
           supabaseClient.getExercises(1, 1),
         ]);
-
-        console.log("📊 [DASHBOARD] Fetched data:", {
-          plansData,
-          exercisesData,
-          plansCount: plansData?.length || 0,
-          exercisesCount: exercisesData?.count || 0,
-        });
 
         setStats((prev) => ({
           ...prev,
@@ -66,183 +80,188 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
-  const quickActions = [
-    {
-      title: t("dashboard.quick_actions.create_new_plan.title"),
-      description: t("dashboard.quick_actions.create_new_plan.description"),
-      icon: "🏋️‍♂️",
-      action: () => router.push("/onboarding"),
-      color: "bg-primary hover:bg-primary/90",
-    },
-    {
-      title: t("dashboard.quick_actions.view_plans.title"),
-      description: t("dashboard.quick_actions.view_plans.description"),
-      icon: "📋",
-      action: () => router.push("/plans"),
-      color: "bg-accent hover:bg-accent/90",
-    },
-    {
-      title: t("dashboard.quick_actions.exercise_library.title"),
-      description: t("dashboard.quick_actions.exercise_library.description"),
-      icon: "💪",
-      action: () => router.push("/exercises"),
-      color: "bg-secondary hover:bg-secondary/90",
-    },
-    {
-      title: t("dashboard.quick_actions.workout_history.title"),
-      description: t("dashboard.quick_actions.workout_history.description"),
-      icon: "📊",
-      action: () => router.push("/workout-history"),
-      color: "bg-green-600 hover:bg-green-700",
-    },
-  ];
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-bg via-surface to-bg">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted">{t("dashboard.loading")}</p>
-          </div>
-        </div>
-      </div>
+      <PageLoader />
     );
   }
 
+  const activePlan = stats.recentPlans[0];
+  const planTitle = (p: RecentPlan) => p.name || `${t("plan.title")} ${p.id.slice(-6)}`;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-bg via-surface to-bg">
-      <div className="container mx-auto px-4 sm:px-6 py-6 md:py-8">
-        {/* Header */}
-        <div className="text-center mb-8 md:mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold text-txt mb-3 md:mb-4">
-            {t("dashboard.title")}
-          </h1>
-          <p className="text-lg md:text-xl text-muted px-2">
-            {t("dashboard.subtitle")}
-          </p>
+    <div className="container mx-auto max-w-xl lg:max-w-6xl px-5 lg:px-8 pt-4 lg:pt-8">
+      {/* ---------- Header ---------- */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <Mark size={36} />
+          <div>
+            <div className="cf-muted text-[12.5px] font-semibold capitalize">
+              {today}
+            </div>
+            <div className="cf-h1 text-[24px] mt-px">{t("dashboard.title")}</div>
+          </div>
         </div>
-
-        {/* Estadísticas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
-          <Card className="p-4 md:p-6 text-center bg-surface border-border">
-            <div className="text-2xl md:text-3xl font-bold text-primary mb-2">
-              {stats.totalPlans}
-            </div>
-            <div className="text-sm md:text-base text-muted">
-              {t("dashboard.stats.plans_created")}
-            </div>
-          </Card>
-          <Card className="p-4 md:p-6 text-center bg-surface border-border">
-            <div className="text-2xl md:text-3xl font-bold text-accent mb-2">
-              {stats.totalSessions}
-            </div>
-            <div className="text-sm md:text-base text-muted">
-              {t("dashboard.stats.sessions_completed")}
-            </div>
-          </Card>
-          <Card className="p-4 md:p-6 text-center bg-surface border-border">
-            <div className="text-2xl md:text-3xl font-bold text-secondary mb-2">
-              {stats.totalExercises}
-            </div>
-            <div className="text-sm md:text-base text-muted">
-              {t("dashboard.stats.exercises_available")}
-            </div>
-          </Card>
+        <div
+          className="w-[38px] h-[38px] rounded-full bg-grad-brand-soft flex items-center justify-center text-white font-display font-bold text-sm shadow-glow-brand"
+          aria-hidden
+        >
+          {t("dashboard.title")?.trim().charAt(0).toUpperCase() || "C"}
         </div>
+      </div>
 
-        {/* Acciones Rápidas */}
-        <div className="mb-8 md:mb-12">
-          <h2 className="text-xl sm:text-2xl font-semibold text-txt mb-4 md:mb-6 text-center">
-            {t("dashboard.quick_actions.title")}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {quickActions.map((action, index) => (
-              <Card
-                key={index}
-                className="p-4 md:p-6 bg-surface border-border hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={action.action}
+      <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
+        <div className="lg:col-span-2 lg:flex lg:flex-col lg:gap-4">
+
+      {/* ---------- Hero: plan activo / sesión de hoy ---------- */}
+      {activePlan ? (
+        <div className="cf-card relative overflow-hidden mb-4 lg:mb-0" style={{ padding: 18, borderRadius: 24 }}>
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: -40,
+              right: -30,
+              width: 160,
+              height: 160,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle, rgba(240,70,156,0.35), transparent 70%)",
+              filter: "blur(8px)",
+            }}
+            aria-hidden
+          />
+          <div className="relative flex justify-between items-start">
+            <div>
+              <span className="cf-chip cf-chip-brand mb-3">
+                <Zap size={12} fill="currentColor" />
+                {t("dashboard.recent_plans.title")}
+              </span>
+              <div className="cf-h2 text-[22px] mt-2.5">{planTitle(activePlan)}</div>
+              <div className="flex gap-3.5 mt-2.5 text-txt-2 text-[12.5px] font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <ClipboardList size={14} />
+                  {activePlan.days} {t("plan.day")}s
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Clock size={14} />
+                  {activePlan.weeks} {t("plan.weeks")}
+                </span>
+              </div>
+            </div>
+            <Ring value={0} size={56} stroke={6}>
+              <span className="cf-num text-[13px]">
+                {t("dashboard.title")?.trim().charAt(0).toUpperCase() || "C"}
+              </span>
+            </Ring>
+          </div>
+
+          {/* thumbs de ejercicios */}
+          <div className="flex gap-2 mt-4 mb-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex-1">
+                <div
+                  className="cf-eximg"
+                  style={{ height: 46, borderRadius: 12, border: "1px solid var(--border)" }}
+                />
+              </div>
+            ))}
+          </div>
+
+          <button
+            className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg"
+            onClick={() => router.push(`/session?planId=${activePlan.id}`)}
+          >
+            <Play size={17} fill="currentColor" />
+            {t("plans.plan_details.start_session")}
+          </button>
+        </div>
+      ) : (
+        /* Empty state: sin planes */
+        <div className="cf-card relative overflow-hidden mb-4 lg:mb-0" style={{ padding: 22, borderRadius: 24 }}>
+          <div className="relative flex flex-col items-center text-center gap-3">
+            <div className="cf-icon-tile bg-grad-brand text-white shadow-glow-brand" style={{ width: 56, height: 56 }}>
+              <Sparkles size={26} />
+            </div>
+            <div className="cf-h2 text-[20px]">{t("dashboard.welcome.title")}</div>
+            <p className="cf-muted text-[13.5px] leading-relaxed max-w-xs">
+              {t("dashboard.welcome.description")}
+            </p>
+            <button
+              className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-1"
+              onClick={() => router.push("/onboarding")}
+            >
+              <Plus size={18} />
+              {t("dashboard.welcome.create_first_plan")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Stat tiles ---------- */}
+      <div className="flex gap-2.5 mb-4 lg:mb-0">
+        <StatTile
+          icon={ClipboardList}
+          value={stats.totalPlans}
+          label={t("dashboard.stats.plans_created")}
+          accent="brand"
+        />
+        <StatTile
+          icon={Activity}
+          value={stats.totalSessions}
+          label={t("dashboard.stats.sessions_completed")}
+          accent="mint"
+        />
+        <StatTile
+          icon={Target}
+          value={stats.totalExercises}
+          label={t("dashboard.stats.exercises_available")}
+          accent="cyan"
+        />
+      </div>
+
+        </div>{/* /col-span-2 */}
+
+        <div className="mt-4 lg:mt-0">
+      {/* ---------- Planes recientes ---------- */}
+      {stats.recentPlans.length > 0 && (
+        <div className="cf-card lg:h-full" style={{ padding: 16, borderRadius: 20 }}>
+          <div className="flex justify-between items-center mb-3.5">
+            <span className="cf-h2 text-[15px]">
+              {t("dashboard.recent_plans.title")}
+            </span>
+            <button
+              className="cf-chip"
+              onClick={() => router.push("/plans")}
+            >
+              {t("dashboard.recent_plans.view_all_plans")}
+            </button>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {stats.recentPlans.map((plan) => (
+              <button
+                key={plan.id}
+                onClick={() => router.push(`/plans?id=${plan.id}`)}
+                className="cf-card-solid flex items-center gap-3 text-left"
+                style={{ padding: "11px 13px", borderRadius: 14 }}
               >
-                <div className="text-center">
-                  <div className="text-3xl md:text-4xl mb-3 md:mb-4">
-                    {action.icon}
-                  </div>
-                  <h3 className="text-base md:text-lg font-semibold text-txt mb-2">
-                    {action.title}
-                  </h3>
-                  <p className="text-xs md:text-sm text-muted px-1">
-                    {action.description}
-                  </p>
+                <div className="cf-icon-tile bg-grad-brand text-white" style={{ width: 40, height: 40, borderRadius: 12 }}>
+                  <Dumbbell size={20} />
                 </div>
-              </Card>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-[14.5px] truncate">
+                    {planTitle(plan)}
+                  </div>
+                  <div className="cf-muted text-[11.5px] font-semibold mt-0.5">
+                    {plan.weeks} {t("plan.weeks")} · {plan.days} {t("plan.day")}s
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
         </div>
-
-        {/* Planes Recientes */}
-        {stats.recentPlans.length > 0 && (
-          <div className="mb-8 md:mb-12">
-            <h2 className="text-xl sm:text-2xl font-semibold text-txt mb-4 md:mb-6 text-center">
-              {t("dashboard.recent_plans.title")}
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {stats.recentPlans.map((plan) => (
-                <Card
-                  key={plan.id}
-                  className="p-4 md:p-6 bg-surface border-border hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => router.push(`/plans?id=${plan.id}`)}
-                >
-                  <div className="flex items-center justify-between mb-3 md:mb-4">
-                    <Badge variant="outline" className="text-xs">
-                      {plan.weeks} {t("plan.weeks")}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {plan.days} {t("plan.day")}s
-                    </Badge>
-                  </div>
-                  <h3 className="text-sm md:text-base font-semibold text-txt mb-2">
-                    {t("plan.title")} {plan.name || plan.id.slice(-8)}
-                  </h3>
-                  <p className="text-xs md:text-sm text-muted">
-                    {t("plans.plan_details.created_on", { date: new Date(plan.created_at).toLocaleDateString() })}
-                  </p>
-                </Card>
-              ))}
-            </div>
-            <div className="text-center mt-4 md:mt-6">
-              <Button
-                variant="outline"
-                onClick={() => router.push("/plans")}
-                className="px-6 md:px-8 w-full sm:w-auto"
-              >
-                {t("dashboard.recent_plans.view_all_plans")}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Mensaje de Bienvenida para Usuarios Nuevos */}
-        {stats.totalPlans === 0 && (
-          <Card className="p-6 md:p-8 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
-            <div className="text-center">
-              <div className="text-4xl md:text-6xl mb-3 md:mb-4">🎯</div>
-              <h3 className="text-xl md:text-2xl font-semibold text-txt mb-3 md:mb-4">
-                {t("dashboard.welcome.title")}
-              </h3>
-              <p className="text-sm md:text-base text-muted mb-4 md:mb-6 max-w-2xl mx-auto px-2">
-                {t("dashboard.welcome.description")}
-              </p>
-              <Button
-                onClick={() => router.push("/onboarding")}
-                className="bg-primary hover:bg-primary/90 text-white px-6 md:px-8 py-3 text-base md:text-lg w-full sm:w-auto"
-                size="lg"
-              >
-                {t("dashboard.welcome.create_first_plan")}
-              </Button>
-            </div>
-          </Card>
-        )}
-      </div>
+      )}
+        </div>{/* /right col */}
+      </div>{/* /grid */}
     </div>
   );
 }

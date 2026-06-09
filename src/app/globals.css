@@ -1,36 +1,98 @@
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
 
-/* Brand tokens — Violet Nebula (dark‑first) */
+/* ============================================================
+   Brand tokens — Redesign "Anillos de actividad"
+   Premium dark-first · violet/fuchsia · mesh + glow + glass
+   ============================================================ */
+
+/* Shared across both themes (brand gradient anchors + data accents) */
 :root {
-  /* Light */
-  --bg: #ffffff;
-  --surface: #f6f3ff; /* lilac surface */
-  --txt: #0f0a1f;
-  --muted: #6e6a86;
-  --primary: #7c3aed; /* violet-600 */
-  --accent: #c026d3; /* fuchsia-600 */
+  --brand-1: #7c5cff; /* violet */
+  --brand-2: #b14bf4; /* purple */
+  --brand-3: #f0469c; /* fuchsia/magenta */
+  --cyan: #25e0e5; /* data accent */
+  --mint: #36e5a4; /* success / completed */
+  --amber: #ffb23e; /* warning / streak */
+  --coral: #ff5d6b; /* danger / effort */
+
+  --grad-brand: linear-gradient(135deg, #7c5cff 0%, #b14bf4 48%, #f0469c 100%);
+  --grad-brand-soft: linear-gradient(135deg, #8a6bff 0%, #e155c0 100%);
+  --grad-cyan: linear-gradient(135deg, #6a5bff 0%, #25e0e5 100%);
+  --grad-mint: linear-gradient(135deg, #2bc7d6 0%, #36e5a4 100%);
+  --grad-amber: linear-gradient(135deg, #ff7a45 0%, #ffb23e 100%);
+}
+
+/* ---------- LIGHT (default) ---------- */
+:root {
+  --bg: #f4f1fc;
+  --bg-2: #ece7fa;
+  --surface: #ffffff; /* solid surface for legacy bg-surface */
+  --surface-glass: #ffffff; /* glass cards */
+  --surface-2: #f7f4ff;
+  --surface-solid: #ffffff;
+  --elevated: #ffffff;
+  --txt: #160f2b;
+  --txt-2: #463c66;
+  --muted: #7c7596;
+  --faint: #a9a2c2;
+  --primary: #7c5cff;
+  --accent: #da3a93;
   --secondary: #6366f1;
   --info: #06b6d4;
   --success: #16a34a;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --border: #e4e1f4;
+  --border: rgba(22, 15, 43, 0.08);
+  --border-2: rgba(22, 15, 43, 0.14);
+  --ring-track: rgba(22, 15, 43, 0.08);
+  --glass-blur: blur(18px);
+  --shadow-card: 0 1px 2px rgba(22, 15, 43, 0.04),
+    0 18px 40px -24px rgba(80, 50, 160, 0.28);
+  --glow-brand: 0 12px 28px -10px rgba(124, 92, 255, 0.4),
+    0 6px 16px -8px rgba(240, 70, 156, 0.3);
+  --glow-cyan: 0 12px 26px -12px rgba(37, 200, 210, 0.35);
+  --glow-mint: 0 12px 26px -12px rgba(54, 200, 150, 0.35);
+  color-scheme: light;
 }
+
+/* ---------- DARK (primary) ---------- */
 .dark {
-  /* Dark */
-  --bg: #0b0a0f;
-  --surface: #13111a;
-  --txt: #eceaf5;
-  --muted: #aaa6bd;
-  --primary: #8b5cf6; /* violet-500 */
-  --accent: #f472d0; /* neon magenta */
-  --secondary: #6366f1; /* indigo-500 */
+  --bg: #08060f;
+  --bg-2: #0d0a18;
+  --surface: #15111f; /* solid surface for legacy bg-surface */
+  --surface-glass: rgba(255, 255, 255, 0.045); /* glass cards */
+  --surface-2: rgba(255, 255, 255, 0.07);
+  --surface-solid: #15111f;
+  --elevated: #1a1528;
+  --txt: #f5f2ff;
+  --txt-2: #c9c3e0;
+  --muted: #8e88ab;
+  --faint: #5c5775;
+  --primary: #8e6bff;
+  --accent: #f0469c;
+  --secondary: #6366f1;
   --info: #22d3ee;
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --border: #1a1625;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-2: rgba(255, 255, 255, 0.14);
+  --ring-track: rgba(255, 255, 255, 0.09);
+  --glass-blur: blur(22px);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 18px 40px -20px rgba(0, 0, 0, 0.8);
+  --glow-brand: 0 10px 30px -8px rgba(124, 92, 255, 0.55),
+    0 4px 14px -6px rgba(240, 70, 156, 0.45);
+  --glow-cyan: 0 10px 30px -10px rgba(37, 224, 229, 0.5);
+  --glow-mint: 0 10px 30px -10px rgba(54, 229, 164, 0.45);
+  color-scheme: dark;
+}
+
+/* Body font default */
+body {
+  font-family: var(--font-body), system-ui, sans-serif;
+  letter-spacing: -0.01em;
 }
 
 html,
@@ -229,4 +291,355 @@ body {
     min-width: 60px;
     max-width: 100px;
   }
+}
+
+/* ============================================================
+   Redesign component layer (cf-*)
+   Ported from docs/design/app.css — driven by theme tokens above.
+   ============================================================ */
+
+/* Mesh gradient backdrops -------------------------------------------------- */
+.cf-mesh {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.cf-mesh::before,
+.cf-mesh::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.55;
+}
+.dark .cf-mesh::before {
+  width: 70%;
+  height: 40%;
+  top: -10%;
+  left: -15%;
+  background: radial-gradient(circle, #7c5cff 0%, transparent 70%);
+  opacity: 0.5;
+}
+.dark .cf-mesh::after {
+  width: 70%;
+  height: 42%;
+  top: 18%;
+  right: -25%;
+  background: radial-gradient(circle, #f0469c 0%, transparent 70%);
+  opacity: 0.42;
+}
+:root .cf-mesh::before {
+  width: 75%;
+  height: 42%;
+  top: -14%;
+  left: -18%;
+  background: radial-gradient(circle, #b79cff 0%, transparent 70%);
+  opacity: 0.6;
+}
+:root .cf-mesh::after {
+  width: 70%;
+  height: 42%;
+  top: 12%;
+  right: -28%;
+  background: radial-gradient(circle, #f7a8d4 0%, transparent 70%);
+  opacity: 0.55;
+}
+.cf-mesh-3 {
+  position: absolute;
+  width: 55%;
+  height: 30%;
+  bottom: 6%;
+  left: 20%;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--cyan) 0%, transparent 70%);
+  opacity: 0.18;
+}
+
+/* Cards -------------------------------------------------------------------- */
+.cf-card {
+  background: var(--surface-glass);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-card);
+}
+.cf-card-solid {
+  background: var(--surface-solid);
+}
+.dark .cf-card-solid {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Buttons ------------------------------------------------------------------ */
+.cf-btn {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 16px;
+  font-size: 15px;
+  padding: 15px 22px;
+  letter-spacing: -0.01em;
+  transition: 0.18s;
+  white-space: nowrap;
+}
+.cf-btn-primary {
+  background: var(--grad-brand);
+  color: #fff;
+  box-shadow: var(--glow-brand);
+}
+.cf-btn-cyan {
+  background: var(--grad-cyan);
+  color: #06121a;
+  box-shadow: var(--glow-cyan);
+}
+.cf-btn-mint {
+  background: var(--grad-mint);
+  color: #06231a;
+  box-shadow: var(--glow-mint);
+}
+.cf-btn-ghost {
+  background: var(--surface-2);
+  color: var(--txt);
+  border: 1px solid var(--border);
+}
+.cf-btn-block {
+  width: 100%;
+}
+.cf-btn-lg {
+  padding: 17px 24px;
+  font-size: 16px;
+  border-radius: 18px;
+}
+.cf-btn-sm {
+  padding: 10px 14px;
+  font-size: 13px;
+  border-radius: 12px;
+}
+.cf-btn:active {
+  transform: scale(0.98);
+}
+
+/* Chips / badges ----------------------------------------------------------- */
+.cf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 11.5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+  background: var(--surface-2);
+  color: var(--txt-2);
+  border: 1px solid var(--border);
+}
+.cf-chip-brand {
+  background: linear-gradient(
+    135deg,
+    rgba(124, 92, 255, 0.18),
+    rgba(240, 70, 156, 0.18)
+  );
+  color: var(--primary);
+  border-color: rgba(124, 92, 255, 0.3);
+}
+:root .cf-chip-brand {
+  color: #7c5cff;
+}
+.cf-chip-mint {
+  background: rgba(54, 229, 164, 0.14);
+  color: #1fa877;
+  border-color: rgba(54, 229, 164, 0.3);
+}
+.dark .cf-chip-mint {
+  color: var(--mint);
+}
+.cf-chip-cyan {
+  background: rgba(37, 224, 229, 0.13);
+  color: #178f93;
+  border-color: rgba(37, 224, 229, 0.28);
+}
+.dark .cf-chip-cyan {
+  color: var(--cyan);
+}
+.cf-chip-amber {
+  background: rgba(255, 178, 62, 0.15);
+  color: #c9821b;
+  border-color: rgba(255, 178, 62, 0.32);
+}
+.dark .cf-chip-amber {
+  color: var(--amber);
+}
+
+/* Type helpers ------------------------------------------------------------- */
+.cf-h1 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 27px;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.cf-h2 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+.cf-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.cf-num {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.cf-muted {
+  color: var(--muted);
+}
+.cf-txt2 {
+  color: var(--txt-2);
+}
+.cf-grad-txt {
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Misc --------------------------------------------------------------------- */
+.cf-divider {
+  height: 1px;
+  background: var(--border);
+  border: none;
+}
+.cf-icon-tile {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.cf-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ring-track);
+  overflow: hidden;
+}
+.cf-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--grad-brand);
+}
+
+/* ============================================================
+   Loader — anillos de actividad animados (giroscopio)
+   ============================================================ */
+@keyframes cf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cf-spin-rev {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes cf-node {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.55);
+    opacity: 0.55;
+  }
+}
+@keyframes cf-sweep {
+  0% {
+    stroke-dashoffset: var(--c);
+  }
+  50% {
+    stroke-dashoffset: calc(var(--c) * 0.18);
+  }
+  100% {
+    stroke-dashoffset: var(--c);
+  }
+}
+
+.cf-load-outer {
+  transform-origin: 50px 50px;
+  animation: cf-spin 1.5s cubic-bezier(0.6, 0.1, 0.3, 0.9) infinite;
+}
+.cf-load-inner {
+  transform-origin: 50px 50px;
+  animation: cf-spin-rev 1.1s cubic-bezier(0.6, 0.1, 0.3, 0.9) infinite;
+}
+.cf-load-node {
+  transform-origin: 50px 50px;
+  animation: cf-node 1.2s ease-in-out infinite;
+}
+/* variante "draw" — los arcos respiran */
+.cf-load2-outer {
+  transform-origin: 50px 50px;
+  animation: cf-spin 2.4s linear infinite, cf-sweep 1.6s ease-in-out infinite;
+}
+.cf-load2-inner {
+  transform-origin: 50px 50px;
+  animation: cf-spin-rev 1.8s linear infinite,
+    cf-sweep 1.6s ease-in-out infinite 0.2s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cf-load-outer,
+  .cf-load-inner,
+  .cf-load-node,
+  .cf-load2-outer,
+  .cf-load2-inner {
+    animation-duration: 3s;
+  }
+}
+
+/* Exercise media placeholder ---------------------------------------------- */
+.cf-eximg {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    rgba(124, 92, 255, 0.22),
+    rgba(240, 70, 156, 0.16)
+  );
+}
+.cf-eximg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 30% 25%,
+    rgba(255, 255, 255, 0.18),
+    transparent 55%
+  );
+}
+.dark .cf-eximg {
+  background: linear-gradient(
+    135deg,
+    rgba(124, 92, 255, 0.28),
+    rgba(240, 70, 156, 0.2)
+  );
 }

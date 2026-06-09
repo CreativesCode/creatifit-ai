@@ -1,11 +1,24 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { ThemeProvider } from "@/app/providers/ThemeProvider";
 import LanguageProvider from "@/app/providers/LanguageProvider";
+import { NavigationLoader } from "@/components/ui/navigation-loader";
 
-const inter = Inter({ subsets: ["latin"] });
+// Cuerpo de texto
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-body",
+});
+
+// Display / títulos / números (tabular)
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: "CreatiFit AI - AI-Powered Fitness Plans",
@@ -20,10 +33,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} capacitor-app`}>
+      <body
+        className={`${jakarta.variable} ${spaceGrotesk.variable} font-body capacitor-app`}
+      >
         <ThemeProvider>
           <LanguageProvider>
             <Providers>
+              <NavigationLoader />
               {children}
             </Providers>
           </LanguageProvider>

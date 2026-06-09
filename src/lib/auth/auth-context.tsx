@@ -10,9 +10,14 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null; needsConfirmation: boolean }>;
+  signUp: (
+    email: string,
+    password: string,
+    name?: string
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   resendConfirmation: (email: string) => Promise<{ error: string | null }>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -42,13 +47,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
-  const signUp: AuthContextValue["signUp"] = async (email, password) => {
+  const signUp: AuthContextValue["signUp"] = async (email, password, name) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         // El enlace de confirmación vuelve a la app web; tras confirmar, el usuario inicia sesión.
         emailRedirectTo: `${envConfig.APP_URL}/`,
+        ...(name ? { data: { full_name: name } } : {}),
       },
     });
     if (error) return { error: error.message, needsConfirmation: false };
@@ -70,6 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const resetPassword: AuthContextValue["resetPassword"] = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${envConfig.APP_URL}/`,
+    });
+    return { error: error?.message ?? null };
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -80,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         resendConfirmation,
+        resetPassword,
       }}
     >
       {children}

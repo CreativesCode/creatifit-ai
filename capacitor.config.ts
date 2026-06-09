@@ -12,6 +12,14 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 0,
     },
+    StatusBar: {
+      style: "dark",
+      backgroundColor: "#7c3aed",
+      overlaysWebView: false,
+    },
+    SafeArea: {
+      enabled: true,
+    },
   },
   android: {
     buildOptions: {
@@ -20,6 +28,9 @@ const config: CapacitorConfig = {
       keystorePassword: undefined,
       keystoreAliasPassword: undefined,
     },
+  },
+  ios: {
+    contentInset: "automatic",
   },
 };
 

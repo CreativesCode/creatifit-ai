@@ -124,5 +124,250 @@
     "back": "Atrás",
     "next": "Siguiente",
     "previous": "Anterior"
+  },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Personaliza tu experiencia en CreatiFit AI",
+    "language": {
+      "title": "Idioma",
+      "description": "Selecciona el idioma en el que prefieres usar la aplicación",
+      "app_language": "Idioma de la aplicación"
+    },
+    "theme": {
+      "title": "Tema",
+      "description": "Elige entre tema claro, oscuro o automático",
+      "visual_theme": "Tema visual"
+    },
+    "about": {
+      "title": "Acerca de",
+      "description": "Información sobre CreatiFit AI",
+      "version": "Versión",
+      "developed_by": "Desarrollado por",
+      "app_type": "Tipo de aplicación",
+      "mobile_native": "Móvil Nativa"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "description": "Gestiona cómo recibes las notificaciones",
+      "workout_reminders": "Recordatorios de entrenamiento",
+      "workout_reminders_desc": "Recibe notificaciones para tus sesiones programadas",
+      "achievements_progress": "Logros y progreso",
+      "achievements_progress_desc": "Celebra tus hitos y avances"
+    }
+  },
+  "actions": {
+    "create_plan": "Crear Plan",
+    "create_plan_emoji": "🏋️‍♂️ Crear Plan"
+  },
+  "ui": {
+    "options": "Opciones",
+    "close_menu": "Cerrar menú",
+    "open_menu": "Abrir menú",
+    "switch_to_english": "Cambiar a Inglés",
+    "switch_to_spanish": "Cambiar a Español"
+  },
+  "dashboard": {
+    "title": "🏋️‍♂️ Dashboard de CreatiFit AI",
+    "subtitle": "Tu centro de control para el fitness personalizado",
+    "stats": {
+      "plans_created": "Planes Creados",
+      "sessions_completed": "Sesiones Completadas",
+      "exercises_available": "Ejercicios Disponibles"
+    },
+    "quick_actions": {
+      "title": "Acciones Rápidas",
+      "create_new_plan": {
+        "title": "Crear Nuevo Plan",
+        "description": "Genera un plan personalizado con IA"
+      },
+      "view_plans": {
+        "title": "Ver Mis Planes",
+        "description": "Revisa tus planes de entrenamiento"
+      },
+      "exercise_library": {
+        "title": "Biblioteca de Ejercicios",
+        "description": "Explora ejercicios disponibles"
+      },
+      "workout_history": {
+        "title": "Historial de Entrenamientos",
+        "description": "Revisa tus sesiones completadas"
+      }
+    },
+    "recent_plans": {
+      "title": "Planes Recientes",
+      "view_all_plans": "Ver Todos los Planes"
+    },
+    "welcome": {
+      "title": "¡Bienvenido a CreatiFit AI!",
+      "description": "Comienza tu viaje de fitness creando tu primer plan de entrenamiento personalizado. Nuestra IA analizará tus objetivos, nivel y preferencias para crear el plan perfecto para ti.",
+      "create_first_plan": "🚀 Crear Mi Primer Plan"
+    },
+    "loading": "Cargando dashboard..."
+  },
+  "plans": {
+    "title": "Mis Planes de Entrenamiento",
+    "subtitle": "Gestiona y revisa todos tus planes generados por IA",
+    "create_new_plan": "Crear Nuevo Plan",
+    "no_plans": {
+      "title": "No tienes planes aún",
+      "description": "Crea tu primer plan de entrenamiento personalizado con IA",
+      "create_first": "Crear Mi Primer Plan"
+    },
+    "plan_details": {
+      "title": "Detalles del Plan",
+      "back_to_plans": "Volver a Planes",
+      "edit": "Editar",
+      "start_session": "Iniciar Sesión",
+      "plan_duration": "Plan de {{weeks}} semanas",
+      "created_on": "Creado el {{date}}",
+      "training_days": "{{count}} días de entrenamiento",
+      "duration": "Duración: {{weeks}} semanas",
+      "focus": "Enfoque: {{focus}}",
+      "view_details": "Ver Detalles"
+    },
+    "loading": {
+      "plans": "Cargando planes...",
+      "plan": "Cargando plan..."
+    },
+    "retry": "Reintentar"
+  },
+  "exercises": {
+    "title": "Biblioteca de Ejercicios",
+    "subtitle": "Explora nuestra colección completa de ejercicios con instrucciones detalladas",
+    "search": {
+      "placeholder": "Buscar ejercicios...",
+      "apply_filters": "Aplicar Filtros",
+      "clear_filters": "Limpiar Filtros"
+    },
+    "filters": {
+      "all_types": "Todos los tipos",
+      "all_equipment": "Todo el equipo",
+      "strength": "Fuerza",
+      "cardio": "Cardio",
+      "flexibility": "Flexibilidad",
+      "balance": "Equilibrio",
+      "bodyweight": "Sin equipo",
+      "dumbbells": "Mancuernas",
+      "barbell": "Barra",
+      "cable": "Cable",
+      "machine": "Máquina"
+    },
+    "no_results": {
+      "title": "No se encontraron ejercicios",
+      "description": "Intenta ajustar los filtros de búsqueda",
+      "no_exercises": "No hay ejercicios disponibles en este momento"
+    },
+    "exercise_details": {
+      "title": "Detalles del Ejercicio",
+      "back_to_exercises": "Volver a Ejercicios",
+      "no_type": "Sin tipo",
+      "no_equipment": "Sin equipo",
+      "difficulty": "Dificultad: {{level}}",
+      "basic_info": "📊 Datos del Ejercicio",
+      "full_name": "Nombre completo:",
+      "unique_id": "ID único:",
+      "image_available": "Imagen disponible:",
+      "yes": "Sí",
+      "basic_instructions": "📝 Instrucciones Básicas",
+      "setup_equipment": "Configura el equipamiento necesario: {{equipment}}",
+      "perform_exercise": "Realiza el ejercicio de {{type}} manteniendo la forma correcta",
+      "focus_muscles": "Enfócate en trabajar los músculos objetivo de manera controlada",
+      "maintain_breathing": "Mantén una respiración constante durante todo el movimiento",
+      "general_tips": "💡 Consejos Generales",
+      "start_light": "Comienza con poco peso y enfócate en la técnica correcta antes de incrementar la intensidad",
+      "activate_core": "Mantén el core activado y la postura correcta durante todo el ejercicio",
+      "stop_if_pain": "Si sientes dolor (no confundir con fatiga muscular), detén el ejercicio inmediatamente",
+      "overview": "📋 Descripción General",
+      "muscles_worked": "💪 Músculos Trabajados",
+      "primary_muscles": "Músculos Principales:",
+      "secondary_muscles": "Músculos Secundarios:",
+      "exercise_info": "Información del Ejercicio",
+      "type": "Tipo:",
+      "category": "Categoría:",
+      "equipment": "Equipo:",
+      "created": "Creado:",
+      "updated": "Actualizado:",
+      "not_available": "No disponible",
+      "execution_instructions": "📝 Instrucciones de Ejecución",
+      "detailed_instructions": "Instrucciones Detalladas",
+      "tips": "💡 Consejos y Tips",
+      "benefits": "⭐ Beneficios del Ejercicio",
+      "variations": "🔄 Variaciones del Ejercicio",
+      "data_availability": "📊 Información Disponible en la Base de Datos",
+      "general_description": "Descripción general",
+      "specific_instructions": "Instrucciones específicas",
+      "specific_tips": "Consejos específicos",
+      "benefits_list": "Beneficios",
+      "primary_muscles_array": "Músculos primarios (array)",
+      "secondary_muscles_array": "Músculos secundarios (array)",
+      "note": "Nota: Los campos marcados en rojo están vacíos en la base de datos. Los campos marcados en verde tienen datos disponibles y se muestran arriba.",
+      "exercise_id": "ID del ejercicio:",
+      "last_modified": "Última modificación:",
+      "load_more": "Cargando más ejercicios...",
+      "scroll_to_load": "Desplázate hacia abajo para cargar más ejercicios automáticamente",
+      "showing": "Mostrando {{count}} ejercicios • Página {{page}}"
+    },
+    "loading": {
+      "exercises": "Cargando ejercicios...",
+      "exercise": "Cargando ejercicio..."
+    },
+    "retry": "Reintentar"
+  },
+  "workout_history": {
+    "title": "Historial de Entrenamientos",
+    "subtitle": "Rastrea tu progreso y sesiones completadas",
+    "back": "Volver",
+    "no_workouts": {
+      "title": "No hay entrenamientos registrados",
+      "description": "Completa tu primer entrenamiento para ver el historial aquí"
+    },
+    "session_details": {
+      "title": "Detalles de la Sesión",
+      "back_to_history": "Volver al Historial",
+      "session_date": "Sesión del {{date}}",
+      "plan_day": "Día del Plan: {{day}}",
+      "completed_sets": "Series Completadas",
+      "total_volume": "Volumen Total (kg)",
+      "avg_rpe": "RPE Promedio",
+      "exercises": "Ejercicios"
+    },
+    "general_summary": {
+      "title": "Resumen General",
+      "completed_sessions": "Sesiones Completadas",
+      "total_sets": "Total de Series",
+      "total_volume": "Volumen Total (kg)",
+      "avg_rpe": "RPE Promedio"
+    },
+    "session_summary": {
+      "series": "series",
+      "completed": "completadas",
+      "volume": "Volumen (kg)",
+      "exercises_performed": "Ejercicios Realizados",
+      "series_reps": "{{sets}} series × {{reps}} reps totales",
+      "click_for_details": "💡 Haz click para ver detalles completos de esta sesión",
+      "session_id": "ID de Sesión",
+      "avg_weight": "promedio",
+      "reps": "reps",
+      "target": "objetivo",
+      "weight_unit": "kg",
+      "rpe_label": "RPE"
+    },
+    "loading": "Cargando detalles de la sesión..."
+  },
+  "plan_display": {
+    "ai_generated": "Generado por IA",
+    "loading_exercises": "Cargando detalles de ejercicios...",
+    "error_loading": "⚠️ Error cargando detalles de ejercicios: {{error}}",
+    "exercises_count": "{{count}} ejercicios",
+    "start_day": "🏋️‍♂️ Iniciar Día {{day}}",
+    "series": "Series",
+    "reps": "Reps",
+    "rest": "Descanso",
+    "key_points": "Puntos clave:",
+    "weekly_schedule": "Horario Semanal",
+    "week_schedule": "Semana 1-{{weeks}}: A → B → C → D (repetir)",
+    "start_first_session": "🏋️‍♂️ Iniciar Primera Sesión",
+    "back_to_plans": "← Volver a Planes",
+    "plan_id": "ID del Plan: {{id}}"
   }
 }

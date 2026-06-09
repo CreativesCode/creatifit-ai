@@ -8,12 +8,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PlanDisplay } from "@/components/ui/plan-display";
+import { supabaseClient } from "@/lib/supabase-client";
+
 import { ArrowLeft, Calendar, Clock, Edit, Play, Target } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { supabaseClient } from "@/lib/supabase-client";
 
 interface ExerciseBlock {
   name: string;
@@ -39,7 +40,7 @@ interface Plan {
 }
 
 export default function PlansPage() {
-  useTranslation("common");
+  const { t } = useTranslation("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -126,7 +127,7 @@ export default function PlansPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted">
-            {planId ? "Cargando plan..." : "Cargando planes..."}
+            {planId ? t("plans.loading.plan") : t("plans.loading.plans")}
           </p>
         </div>
       </div>
@@ -142,7 +143,7 @@ export default function PlansPage() {
             onClick={planId ? () => fetchPlan(planId!) : fetchPlans}
             variant="outline"
           >
-            Reintentar
+            {t("plans.retry")}
           </Button>
         </div>
       </div>
@@ -173,21 +174,23 @@ export default function PlansPage() {
               onClick={goBackToList}
               className="hover:text-primary transition-colors"
             >
-              Planes
+              {t("nav.plans")}
             </button>
             <span>→</span>
-            <span className="text-primary">Detalles del Plan</span>
+            <span className="text-primary">
+              {t("plans.plan_details.title")}
+            </span>
           </div>
 
           <div className="flex items-center justify-between mb-6">
             <Button onClick={goBackToList} variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver a Planes
+              {t("plans.plan_details.back_to_plans")}
             </Button>
             <div className="flex gap-3">
               <Button variant="outline" size="sm">
                 <Edit className="w-4 h-4 mr-2" />
-                Editar
+                {t("plans.plan_details.edit")}
               </Button>
               <Button
                 className="bg-primary hover:bg-primary/90 text-white"
@@ -196,17 +199,21 @@ export default function PlansPage() {
                 }
               >
                 <Play className="w-4 h-4 mr-2" />
-                Iniciar Sesión
+                {t("plans.plan_details.start_session")}
               </Button>
             </div>
           </div>
 
           <div className="text-center">
             <h1 className="text-3xl font-bold text-txt mb-2">
-              Plan de {selectedPlan.weeks} semanas
+              {t("plans.plan_details.plan_duration", {
+                weeks: selectedPlan.weeks,
+              })}
             </h1>
             <p className="text-muted text-lg">
-              Creado el {formatDate(selectedPlan.created_at)}
+              {t("plans.plan_details.created_on", {
+                date: formatDate(selectedPlan.created_at),
+              })}
             </p>
           </div>
         </div>
@@ -230,21 +237,17 @@ export default function PlansPage() {
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-2 mb-4">
           <Calendar className="w-6 h-6 text-primary" />
-          <span className="text-sm text-muted">Planes</span>
+          <span className="text-sm text-muted">{t("nav.plans")}</span>
         </div>
-        <h1 className="text-3xl font-bold text-txt mb-2">
-          Mis Planes de Entrenamiento
-        </h1>
-        <p className="text-muted text-lg">
-          Gestiona y revisa todos tus planes generados por IA
-        </p>
+        <h1 className="text-3xl font-bold text-txt mb-2">{t("plans.title")}</h1>
+        <p className="text-muted text-lg">{t("plans.subtitle")}</p>
       </div>
 
       {/* Create New Plan Button */}
       <div className="text-center mb-8">
         <Link href="/dashboard">
           <Button className="bg-primary hover:bg-primary/90 text-white shadow-glow px-8 py-3 text-lg">
-            Crear Nuevo Plan
+            {t("plans.create_new_plan")}
           </Button>
         </Link>
       </div>
@@ -256,68 +259,85 @@ export default function PlansPage() {
             <Calendar className="w-12 h-12 text-muted" />
           </div>
           <h3 className="text-xl font-semibold text-txt mb-2">
-            No tienes planes aún
+            {t("plans.no_plans.title")}
           </h3>
-          <p className="text-muted mb-6">
-            Crea tu primer plan de entrenamiento personalizado con IA
-          </p>
+          <p className="text-muted mb-6">{t("plans.no_plans.description")}</p>
           <Link href="/dashboard">
             <Button className="bg-primary hover:bg-primary/90 text-white">
-              Crear Mi Primer Plan
+              {t("plans.no_plans.create_first")}
             </Button>
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <Card key={plan.id} className="hover:shadow-soft transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-txt">
-                    Plan de {plan.weeks} semanas
-                  </CardTitle>
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    {plan.weeks}
+          {plans.map((plan) => {
+            return (
+              <Card
+                key={plan.id}
+                className="hover:shadow-soft transition-shadow"
+              >
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg text-txt">
+                      {t("plans.plan_details.plan_duration", {
+                        weeks: plan.weeks,
+                      })}
+                    </CardTitle>
+                    <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {plan.weeks}
+                    </div>
                   </div>
-                </div>
-                <CardDescription className="text-muted">
-                  Creado el {formatDate(plan.created_at)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-muted">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>
-                      {plan.payload.days.length} días de entrenamiento
-                    </span>
+                  <CardDescription className="text-muted">
+                    {t("plans.plan_details.created_on", {
+                      date: formatDate(plan.created_at),
+                    })}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center text-sm text-muted">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      <span>
+                        {t("plans.plan_details.training_days", {
+                          count: plan.payload.days.length,
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted">
+                      <Clock className="w-4 h-4 mr-2" />
+                      <span>
+                        {t("plans.plan_details.duration", {
+                          weeks: plan.weeks,
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted">
+                      <Target className="w-4 h-4 mr-2" />
+                      <span>
+                        {t("plans.plan_details.focus", {
+                          focus: plan.payload.days[0]?.focus,
+                        })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm text-muted">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span>Duración: {plan.weeks} semanas</span>
-                  </div>
-                  <div className="flex items-center text-sm text-muted">
-                    <Target className="w-4 h-4 mr-2" />
-                    <span>Enfoque: {plan.payload.days[0]?.focus}</span>
-                  </div>
-                </div>
 
-                <div className="mt-6 pt-4 border-t border-border">
-                  <Button
-                    onClick={() => {
-                      // Navegación SPA fluida
-                      router.replace(`/plans?id=${plan.id}`);
-                      setSelectedPlan(plan); // Establecer el plan inmediatamente
-                    }}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    Ver Detalles
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="mt-6 pt-4 border-t border-border">
+                    <Button
+                      onClick={() => {
+                        // Navegación SPA fluida
+                        router.replace(`/plans?id=${plan.id}`);
+                        setSelectedPlan(plan); // Establecer el plan inmediatamente
+                      }}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      {t("plans.plan_details.view_details")}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

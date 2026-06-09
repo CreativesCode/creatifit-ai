@@ -4,4 +4,5 @@
     <string name="title_activity_main">CreatiFit AI</string>
     <string name="package_name">com.creatifit.ai.app</string>
     <string name="custom_url_scheme">com.creatifit.ai.app</string>
+    <string name="app_description">Tu entrenador personal inteligente</string>
 </resources>

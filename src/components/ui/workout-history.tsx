@@ -1,9 +1,10 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabaseClient } from "@/lib/supabase-client";
 import { Calendar, TrendingUp, Weight, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabaseClient } from "@/lib/supabase-client";
+import { useTranslation } from "react-i18next";
 
 interface WorkoutLog {
   id: string;
@@ -35,7 +36,12 @@ interface WorkoutHistoryProps {
   onSessionClick?: (sessionId: string) => void;
 }
 
-export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: WorkoutHistoryProps) {
+export function WorkoutHistory({
+  onBack,
+  selectedSession,
+  onSessionClick,
+}: WorkoutHistoryProps) {
+  const { t } = useTranslation("common");
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -135,9 +141,7 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
         <Card className="max-w-4xl mx-auto">
           <CardContent className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted">
-              Cargando historial de entrenamientos...
-            </p>
+            <p className="text-muted">{t("workout_history.loading")}</p>
           </CardContent>
         </Card>
       </div>
@@ -150,15 +154,15 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
         <Card className="max-w-4xl mx-auto">
           <CardHeader className="text-center">
             <CardTitle className="text-xl text-muted">
-              No hay entrenamientos registrados
+              {t("workout_history.no_workouts.title")}
             </CardTitle>
             <p className="text-muted">
-              Completa tu primer entrenamiento para ver el historial aquí
+              {t("workout_history.no_workouts.description")}
             </p>
           </CardHeader>
           <CardContent className="text-center">
             <Button onClick={onBack} className="px-8">
-              Volver
+              {t("workout_history.back")}
             </Button>
           </CardContent>
         </Card>
@@ -173,11 +177,11 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-txt">
-            Detalles de la Sesión
+            {t("workout_history.session_details.title")}
           </h1>
           <Button onClick={onBack} variant="outline" size="sm">
             <XCircle className="w-4 h-4 mr-2" />
-            Volver al Historial
+            {t("workout_history.session_details.back_to_history")}
           </Button>
         </div>
 
@@ -186,9 +190,15 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
-              Sesión del {formatDate(selectedSession.date)}
+              {t("workout_history.session_details.session_date", {
+                date: formatDate(selectedSession.date),
+              })}
             </CardTitle>
-            <p className="text-muted">Día del Plan: {selectedSession.planDayId}</p>
+            <p className="text-muted">
+              {t("workout_history.session_details.plan_day", {
+                day: selectedSession.planDayId,
+              })}
+            </p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -196,25 +206,33 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                 <div className="text-3xl font-bold text-primary">
                   {selectedSession.totalSets}
                 </div>
-                <p className="text-muted">Series Completadas</p>
+                <p className="text-muted">
+                  {t("workout_history.session_details.completed_sets")}
+                </p>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-accent">
                   {selectedSession.totalVolume.toFixed(1)}
                 </div>
-                <p className="text-muted">Volumen Total (kg)</p>
+                <p className="text-muted">
+                  {t("workout_history.session_details.total_volume")}
+                </p>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-secondary">
                   {selectedSession.avgRPE.toFixed(1)}
                 </div>
-                <p className="text-muted">RPE Promedio</p>
+                <p className="text-muted">
+                  {t("workout_history.session_details.avg_rpe")}
+                </p>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-success">
                   {selectedSession.logs.length}
                 </div>
-                <p className="text-muted">Ejercicios</p>
+                <p className="text-muted">
+                  {t("workout_history.session_details.exercises")}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -228,15 +246,21 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                 <CardHeader>
                   <CardTitle className="text-lg">{exerciseName}</CardTitle>
                   <p className="text-muted">
-                    {stats.sets} series • {stats.totalReps} reps totales
-                    {stats.avgWeight > 0 && ` • ${stats.avgWeight.toFixed(1)} kg promedio`}
+                    {t("workout_history.session_summary.series_reps", {
+                      sets: stats.sets,
+                      reps: stats.totalReps,
+                    })}
+                    {stats.avgWeight > 0 &&
+                      ` • ${stats.avgWeight.toFixed(1)} kg ${t(
+                        "workout_history.session_summary.avg_weight"
+                      )}`}
                   </p>
                 </CardHeader>
                 <CardContent>
                   {/* Detalles de cada set */}
                   <div className="space-y-3">
                     {selectedSession.logs
-                      .filter(log => log.exercise_name === exerciseName)
+                      .filter((log) => log.exercise_name === exerciseName)
                       .sort((a, b) => a.set_index - b.set_index)
                       .map((log, index) => (
                         <div
@@ -249,17 +273,25 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                             </span>
                             <div>
                               <p className="font-medium text-txt">
-                                {log.actual_reps} reps
+                                {log.actual_reps}{" "}
+                                {t("workout_history.session_summary.reps")}
                                 {log.target_reps && (
                                   <span className="text-muted ml-2">
-                                    (objetivo: {log.target_reps[0]}-{log.target_reps[1]})
+                                    (
+                                    {t(
+                                      "workout_history.session_summary.target"
+                                    )}
+                                    : {log.target_reps[0]}-{log.target_reps[1]})
                                   </span>
                                 )}
                               </p>
                               {log.weight && (
                                 <p className="text-sm text-muted">
                                   <Weight className="w-3 h-3 inline mr-1" />
-                                  {log.weight} kg
+                                  {log.weight}{" "}
+                                  {t(
+                                    "workout_history.session_summary.weight_unit"
+                                  )}
                                 </p>
                               )}
                             </div>
@@ -267,7 +299,12 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                           <div className="text-right space-y-1">
                             {log.rpe && (
                               <div className="text-sm">
-                                <span className="text-muted">RPE:</span>
+                                <span className="text-muted">
+                                  {t(
+                                    "workout_history.session_summary.rpe_label"
+                                  )}
+                                  :
+                                </span>
                                 <span className="ml-2 font-semibold text-accent">
                                   {log.rpe}
                                 </span>
@@ -296,11 +333,11 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-txt">
-          Historial de Entrenamientos
+          {t("workout_history.title")}
         </h1>
         <Button onClick={onBack} variant="outline" size="sm">
           <XCircle className="w-4 h-4 mr-2" />
-          Volver
+          {t("workout_history.back")}
         </Button>
       </div>
 
@@ -309,7 +346,7 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-primary" />
-            Resumen General
+            {t("workout_history.general_summary.title")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -318,13 +355,17 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
               <div className="text-3xl font-bold text-primary">
                 {sessions.length}
               </div>
-              <p className="text-muted">Sesiones Completadas</p>
+              <p className="text-muted">
+                {t("workout_history.general_summary.completed_sessions")}
+              </p>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-accent">
                 {sessions.reduce((sum, session) => sum + session.totalSets, 0)}
               </div>
-              <p className="text-muted">Total de Series</p>
+              <p className="text-muted">
+                {t("workout_history.general_summary.total_sets")}
+              </p>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-secondary">
@@ -332,7 +373,9 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                   .reduce((sum, session) => sum + session.totalVolume, 0)
                   .toFixed(1)}
               </div>
-              <p className="text-muted">Volumen Total (kg)</p>
+              <p className="text-muted">
+                {t("workout_history.general_summary.total_volume")}
+              </p>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-success">
@@ -341,7 +384,9 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                   sessions.length
                 ).toFixed(1)}
               </div>
-              <p className="text-muted">RPE Promedio</p>
+              <p className="text-muted">
+                {t("workout_history.general_summary.avg_rpe")}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -350,8 +395,8 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
       {/* Lista de Sesiones */}
       <div className="space-y-6">
         {sessions.map((session) => (
-          <Card 
-            key={session.id} 
+          <Card
+            key={session.id}
             className="border-border/50 hover:shadow-md transition-shadow cursor-pointer"
             onClick={() => onSessionClick?.(session.id)}
           >
@@ -360,18 +405,28 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-primary" />
-                    Sesión del {formatDate(session.date)}
+                    {t("workout_history.session_details.session_date", {
+                      date: formatDate(session.date),
+                    })}
                   </CardTitle>
-                  <p className="text-muted mt-1">Día del Plan: {session.planDayId}</p>
+                  <p className="text-muted mt-1">
+                    {t("workout_history.session_details.plan_day", {
+                      day: session.planDayId,
+                    })}
+                  </p>
                   <p className="text-sm text-muted mt-1">
-                    ID de Sesión: {session.id.substring(0, 8)}...
+                    {t("workout_history.session_summary.session_id")}:{" "}
+                    {session.id.substring(0, 8)}...
                   </p>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-accent">
-                    {session.totalSets} series
+                    {session.totalSets}{" "}
+                    {t("workout_history.session_summary.series")}
                   </div>
-                  <p className="text-sm text-muted">completadas</p>
+                  <p className="text-sm text-muted">
+                    {t("workout_history.session_summary.completed")}
+                  </p>
                 </div>
               </div>
             </CardHeader>
@@ -383,26 +438,32 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                   <div className="text-lg font-semibold text-primary">
                     {session.totalVolume.toFixed(1)}
                   </div>
-                  <p className="text-sm text-muted">Volumen (kg)</p>
+                  <p className="text-sm text-muted">
+                    {t("workout_history.session_summary.volume")}
+                  </p>
                 </div>
                 <div className="text-center p-3 bg-accent/10 rounded-lg">
                   <div className="text-lg font-semibold text-accent">
                     {session.avgRPE.toFixed(1)}
                   </div>
-                  <p className="text-sm text-muted">RPE Promedio</p>
+                  <p className="text-sm text-muted">
+                    {t("workout_history.general_summary.avg_rpe")}
+                  </p>
                 </div>
                 <div className="text-center p-3 bg-secondary/10 rounded-lg">
                   <div className="text-lg font-semibold text-secondary">
                     {session.logs.length}
                   </div>
-                  <p className="text-sm text-muted">Ejercicios</p>
+                  <p className="text-sm text-muted">
+                    {t("workout_history.session_details.exercises")}
+                  </p>
                 </div>
               </div>
 
               {/* Ejercicios de la Sesión */}
               <div>
                 <h4 className="font-semibold mb-3 text-txt">
-                  Ejercicios Realizados
+                  {t("workout_history.session_summary.exercises_performed")}
                 </h4>
                 <div className="space-y-3">
                   {Array.from(getExerciseStats(session.logs).entries()).map(
@@ -414,14 +475,18 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
                         <div>
                           <p className="font-medium text-txt">{exerciseName}</p>
                           <p className="text-sm text-muted">
-                            {stats.sets} series × {stats.totalReps} reps totales
+                            {t("workout_history.session_summary.series_reps", {
+                              sets: stats.sets,
+                              reps: stats.totalReps,
+                            })}
                           </p>
                         </div>
                         <div className="text-right">
                           {stats.avgWeight > 0 && (
                             <p className="text-sm text-muted">
                               <Weight className="w-3 h-3 inline mr-1" />
-                              {stats.avgWeight.toFixed(1)} kg
+                              {stats.avgWeight.toFixed(1)}{" "}
+                              {t("workout_history.session_summary.weight_unit")}
                             </p>
                           )}
                         </div>
@@ -434,7 +499,7 @@ export function WorkoutHistory({ onBack, selectedSession, onSessionClick }: Work
               {/* Indicador de click */}
               <div className="mt-4 text-center">
                 <p className="text-xs text-muted">
-                  💡 Haz click para ver detalles completos de esta sesión
+                  {t("workout_history.session_summary.click_for_details")}
                 </p>
               </div>
             </CardContent>

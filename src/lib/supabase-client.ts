@@ -60,66 +60,97 @@ export const supabaseClient = {
 
   // Planes
   async getPlans() {
-    const { data, error } = await supabaseAdmin
-      .from("plans")
-      .select("*")
-      .order("created_at", { ascending: false });
+    try {
+      // Intentar primero con el cliente normal (con RLS)
+      const { data: normalData, error: normalError } = await supabase
+        .from("plans")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (error) {
+      let data = normalData;
+
+      // Si hay error de permisos, intentar con admin
+      if (normalError && normalError.code === "PGRST116") {
+        if (serviceRoleKey) {
+          const { data: adminData, error: adminError } = await supabaseAdmin
+            .from("plans")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+          if (adminError) throw adminError;
+          data = adminData;
+        } else {
+          throw new Error("No admin access available and RLS denied access");
+        }
+      } else if (normalError) {
+        throw normalError;
+      }
+
+      // Parsear el payload JSON string a objeto
+      const parsedData =
+        data?.map((plan) => ({
+          ...plan,
+          payload:
+            typeof plan.payload === "string"
+              ? JSON.parse(plan.payload)
+              : plan.payload,
+        })) || [];
+
+      return parsedData;
+    } catch (error) {
+      console.error("Error fetching plans:", error);
       throw error;
     }
-
-    // Parsear el payload JSON string a objeto
-    const parsedData = data?.map((plan) => ({
-      ...plan,
-      payload:
-        typeof plan.payload === "string"
-          ? JSON.parse(plan.payload)
-          : plan.payload,
-    }));
-
-    return parsedData;
   },
 
   async getPlanById(id: string) {
-    console.log("🔍 [SUPABASE CLIENT] Fetching plan by ID:", id);
-    console.log("🔧 [SUPABASE CLIENT] Using admin client:", !!serviceRoleKey);
+    try {
+      // Intentar primero con el cliente normal (con RLS)
+      const { data: normalData, error: normalError } = await supabase
+        .from("plans")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    const { data, error } = await supabaseAdmin
-      .from("plans")
-      .select("*")
-      .eq("id", id)
-      .single();
+      let data = normalData;
 
-    console.log("📊 [SUPABASE CLIENT] Plan by ID query result:", {
-      data,
-      error,
-    });
+      // Si hay error de permisos, intentar con admin
+      if (normalError && normalError.code === "PGRST116") {
+        if (serviceRoleKey) {
+          const { data: adminData, error: adminError } = await supabaseAdmin
+            .from("plans")
+            .select("*")
+            .eq("id", id)
+            .single();
 
-    if (error) {
-      console.error("❌ [SUPABASE CLIENT] Error fetching plan by ID:", error);
+          if (adminError) throw adminError;
+          data = adminData;
+        } else {
+          throw new Error("No admin access available and RLS denied access");
+        }
+      } else if (normalError) {
+        throw normalError;
+      }
+
+      // Parsear el payload JSON string a objeto
+      const parsedData = data
+        ? {
+            ...data,
+            payload:
+              typeof data.payload === "string"
+                ? JSON.parse(data.payload)
+                : data.payload,
+          }
+        : data;
+
+      return parsedData;
+    } catch (error) {
+      console.error("Error fetching plan by ID:", error);
       throw error;
     }
-
-    // Parsear el payload JSON string a objeto
-    const parsedData = data
-      ? {
-          ...data,
-          payload:
-            typeof data.payload === "string"
-              ? JSON.parse(data.payload)
-              : data.payload,
-        }
-      : data;
-
-    console.log("✅ [SUPABASE CLIENT] Plan fetched successfully:", parsedData);
-    return parsedData;
   },
 
   async getPlanExercises(planId: string) {
-    console.log("💪 [SUPABASE CLIENT] Fetching exercises for plan:", planId);
-    console.log("🔧 [SUPABASE CLIENT] Using admin client:", !!serviceRoleKey);
-
     try {
       // Usar la función RPC get_plan_exercises_with_details
       const { data, error } = await supabase.rpc(
@@ -129,17 +160,8 @@ export const supabaseClient = {
         }
       );
 
-      console.log("📊 [SUPABASE CLIENT] Plan exercises RPC result:", {
-        data,
-        error,
-        count: data?.length,
-      });
-
       if (error) {
-        console.error(
-          "❌ [SUPABASE CLIENT] Error fetching plan exercises:",
-          error
-        );
+        console.error("Error fetching plan exercises:", error);
         throw error;
       }
 
@@ -168,12 +190,6 @@ export const supabaseClient = {
           return acc;
         }, {}) || {};
 
-      console.log("✅ [SUPABASE CLIENT] Plan exercises fetched successfully:", {
-        planId,
-        totalExercises: data?.length || 0,
-        dayCount: Object.keys(exercisesByDay).length,
-      });
-
       return {
         success: true,
         planId,
@@ -182,10 +198,7 @@ export const supabaseClient = {
         retrievedAt: new Date().toISOString(),
       };
     } catch (error) {
-      console.error(
-        "💥 [SUPABASE CLIENT] Error fetching plan exercises:",
-        error
-      );
+      console.error("Error fetching plan exercises:", error);
       throw error;
     }
   },
@@ -273,26 +286,11 @@ export const supabaseClient = {
 
   // Función de debug para verificar la tabla plans
   async debugPlansTable() {
-    console.log("🔍 [DEBUG] Checking plans table...");
-
     // Verificar si la tabla existe y obtener información básica
     const { data, error, count } = await supabase
       .from("plans")
       .select("*", { count: "exact" })
       .limit(5);
-
-    console.log("📊 [DEBUG] Plans table info:", {
-      data,
-      error,
-      count,
-      dataType: typeof data,
-      isArray: Array.isArray(data),
-    });
-
-    if (data && data.length > 0) {
-      console.log("📋 [DEBUG] Sample plan structure:", data[0]);
-      console.log("🔑 [DEBUG] Plan keys:", Object.keys(data[0]));
-    }
 
     return { data, error, count };
   },

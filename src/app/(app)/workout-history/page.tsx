@@ -2,6 +2,7 @@
 import { WorkoutHistory } from "@/components/ui/workout-history";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { supabaseClient } from "@/lib/supabase-client";
 
 interface WorkoutLog {
@@ -29,6 +30,7 @@ interface WorkoutSession {
 }
 
 export default function WorkoutHistoryPage() {
+  const { t } = useTranslation("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("id");
@@ -86,7 +88,7 @@ export default function WorkoutHistoryPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted">Cargando detalles de la sesión...</p>
+          <p className="mt-4 text-muted">{t("workout_history.loading")}</p>
         </div>
       </div>
     );

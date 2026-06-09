@@ -9,11 +9,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { supabaseClient } from "@/lib/supabase-client";
 import { ArrowLeft, Dumbbell, Filter, Search, Target } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { supabaseClient } from "@/lib/supabase-client";
 
 interface Exercise {
   id: string;
@@ -49,7 +49,7 @@ interface ExerciseDetail extends Exercise {
 }
 
 export default function ExercisesPage() {
-  useTranslation("common");
+  const { t } = useTranslation("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -87,17 +87,6 @@ export default function ExercisesPage() {
     }
   }, [exerciseId]);
 
-  // Debug: Log del estado de ejercicios
-  useEffect(() => {
-    console.log("🔍 [EXERCISES] Exercises state changed:", {
-      count: exercises.length,
-      currentPage,
-      hasMore,
-      loading,
-      loadingMore,
-    });
-  }, [exercises.length, currentPage, hasMore, loading, loadingMore]);
-
   const fetchExercises = async (page = 1, append = false) => {
     try {
       // Usar loading diferente según si es carga inicial o scroll infinito
@@ -114,38 +103,20 @@ export default function ExercisesPage() {
         selectedKind || undefined
       );
 
-      console.log("📋 [EXERCISES] Supabase Response:", data);
-
       if (data && data.data) {
         if (append) {
           // Agregar nuevos ejercicios a la lista existente
           setExercises((prev) => {
             const newExercises = [...prev, ...data.data];
-            console.log("🔄 [EXERCISES] Appending exercises:", {
-              previousCount: prev.length,
-              newCount: data.data.length,
-              totalCount: newExercises.length,
-            });
             return newExercises;
           });
         } else {
           // Reemplazar toda la lista (nueva búsqueda o filtro)
           setExercises(data.data || []);
-          console.log("🔄 [EXERCISES] Replacing exercises:", {
-            newCount: data.data?.length || 0,
-          });
         }
 
         setHasMore(data.hasMore);
         setCurrentPage(page);
-
-        console.log("📊 [EXERCISES] State updated:", {
-          page,
-          hasMore: data.hasMore,
-          totalExercises: append
-            ? exercises.length + data.data.length
-            : data.data.length,
-        });
       } else {
         throw new Error("Error en la respuesta de Supabase");
       }
@@ -165,37 +136,11 @@ export default function ExercisesPage() {
   const fetchExercise = async (id: string) => {
     try {
       setLoading(true);
-      console.log("🔍 [EXERCISES] Fetching exercise with ID:", id);
+
       const exerciseData = await supabaseClient.getExerciseById(id);
 
       if (exerciseData) {
         setSelectedExercise(exerciseData);
-        console.log(
-          "✅ [EXERCISES] Exercise set successfully:",
-          exerciseData.name
-        );
-        console.log(
-          "📋 [EXERCISES] Complete exercise data:",
-          JSON.stringify(exerciseData, null, 2)
-        );
-
-        // Debug: Log available fields
-        const availableFields = Object.keys(exerciseData);
-        console.log("🔍 [EXERCISES] Available fields:", availableFields);
-
-        // Debug: Log specific fields we're looking for
-        console.log("🔍 [EXERCISES] Field analysis:", {
-          hasInstructions: !!exerciseData.instructions,
-          instructionsType: typeof exerciseData.instructions,
-          hasTips: !!exerciseData.tips,
-          tipsLength: exerciseData.tips?.length,
-          hasBenefits: !!exerciseData.benefits,
-          benefitsLength: exerciseData.benefits?.length,
-          hasOverview: !!exerciseData.overview,
-          hasPrimaryMuscles: !!exerciseData.muscle_groups_primary,
-          hasSecondaryMuscles: !!exerciseData.muscle_groups_secondary,
-          hasPrimaryMusclesString: !!exerciseData.primary_muscles,
-        });
       } else {
         throw new Error("Error en la respuesta de Supabase");
       }
@@ -214,11 +159,6 @@ export default function ExercisesPage() {
   };
 
   const handleSearch = useCallback(() => {
-    console.log("🔍 [EXERCISES] Starting new search:", {
-      searchTerm,
-      selectedKind,
-      selectedEquipment,
-    });
     setCurrentPage(1);
     setHasMore(true);
     setExercises([]); // Limpiar ejercicios existentes antes de nueva búsqueda
@@ -228,32 +168,13 @@ export default function ExercisesPage() {
   const loadMore = () => {
     if (hasMore && !loadingMore && !loading) {
       const nextPage = currentPage + 1;
-      console.log("🔄 [EXERCISES] Loading more exercises:", {
-        currentPage,
-        nextPage,
-        currentExercisesCount: exercises.length,
-        hasMore,
-      });
       fetchExercises(nextPage, true);
-    } else {
-      console.log("❌ [EXERCISES] Cannot load more:", {
-        hasMore,
-        loadingMore,
-        loading,
-        currentPage,
-      });
     }
   };
 
   // Función para cargar más ejercicios automáticamente
   const handleScroll = useCallback(() => {
     if (loadingMore || loading || !hasMore) {
-      console.log("🔄 [EXERCISES] Scroll detected but cannot load:", {
-        loadingMore,
-        loading,
-        hasMore,
-        currentExercisesCount: exercises.length,
-      });
       return;
     }
 
@@ -263,18 +184,9 @@ export default function ExercisesPage() {
 
     // Si estamos cerca del final de la página (100px antes del final)
     if (scrollTop + windowHeight >= documentHeight - 100) {
-      console.log("🔄 [EXERCISES] Near bottom, loading more exercises...");
-      console.log("📊 [EXERCISES] Scroll info:", {
-        scrollTop,
-        windowHeight,
-        documentHeight,
-        threshold: documentHeight - 100,
-        currentPosition: scrollTop + windowHeight,
-        currentExercisesCount: exercises.length,
-      });
       loadMore();
     }
-  }, [loadingMore, loading, hasMore, loadMore, exercises.length]);
+  }, [loadingMore, loading, hasMore, loadMore]);
 
   // Agregar event listener para scroll
   useEffect(() => {
@@ -282,21 +194,15 @@ export default function ExercisesPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("es-ES", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted">
-            {exerciseId ? "Cargando ejercicio..." : "Cargando ejercicios..."}
+            {exerciseId
+              ? t("exercises.loading.exercise")
+              : t("exercises.loading.exercises")}
           </p>
         </div>
       </div>
@@ -314,7 +220,7 @@ export default function ExercisesPage() {
             }
             variant="outline"
           >
-            Reintentar
+            {t("exercises.retry")}
           </Button>
         </div>
       </div>
@@ -333,16 +239,18 @@ export default function ExercisesPage() {
               onClick={goBackToList}
               className="hover:text-primary transition-colors"
             >
-              Ejercicios
+              {t("nav.exercises")}
             </button>
             <span>→</span>
-            <span className="text-primary">Detalles del Ejercicio</span>
+            <span className="text-primary">
+              {t("exercises.exercise_details.title")}
+            </span>
           </div>
 
           <div className="flex items-center justify-between mb-6">
             <Button onClick={goBackToList} variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver a Ejercicios
+              {t("exercises.exercise_details.back_to_exercises")}
             </Button>
           </div>
 
@@ -351,13 +259,23 @@ export default function ExercisesPage() {
               {selectedExercise.name}
             </h1>
             <div className="flex items-center justify-center gap-4 text-muted">
-              <span>{selectedExercise.kind || "Sin tipo"}</span>
+              <span>
+                {selectedExercise.kind ||
+                  t("exercises.exercise_details.no_type")}
+              </span>
               <span>•</span>
-              <span>{selectedExercise.equipment || "Sin equipo"}</span>
+              <span>
+                {selectedExercise.equipment ||
+                  t("exercises.exercise_details.no_equipment")}
+              </span>
               {selectedExercise.difficulty && (
                 <>
                   <span>•</span>
-                  <span>Dificultad: {selectedExercise.difficulty}</span>
+                  <span>
+                    {t("exercises.exercise_details.difficulty", {
+                      level: selectedExercise.difficulty,
+                    })}
+                  </span>
                 </>
               )}
             </div>
@@ -387,25 +305,33 @@ export default function ExercisesPage() {
               {/* Basic Exercise Information Card */}
               <div className="bg-surface border border-border rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                  📊 Datos del Ejercicio
+                  {t("exercises.exercise_details.basic_info")}
                 </h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted">Nombre completo:</span>
+                    <span className="text-muted">
+                      {t("exercises.exercise_details.full_name")}
+                    </span>
                     <span className="text-txt font-medium">
                       {selectedExercise.name}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted">ID único:</span>
+                    <span className="text-muted">
+                      {t("exercises.exercise_details.unique_id")}
+                    </span>
                     <span className="text-txt font-mono text-xs">
                       {selectedExercise.id}
                     </span>
                   </div>
                   {selectedExercise.gif_url && (
                     <div className="flex justify-between">
-                      <span className="text-muted">Imagen disponible:</span>
-                      <span className="text-green-600">✓ Sí</span>
+                      <span className="text-muted">
+                        {t("exercises.exercise_details.image_available")}
+                      </span>
+                      <span className="text-green-600">
+                        ✓ {t("exercises.exercise_details.yes")}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -414,40 +340,37 @@ export default function ExercisesPage() {
               {/* Exercise Instructions - Even if basic */}
               <div className="bg-surface border border-border rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                  📝 Instrucciones Básicas
+                  {t("exercises.exercise_details.basic_instructions")}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex gap-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
                     <span className="text-blue-600 text-lg">1️⃣</span>
                     <p className="text-muted leading-relaxed">
-                      Configura el equipamiento necesario:{" "}
-                      <strong>
-                        {selectedExercise.equipment || "Revisa los requisitos"}
-                      </strong>
+                      {t("exercises.exercise_details.setup_equipment", {
+                        equipment:
+                          selectedExercise.equipment ||
+                          t("exercises.exercise_details.no_equipment"),
+                      })}
                     </p>
                   </div>
                   <div className="flex gap-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
                     <span className="text-blue-600 text-lg">2️⃣</span>
                     <p className="text-muted leading-relaxed">
-                      Realiza el ejercicio de{" "}
-                      <strong>
-                        {selectedExercise.kind || "entrenamiento"}
-                      </strong>{" "}
-                      manteniendo la forma correcta
+                      {t("exercises.exercise_details.perform_exercise", {
+                        type: selectedExercise.kind || "entrenamiento",
+                      })}
                     </p>
                   </div>
                   <div className="flex gap-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
                     <span className="text-blue-600 text-lg">3️⃣</span>
                     <p className="text-muted leading-relaxed">
-                      Enfócate en trabajar los músculos objetivo de manera
-                      controlada
+                      {t("exercises.exercise_details.focus_muscles")}
                     </p>
                   </div>
                   <div className="flex gap-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
                     <span className="text-blue-600 text-lg">4️⃣</span>
                     <p className="text-muted leading-relaxed">
-                      Mantén una respiración constante durante todo el
-                      movimiento
+                      {t("exercises.exercise_details.maintain_breathing")}
                     </p>
                   </div>
                 </div>
@@ -456,28 +379,25 @@ export default function ExercisesPage() {
               {/* General Tips */}
               <div className="bg-surface border border-border rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                  💡 Consejos Generales
+                  {t("exercises.exercise_details.general_tips")}
                 </h3>
                 <div className="space-y-3">
                   <div className="flex gap-3 p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
                     <span className="text-yellow-600 text-lg">💡</span>
                     <p className="text-muted leading-relaxed">
-                      Comienza con poco peso y enfócate en la técnica correcta
-                      antes de incrementar la intensidad
+                      {t("exercises.exercise_details.start_light")}
                     </p>
                   </div>
                   <div className="flex gap-3 p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
                     <span className="text-yellow-600 text-lg">💡</span>
                     <p className="text-muted leading-relaxed">
-                      Mantén el core activado y la postura correcta durante todo
-                      el ejercicio
+                      {t("exercises.exercise_details.activate_core")}
                     </p>
                   </div>
                   <div className="flex gap-3 p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
                     <span className="text-yellow-600 text-lg">💡</span>
                     <p className="text-muted leading-relaxed">
-                      Si sientes dolor (no confundir con fatiga muscular), detén
-                      el ejercicio inmediatamente
+                      {t("exercises.exercise_details.stop_if_pain")}
                     </p>
                   </div>
                 </div>
@@ -487,16 +407,17 @@ export default function ExercisesPage() {
             {/* Right Column - Instructions and Details */}
             <div className="space-y-6">
               {/* Overview/Description */}
-              {selectedExercise.overview && selectedExercise.overview.trim() !== "" && (
-                <div className="bg-surface border border-border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                    📋 Descripción General
-                  </h3>
-                  <p className="text-muted leading-relaxed">
-                    {selectedExercise.overview}
-                  </p>
-                </div>
-              )}
+              {selectedExercise.overview &&
+                selectedExercise.overview.trim() !== "" && (
+                  <div className="bg-surface border border-border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
+                      {t("exercises.exercise_details.overview")}
+                    </h3>
+                    <p className="text-muted leading-relaxed">
+                      {selectedExercise.overview}
+                    </p>
+                  </div>
+                )}
 
               {/* Muscles Worked */}
               {((selectedExercise.muscle_groups_primary &&
@@ -506,7 +427,7 @@ export default function ExercisesPage() {
                 selectedExercise.primary_muscles) && (
                 <div className="bg-surface border border-border rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                    💪 Músculos Trabajados
+                    {t("exercises.exercise_details.muscles_worked")}
                   </h3>
                   <div className="space-y-4">
                     {/* Primary Muscles */}
@@ -514,7 +435,7 @@ export default function ExercisesPage() {
                       selectedExercise.muscle_groups_primary.length > 0 && (
                         <div>
                           <h4 className="font-medium text-txt mb-2">
-                            Músculos Principales:
+                            {t("exercises.exercise_details.primary_muscles")}
                           </h4>
                           <div className="flex flex-wrap gap-2">
                             {selectedExercise.muscle_groups_primary.map(
@@ -537,7 +458,7 @@ export default function ExercisesPage() {
                       selectedExercise.muscle_groups_secondary.length > 0 && (
                         <div>
                           <h4 className="font-medium text-txt mb-2">
-                            Músculos Secundarios:
+                            {t("exercises.exercise_details.secondary_muscles")}
                           </h4>
                           <div className="flex flex-wrap gap-2">
                             {selectedExercise.muscle_groups_secondary.map(
@@ -564,7 +485,7 @@ export default function ExercisesPage() {
                       selectedExercise.primary_muscles && (
                         <div>
                           <h4 className="font-medium text-txt mb-2">
-                            Músculos Principales:
+                            {t("exercises.exercise_details.primary_muscles")}
                           </h4>
                           <div className="flex flex-wrap gap-2">
                             {selectedExercise.primary_muscles
@@ -589,56 +510,73 @@ export default function ExercisesPage() {
               <div className="bg-surface border border-border rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
                   <Dumbbell className="w-5 h-5 text-primary" />
-                  Información del Ejercicio
+                  {t("exercises.exercise_details.exercise_info")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted">Tipo:</span>
+                      <span className="text-muted">
+                        {t("exercises.exercise_details.type")}
+                      </span>
                       <Badge variant="outline">
-                        {selectedExercise.kind || "No especificado"}
+                        {selectedExercise.kind ||
+                          t("exercises.exercise_details.not_available")}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted">Categoría:</span>
+                      <span className="text-muted">
+                        {t("exercises.exercise_details.category")}
+                      </span>
                       <Badge variant="outline">
-                        {selectedExercise.category || "No especificado"}
+                        {selectedExercise.category ||
+                          t("exercises.exercise_details.not_available")}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted">Equipo:</span>
+                      <span className="text-muted">
+                        {t("exercises.exercise_details.equipment")}
+                      </span>
                       <Badge variant="outline">
-                        {selectedExercise.equipment || "Sin equipamiento"}
+                        {selectedExercise.equipment ||
+                          t("exercises.exercise_details.no_equipment")}
                       </Badge>
                     </div>
                   </div>
                   <div className="space-y-3">
                     {selectedExercise.difficulty && (
                       <div className="flex items-center justify-between">
-                        <span className="text-muted">Dificultad:</span>
+                        <span className="text-muted">
+                          {t("exercises.exercise_details.difficulty", {
+                            level: selectedExercise.difficulty,
+                          })}
+                        </span>
                         <Badge variant="secondary">
                           {selectedExercise.difficulty}
                         </Badge>
                       </div>
                     )}
                     <div className="flex items-center justify-between">
-                      <span className="text-muted">Creado:</span>
+                      <span className="text-muted">
+                        {t("exercises.exercise_details.created")}
+                      </span>
                       <span className="text-sm text-muted">
                         {selectedExercise.created_at
                           ? new Date(
                               selectedExercise.created_at
                             ).toLocaleDateString()
-                          : "No disponible"}
+                          : t("exercises.exercise_details.not_available")}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted">Actualizado:</span>
+                      <span className="text-muted">
+                        {t("exercises.exercise_details.updated")}
+                      </span>
                       <span className="text-sm text-muted">
                         {selectedExercise.updated_at
                           ? new Date(
                               selectedExercise.updated_at
                             ).toLocaleDateString()
-                          : "No disponible"}
+                          : t("exercises.exercise_details.not_available")}
                       </span>
                     </div>
                   </div>
@@ -646,42 +584,44 @@ export default function ExercisesPage() {
               </div>
 
               {/* Instructions */}
-              {selectedExercise.instructions && 
-               ((Array.isArray(selectedExercise.instructions) && selectedExercise.instructions.length > 0) ||
-                (typeof selectedExercise.instructions === 'string' && selectedExercise.instructions.trim() !== '')) && (
-                <div className="bg-surface border border-border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                    📝 Instrucciones de Ejecución
-                  </h3>
-                  {Array.isArray(selectedExercise.instructions) ? (
-                    <ol className="space-y-3">
-                      {selectedExercise.instructions.map(
-                        (instruction, index) => (
-                          <li key={index} className="flex gap-3">
-                            <span className="flex-shrink-0 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                              {index + 1}
-                            </span>
-                            <p className="text-muted leading-relaxed">
-                              {instruction}
-                            </p>
-                          </li>
-                        )
-                      )}
-                    </ol>
-                  ) : (
-                    <p className="text-muted leading-relaxed">
-                      {selectedExercise.instructions}
-                    </p>
-                  )}
-                </div>
-              )}
+              {selectedExercise.instructions &&
+                ((Array.isArray(selectedExercise.instructions) &&
+                  selectedExercise.instructions.length > 0) ||
+                  (typeof selectedExercise.instructions === "string" &&
+                    selectedExercise.instructions.trim() !== "")) && (
+                  <div className="bg-surface border border-border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
+                      {t("exercises.exercise_details.execution_instructions")}
+                    </h3>
+                    {Array.isArray(selectedExercise.instructions) ? (
+                      <ol className="space-y-3">
+                        {selectedExercise.instructions.map(
+                          (instruction, index) => (
+                            <li key={index} className="flex gap-3">
+                              <span className="flex-shrink-0 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                                {index + 1}
+                              </span>
+                              <p className="text-muted leading-relaxed">
+                                {instruction}
+                              </p>
+                            </li>
+                          )
+                        )}
+                      </ol>
+                    ) : (
+                      <p className="text-muted leading-relaxed">
+                        {selectedExercise.instructions}
+                      </p>
+                    )}
+                  </div>
+                )}
 
               {/* Detailed Instructions */}
               {selectedExercise.instructions_detailed &&
                 selectedExercise.instructions_detailed.length > 0 && (
                   <div className="bg-surface border border-border rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-txt mb-4">
-                      Instrucciones Detalladas
+                      {t("exercises.exercise_details.detailed_instructions")}
                     </h3>
                     <ol className="space-y-2">
                       {selectedExercise.instructions_detailed.map(
@@ -702,7 +642,7 @@ export default function ExercisesPage() {
               {selectedExercise.tips && selectedExercise.tips.length > 0 && (
                 <div className="bg-surface border border-border rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                    💡 Consejos y Tips
+                    {t("exercises.exercise_details.tips")}
                   </h3>
                   <div className="space-y-3">
                     {selectedExercise.tips.map((tip, index) => (
@@ -723,7 +663,7 @@ export default function ExercisesPage() {
                 selectedExercise.benefits.length > 0 && (
                   <div className="bg-surface border border-border rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                      ⭐ Beneficios del Ejercicio
+                      {t("exercises.exercise_details.benefits")}
                     </h3>
                     <div className="space-y-3">
                       {selectedExercise.benefits.map((benefit, index) => (
@@ -746,7 +686,7 @@ export default function ExercisesPage() {
                 selectedExercise.variations.length > 0 && (
                   <div className="bg-surface border border-border rounded-lg p-6">
                     <h3 className="text-lg font-semibold text-txt mb-4 flex items-center gap-2">
-                      🔄 Variaciones del Ejercicio
+                      {t("exercises.exercise_details.variations")}
                     </h3>
                     <div className="space-y-3">
                       {selectedExercise.variations.map((variation, index) => (
@@ -767,42 +707,102 @@ export default function ExercisesPage() {
               {/* Data Availability Information */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
-                  📊 Información Disponible en la Base de Datos
+                  {t("exercises.exercise_details.data_availability")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${selectedExercise.overview && selectedExercise.overview.trim() !== "" ? 'bg-green-500' : 'bg-red-400'}`}></span>
-                      <span className="text-blue-700">Descripción general</span>
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          selectedExercise.overview &&
+                          selectedExercise.overview.trim() !== ""
+                            ? "bg-green-500"
+                            : "bg-red-400"
+                        }`}
+                      ></span>
+                      <span className="text-blue-700">
+                        {t("exercises.exercise_details.general_description")}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${selectedExercise.instructions && ((Array.isArray(selectedExercise.instructions) && selectedExercise.instructions.length > 0) || (typeof selectedExercise.instructions === 'string' && selectedExercise.instructions.trim() !== '')) ? 'bg-green-500' : 'bg-red-400'}`}></span>
-                      <span className="text-blue-700">Instrucciones específicas</span>
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          selectedExercise.instructions &&
+                          ((Array.isArray(selectedExercise.instructions) &&
+                            selectedExercise.instructions.length > 0) ||
+                            (typeof selectedExercise.instructions ===
+                              "string" &&
+                              selectedExercise.instructions.trim() !== ""))
+                            ? "bg-green-500"
+                            : "bg-red-400"
+                        }`}
+                      ></span>
+                      <span className="text-blue-700">
+                        {t("exercises.exercise_details.specific_instructions")}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${selectedExercise.tips && selectedExercise.tips.length > 0 ? 'bg-green-500' : 'bg-red-400'}`}></span>
-                      <span className="text-blue-700">Consejos específicos</span>
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          selectedExercise.tips &&
+                          selectedExercise.tips.length > 0
+                            ? "bg-green-500"
+                            : "bg-red-400"
+                        }`}
+                      ></span>
+                      <span className="text-blue-700">
+                        {t("exercises.exercise_details.specific_tips")}
+                      </span>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${selectedExercise.benefits && selectedExercise.benefits.length > 0 ? 'bg-green-500' : 'bg-red-400'}`}></span>
-                      <span className="text-blue-700">Beneficios</span>
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          selectedExercise.benefits &&
+                          selectedExercise.benefits.length > 0
+                            ? "bg-green-500"
+                            : "bg-red-400"
+                        }`}
+                      ></span>
+                      <span className="text-blue-700">
+                        {t("exercises.exercise_details.benefits_list")}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${selectedExercise.muscle_groups_primary && selectedExercise.muscle_groups_primary.length > 0 ? 'bg-green-500' : 'bg-red-400'}`}></span>
-                      <span className="text-blue-700">Músculos primarios (array)</span>
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          selectedExercise.muscle_groups_primary &&
+                          selectedExercise.muscle_groups_primary.length > 0
+                            ? "bg-green-500"
+                            : "bg-red-400"
+                        }`}
+                      ></span>
+                      <span className="text-blue-700">
+                        {t("exercises.exercise_details.primary_muscles_array")}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`w-3 h-3 rounded-full ${selectedExercise.muscle_groups_secondary && selectedExercise.muscle_groups_secondary.length > 0 ? 'bg-green-500' : 'bg-red-400'}`}></span>
-                      <span className="text-blue-700">Músculos secundarios (array)</span>
+                      <span
+                        className={`w-3 h-3 rounded-full ${
+                          selectedExercise.muscle_groups_secondary &&
+                          selectedExercise.muscle_groups_secondary.length > 0
+                            ? "bg-green-500"
+                            : "bg-red-400"
+                        }`}
+                      ></span>
+                      <span className="text-blue-700">
+                        {t(
+                          "exercises.exercise_details.secondary_muscles_array"
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>
                 <div className="mt-4 p-3 bg-blue-100 rounded-lg">
                   <p className="text-blue-800 text-xs">
-                    <strong>Nota:</strong> Los campos marcados en rojo están vacíos en la base de datos. 
-                    Los campos marcados en verde tienen datos disponibles y se muestran arriba.
+                    <strong>{t("common.note")}:</strong>{" "}
+                    {t("exercises.exercise_details.note")}
                   </p>
                 </div>
               </div>
@@ -811,7 +811,9 @@ export default function ExercisesPage() {
               <div className="bg-muted/10 border border-dashed border-muted rounded-lg p-4">
                 <div className="text-xs text-muted text-center space-y-1">
                   <div>
-                    <span className="font-medium">ID del ejercicio:</span>
+                    <span className="font-medium">
+                      {t("exercises.exercise_details.exercise_id")}
+                    </span>
                     <span className="ml-2 font-mono">
                       {selectedExercise.id}
                     </span>
@@ -820,7 +822,7 @@ export default function ExercisesPage() {
                     selectedExercise.updated_at && (
                       <div>
                         <span className="font-medium">
-                          Última modificación:
+                          {t("exercises.exercise_details.last_modified")}:
                         </span>
                         <span className="ml-2">
                           {new Date(
@@ -845,15 +847,12 @@ export default function ExercisesPage() {
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-2 mb-4">
           <Target className="w-6 h-6 text-primary" />
-          <span className="text-sm text-muted">Ejercicios</span>
+          <span className="text-sm text-muted">{t("nav.exercises")}</span>
         </div>
         <h1 className="text-3xl font-bold text-txt mb-2">
-          Biblioteca de Ejercicios
+          {t("exercises.title")}
         </h1>
-        <p className="text-muted text-lg">
-          Explora nuestra colección completa de ejercicios con instrucciones
-          detalladas
-        </p>
+        <p className="text-muted text-lg">{t("exercises.subtitle")}</p>
       </div>
 
       {/* Search and Filters */}
@@ -864,7 +863,7 @@ export default function ExercisesPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted" />
               <Input
-                placeholder="Buscar ejercicios..."
+                placeholder={t("exercises.search.placeholder")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -878,11 +877,15 @@ export default function ExercisesPage() {
               onChange={(e) => setSelectedKind(e.target.value)}
               className="px-3 py-2 border border-border rounded-md bg-bg text-txt"
             >
-              <option value="">Todos los tipos</option>
-              <option value="strength">Fuerza</option>
-              <option value="cardio">Cardio</option>
-              <option value="flexibility">Flexibilidad</option>
-              <option value="balance">Equilibrio</option>
+              <option value="">{t("exercises.filters.all_types")}</option>
+              <option value="strength">
+                {t("exercises.filters.strength")}
+              </option>
+              <option value="cardio">{t("exercises.filters.cardio")}</option>
+              <option value="flexibility">
+                {t("exercises.filters.flexibility")}
+              </option>
+              <option value="balance">{t("exercises.filters.balance")}</option>
             </select>
 
             {/* Equipment Filter */}
@@ -891,18 +894,22 @@ export default function ExercisesPage() {
               onChange={(e) => setSelectedEquipment(e.target.value)}
               className="px-3 py-2 border border-border rounded-md bg-bg text-txt"
             >
-              <option value="">Todo el equipo</option>
-              <option value="bodyweight">Sin equipo</option>
-              <option value="dumbbells">Mancuernas</option>
-              <option value="barbell">Barra</option>
-              <option value="cable">Cable</option>
-              <option value="machine">Máquina</option>
+              <option value="">{t("exercises.filters.all_equipment")}</option>
+              <option value="bodyweight">
+                {t("exercises.filters.bodyweight")}
+              </option>
+              <option value="dumbbells">
+                {t("exercises.filters.dumbbells")}
+              </option>
+              <option value="barbell">{t("exercises.filters.barbell")}</option>
+              <option value="cable">{t("exercises.filters.cable")}</option>
+              <option value="machine">{t("exercises.filters.machine")}</option>
             </select>
           </div>
 
           <Button onClick={handleSearch} className="w-full md:w-auto">
             <Filter className="w-4 h-4 mr-2" />
-            Aplicar Filtros
+            {t("exercises.search.apply_filters")}
           </Button>
         </div>
       </div>
@@ -914,12 +921,12 @@ export default function ExercisesPage() {
             <Target className="w-12 h-12 text-muted" />
           </div>
           <h3 className="text-xl font-semibold text-txt mb-2">
-            No se encontraron ejercicios
+            {t("exercises.no_results.title")}
           </h3>
           <p className="text-muted mb-6">
             {searchTerm || selectedKind || selectedEquipment
-              ? "Intenta ajustar los filtros de búsqueda"
-              : "No hay ejercicios disponibles en este momento"}
+              ? t("exercises.no_results.description")
+              : t("exercises.no_results.no_exercises")}
           </p>
           {(searchTerm || selectedKind || selectedEquipment) && (
             <Button
@@ -933,22 +940,17 @@ export default function ExercisesPage() {
               }}
               variant="outline"
             >
-              Limpiar Filtros
+              {t("exercises.search.clear_filters")}
             </Button>
           )}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {exercises.map((exercise) => {
-              console.log("🔍 [EXERCISE] Exercise data:", exercise);
-              console.log(
-                "🔍 [EXERCISE] Image URL:",
-                `${EXERCISE_IMAGES_BASE_URL}/${exercise.gif_url}`
-              );
+            {exercises.map((exercise, index) => {
               return (
                 <Card
-                  key={exercise.id}
+                  key={`${exercise.id}-${index}`}
                   className="hover:shadow-soft transition-shadow cursor-pointer"
                   onClick={() => {
                     router.replace(`/exercises?id=${exercise.id}`);
@@ -973,8 +975,10 @@ export default function ExercisesPage() {
                       {exercise.name}
                     </CardTitle>
                     <CardDescription className="text-muted">
-                      {exercise.kind || "Sin tipo"} •{" "}
-                      {exercise.equipment || "Sin equipo"}
+                      {exercise.kind || t("exercises.exercise_details.no_type")}{" "}
+                      •{" "}
+                      {exercise.equipment ||
+                        t("exercises.exercise_details.no_equipment")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -1013,17 +1017,18 @@ export default function ExercisesPage() {
               {loadingMore ? (
                 <div className="inline-flex items-center space-x-2 text-muted">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span>Cargando más ejercicios...</span>
+                  <span>{t("exercises.exercise_details.load_more")}</span>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <div className="text-sm text-muted">
-                    Desplázate hacia abajo para cargar más ejercicios
-                    automáticamente
+                    {t("exercises.exercise_details.scroll_to_load")}
                   </div>
                   <div className="text-xs text-muted">
-                    Mostrando {exercises.length} ejercicios • Página{" "}
-                    {currentPage}
+                    {t("exercises.exercise_details.showing", {
+                      count: exercises.length,
+                      page: currentPage,
+                    })}
                   </div>
                 </div>
               )}

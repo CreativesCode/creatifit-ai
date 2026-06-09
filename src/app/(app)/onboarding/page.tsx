@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { IntakeForm } from "@/components/forms/intake-form";
 import { type GeneratedPlan } from "@/lib/validators/schemas";
 import { PlanDisplay } from "@/components/ui/plan-display";
 
 export default function OnboardingPage() {
+  const { t } = useTranslation("common");
   const router = useRouter();
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
@@ -32,10 +34,10 @@ export default function OnboardingPage() {
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-txt mb-4">
-                🏋️‍♂️ Bienvenido a CreatiFit AI
+                {t("onboarding.title")}
               </h1>
               <p className="text-xl text-muted">
-                Vamos a crear tu plan de entrenamiento personalizado
+                {t("onboarding.subtitle")}
               </p>
             </div>
             

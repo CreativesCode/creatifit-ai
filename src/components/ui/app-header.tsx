@@ -1,7 +1,8 @@
 "use client";
-import { Calendar, Home, Menu, Target, TrendingUp, X } from "lucide-react";
+import { useMobileApp } from "@/hooks/useMobileApp";
+import { MoreVertical } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
@@ -10,139 +11,104 @@ import { ThemeToggle } from "./theme-toggle";
 
 export function AppHeader() {
   const { t } = useTranslation("common");
-  const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const { isCapacitor } = useMobileApp();
 
-  const isActive = (path: string) => {
-    // Comparar solo la ruta base, ignorando query parameters y trailing slashes
-    const currentPath = pathname.split("?")[0].replace(/\/$/, "");
-    const cleanPath = path.replace(/\/$/, "");
-    return currentPath === cleanPath;
-  };
-
-  const navigationItems = [
-    { href: "/dashboard", icon: Home, label: t("nav.dashboard") },
-    { href: "/plans", icon: Calendar, label: t("nav.plans") },
-    { href: "/exercises", icon: Target, label: t("nav.exercises") },
-    {
-      href: "/workout-history",
-      icon: TrendingUp,
-      label: t("nav.workoutHistory"),
-    },
-  ];
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+  const toggleOptionsMenu = () => {
+    setIsOptionsMenuOpen(!isOptionsMenuOpen);
   };
 
   return (
-    <header className="border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+    <header
+      className={`border-b border-border bg-gradient-to-r from-primary to-primary/0 bg-surface/50 backdrop-blur-md sticky top-0 z-50 safe-top ${
+        isCapacitor ? "capacitor-header" : ""
+      }`}
+    >
+      <div className="container mx-auto px-3 sm:px-4 py-1 sm:py-2">
         <div className="flex items-center justify-between">
           {/* Logo y Título */}
           <div className="flex items-center space-x-2 sm:space-x-3">
             <Link
               href="/dashboard"
-              className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity"
+              className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity active:scale-95"
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xs sm:text-sm md:text-base">
-                  CF
-                </span>
+              <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+                <Image
+                  src="/logo.png"
+                  alt="Logo"
+                  width={50}
+                  height={50}
+                  className="w-12 h-12 sm:w-14 sm:h-14"
+                />
               </div>
-              <h1 className="text-base sm:text-lg md:text-xl font-bold text-txt hidden sm:block">
+              <h1 className="text-xl sm:text-2xl text-white md:text-2xl font-bold text-shadow-2xs">
                 {t("app.title")}
               </h1>
             </Link>
           </div>
 
-          {/* Navegación Desktop */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={isActive(item.href) ? "default" : "ghost"}
-                    size="sm"
-                    className="flex items-center gap-2 px-3 py-2"
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </Button>
-                </Link>
-              );
-            })}
+          {/* Menú de Opciones */}
+          <div className="flex items-center space-x-2">
+            {/* Controles de Idioma y Tema */}
+            <div className="hidden sm:flex items-center space-x-1">
+              <LanguageSwitcher />
+              <ThemeToggle />
+            </div>
 
-            {/* Botón Crear Plan */}
-            <Link href="/onboarding">
-              <Button
-                size="sm"
-                className="bg-primary hover:bg-primary/90 text-white ml-2"
-              >
-                🏋️‍♂️ Crear Plan
-              </Button>
-            </Link>
-          </nav>
-
-          {/* Controles de Derecha */}
-          <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3">
-            <LanguageSwitcher />
-            <ThemeToggle />
-
-            {/* Botón Menú Móvil */}
+            {/* Botón de Opciones (Tres Puntos) */}
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden p-1.5 sm:p-2"
-              onClick={toggleMobileMenu}
+              className="p-2 touch-manipulation"
+              onClick={toggleOptionsMenu}
+              aria-label={t("ui.options")}
             >
-              {isMobileMenuOpen ? (
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
+              <MoreVertical className="w-5 h-5" />
             </Button>
           </div>
         </div>
 
-        {/* Menú Móvil */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-border mt-3 pt-3">
-            <nav className="flex flex-col space-y-2">
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Button
-                      variant={isActive(item.href) ? "default" : "ghost"}
-                      size="sm"
-                      className="w-full justify-start gap-3 px-3 py-3"
-                    >
-                      <Icon className="w-5 h-5" />
-                      {item.label}
-                    </Button>
-                  </Link>
-                );
-              })}
-
-              {/* Botón Crear Plan en Móvil */}
-              <Link
-                href="/onboarding"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Button
-                  size="sm"
-                  className="w-full bg-primary hover:bg-primary/90 text-white gap-3 px-3 py-3"
+        {/* Menú de Opciones Desplegable */}
+        {isOptionsMenuOpen && (
+          <div className="absolute top-full right-0 mt-1 mr-3 w-64 bg-surface border border-border rounded-lg shadow-lg z-50 animate-in slide-in-from-top-2 duration-200">
+            <div className="p-2">
+              {/* Acciones */}
+              <div className="mb-3">
+                <h3 className="text-xs font-semibold text-muted uppercase tracking-wider px-3 py-2">
+                  {t("actions.create_plan")}
+                </h3>
+                <Link
+                  href="/onboarding"
+                  onClick={() => setIsOptionsMenuOpen(false)}
                 >
-                  🏋️‍♂️ Crear Plan
-                </Button>
-              </Link>
-            </nav>
+                  <Button
+                    size="sm"
+                    className="w-full bg-primary hover:bg-primary/90 text-white gap-3 px-3 py-2 touch-manipulation shadow-sm"
+                  >
+                    {t("actions.create_plan_emoji")}
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Configuración */}
+              <div className="border-t border-border pt-3">
+                <h3 className="text-xs font-semibold text-muted uppercase tracking-wider px-3 py-2 mb-2">
+                  {t("settings.title")}
+                </h3>
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-sm text-muted">
+                    {t("settings.language.title")}
+                  </span>
+                  <LanguageSwitcher />
+                </div>
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-sm text-muted">
+                    {t("settings.theme.title")}
+                  </span>
+                  <ThemeToggle />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

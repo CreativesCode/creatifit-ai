@@ -76,7 +76,7 @@ export function PlanDisplay({
         </p>
         <div className="mt-4 inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full">
           <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-          <span className="text-sm font-medium">AI Generated</span>
+          <span className="text-sm font-medium">{t("plan_display.ai_generated")}</span>
         </div>
       </div>
 
@@ -85,7 +85,7 @@ export function PlanDisplay({
         <div className="text-center py-8">
           <div className="inline-flex items-center space-x-2 text-muted">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-            <span>Loading exercise details...</span>
+            <span>{t("plan_display.loading_exercises")}</span>
           </div>
         </div>
       )}
@@ -93,7 +93,7 @@ export function PlanDisplay({
       {error && (
         <div className="text-center py-4">
           <div className="inline-flex items-center space-x-2 text-red-500 bg-red-50 px-4 py-2 rounded-lg">
-            <span>⚠️ Error loading exercise details: {error}</span>
+            <span>⚠️ {t("plan_display.error_loading", { error })}</span>
           </div>
         </div>
       )}
@@ -114,7 +114,7 @@ export function PlanDisplay({
                     {day.focus}
                   </h3>
                   <p className="text-sm text-muted">
-                    {day.blocks.length} ejercicios
+                    {t("plan_display.exercises_count", { count: day.blocks.length })}
                   </p>
                 </div>
               </div>
@@ -130,7 +130,7 @@ export function PlanDisplay({
                 className="bg-primary hover:bg-primary/90 text-white px-4 py-2"
                 size="sm"
               >
-                🏋️‍♂️ Iniciar Día {day.day}
+                {t("plan_display.start_day", { day: day.day })}
               </Button>
             </div>
 
@@ -191,7 +191,7 @@ export function PlanDisplay({
                                 {block.sets}
                               </span>
                             </div>
-                            <span className="text-xs text-muted">Series</span>
+                            <span className="text-xs text-muted">{t("plan_display.series")}</span>
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -200,7 +200,7 @@ export function PlanDisplay({
                                 {block.reps[0]}-{block.reps[1]}
                               </span>
                             </div>
-                            <span className="text-xs text-muted">Reps</span>
+                            <span className="text-xs text-muted">{t("plan_display.reps")}</span>
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -209,7 +209,7 @@ export function PlanDisplay({
                                 {block.rest_sec}s
                               </span>
                             </div>
-                            <span className="text-xs text-muted">Descanso</span>
+                            <span className="text-xs text-muted">{t("plan_display.rest")}</span>
                           </div>
                         </div>
 
@@ -217,7 +217,7 @@ export function PlanDisplay({
                         {block.cues && block.cues.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-border/30">
                             <p className="text-xs text-accent font-medium mb-2">
-                              Puntos clave:
+                              {t("plan_display.key_points")}:
                             </p>
                             <ul className="text-xs text-muted space-y-1">
                               {block.cues.map((cue, cueIndex) => (
@@ -242,7 +242,7 @@ export function PlanDisplay({
       {/* Weekly Schedule */}
       <div className="bg-surface border border-border rounded-2xl p-6">
         <h3 className="text-xl font-semibold text-txt mb-4 text-center">
-          Weekly Schedule
+          {t("plan_display.weekly_schedule")}
         </h3>
         <div className="grid grid-cols-7 gap-2">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
@@ -263,7 +263,7 @@ export function PlanDisplay({
           ))}
         </div>
         <div className="mt-4 text-center text-sm text-muted">
-          <p>Week 1-{plan.weeks}: A → B → C → D (repeat)</p>
+          <p>{t("plan_display.week_schedule", { weeks: plan.weeks })}</p>
         </div>
       </div>
 
@@ -275,7 +275,7 @@ export function PlanDisplay({
             className="bg-primary hover:bg-primary/90 text-white shadow-glow px-8 py-3 text-lg"
             size="lg"
           >
-            🏋️‍♂️ Iniciar Primera Sesión
+            {t("plan_display.start_first_session")}
           </Button>
           <Button
             onClick={onBackToForm}
@@ -283,13 +283,13 @@ export function PlanDisplay({
             className="px-8 py-3 text-lg"
             size="lg"
           >
-            ← Volver a Planes
+            {t("plan_display.back_to_plans")}
           </Button>
         </div>
       )}
 
       {/* Plan ID */}
-      <div className="text-center text-xs text-muted">Plan ID: {planId}</div>
+      <div className="text-center text-xs text-muted">{t("plan_display.plan_id", { id: planId })}</div>
     </div>
   );
 }

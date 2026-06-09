@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores principales de CreatiFit AI -->
+    <color name="colorPrimary">#7c3aed</color>
+    <color name="colorPrimaryDark">#6d28d9</color>
+    <color name="colorAccent">#c026d3</color>
+    
+    <!-- Colores adicionales -->
+    <color name="colorSecondary">#6366f1</color>
+    <color name="colorSurface">#f6f3ff</color>
+    <color name="colorBackground">#ffffff</color>
+    <color name="colorText">#0f0a1f</color>
+    <color name="colorMuted">#6e6a86</color>
+    
+    <!-- Colores del tema oscuro -->
+    <color name="colorPrimaryDarkTheme">#8b5cf6</color>
+    <color name="colorPrimaryDarkDarkTheme">#7c3aed</color>
+    <color name="colorAccentDarkTheme">#f472d0</color>
+    <color name="colorSurfaceDarkTheme">#13111a</color>
+    <color name="colorBackgroundDarkTheme">#0b0a0f</color>
+    <color name="colorTextDarkTheme">#eceaf5</color>
+    <color name="colorMutedDarkTheme">#aaa6bd</color>
+</resources>

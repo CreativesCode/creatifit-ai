@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Configuración del status bar para CreatiFit AI -->
+    
+    <!-- Configuración del status bar -->
+    <bool name="config_enableStatusBar">true</bool>
+    <bool name="config_statusBarColorEnabled">true</bool>
+    
+    <!-- Configuración del safe area -->
+    <bool name="config_enableSafeArea">true</bool>
+    <bool name="config_fitsSystemWindows">true</bool>
+    
+    <!-- Configuración del navigation bar -->
+    <bool name="config_enableNavigationBar">true</bool>
+    <bool name="config_navigationBarColorEnabled">true</bool>
+    
+    <!-- Configuración del sistema de ventanas -->
+    <bool name="config_windowDrawsSystemBarBackgrounds">true</bool>
+    <bool name="config_enableDisplayCutout">true</bool>
+</resources>

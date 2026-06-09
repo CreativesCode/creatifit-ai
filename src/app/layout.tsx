@@ -10,6 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "CreatiFit AI - AI-Powered Fitness Plans",
   description: "Generate personalized workout plans with AI and track your fitness journey",
+  viewport: "width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no",
 };
 
 export default function RootLayout({
@@ -19,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.className} capacitor-app`}>
         <ThemeProvider>
           <LanguageProvider>
             <Providers>

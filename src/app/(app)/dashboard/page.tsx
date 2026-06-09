@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface DashboardStats {
   totalPlans: number;
@@ -21,6 +22,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation("common");
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
     totalPlans: 0,
@@ -66,29 +68,29 @@ export default function DashboardPage() {
 
   const quickActions = [
     {
-      title: "Crear Nuevo Plan",
-      description: "Genera un plan personalizado con IA",
+      title: t("dashboard.quick_actions.create_new_plan.title"),
+      description: t("dashboard.quick_actions.create_new_plan.description"),
       icon: "🏋️‍♂️",
       action: () => router.push("/onboarding"),
       color: "bg-primary hover:bg-primary/90",
     },
     {
-      title: "Ver Mis Planes",
-      description: "Revisa tus planes de entrenamiento",
+      title: t("dashboard.quick_actions.view_plans.title"),
+      description: t("dashboard.quick_actions.view_plans.description"),
       icon: "📋",
       action: () => router.push("/plans"),
       color: "bg-accent hover:bg-accent/90",
     },
     {
-      title: "Biblioteca de Ejercicios",
-      description: "Explora ejercicios disponibles",
+      title: t("dashboard.quick_actions.exercise_library.title"),
+      description: t("dashboard.quick_actions.exercise_library.description"),
       icon: "💪",
       action: () => router.push("/exercises"),
       color: "bg-secondary hover:bg-secondary/90",
     },
     {
-      title: "Historial de Entrenamientos",
-      description: "Revisa tus sesiones completadas",
+      title: t("dashboard.quick_actions.workout_history.title"),
+      description: t("dashboard.quick_actions.workout_history.description"),
       icon: "📊",
       action: () => router.push("/workout-history"),
       color: "bg-green-600 hover:bg-green-700",
@@ -101,7 +103,7 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted">Cargando dashboard...</p>
+            <p className="mt-4 text-muted">{t("dashboard.loading")}</p>
           </div>
         </div>
       </div>
@@ -114,10 +116,10 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="text-center mb-8 md:mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold text-txt mb-3 md:mb-4">
-            🏋️‍♂️ Dashboard de CreatiFit AI
+            {t("dashboard.title")}
           </h1>
           <p className="text-lg md:text-xl text-muted px-2">
-            Tu centro de control para el fitness personalizado
+            {t("dashboard.subtitle")}
           </p>
         </div>
 
@@ -128,7 +130,7 @@ export default function DashboardPage() {
               {stats.totalPlans}
             </div>
             <div className="text-sm md:text-base text-muted">
-              Planes Creados
+              {t("dashboard.stats.plans_created")}
             </div>
           </Card>
           <Card className="p-4 md:p-6 text-center bg-surface border-border">
@@ -136,7 +138,7 @@ export default function DashboardPage() {
               {stats.totalSessions}
             </div>
             <div className="text-sm md:text-base text-muted">
-              Sesiones Completadas
+              {t("dashboard.stats.sessions_completed")}
             </div>
           </Card>
           <Card className="p-4 md:p-6 text-center bg-surface border-border">
@@ -144,7 +146,7 @@ export default function DashboardPage() {
               {stats.totalExercises}
             </div>
             <div className="text-sm md:text-base text-muted">
-              Ejercicios Disponibles
+              {t("dashboard.stats.exercises_available")}
             </div>
           </Card>
         </div>
@@ -152,7 +154,7 @@ export default function DashboardPage() {
         {/* Acciones Rápidas */}
         <div className="mb-8 md:mb-12">
           <h2 className="text-xl sm:text-2xl font-semibold text-txt mb-4 md:mb-6 text-center">
-            Acciones Rápidas
+            {t("dashboard.quick_actions.title")}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {quickActions.map((action, index) => (
@@ -181,7 +183,7 @@ export default function DashboardPage() {
         {stats.recentPlans.length > 0 && (
           <div className="mb-8 md:mb-12">
             <h2 className="text-xl sm:text-2xl font-semibold text-txt mb-4 md:mb-6 text-center">
-              Planes Recientes
+              {t("dashboard.recent_plans.title")}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {stats.recentPlans.map((plan) => (
@@ -192,17 +194,17 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center justify-between mb-3 md:mb-4">
                     <Badge variant="outline" className="text-xs">
-                      {plan.weeks} semanas
+                      {plan.weeks} {t("plan.weeks")}
                     </Badge>
                     <Badge variant="secondary" className="text-xs">
-                      {plan.days} días
+                      {plan.days} {t("plan.day")}s
                     </Badge>
                   </div>
                   <h3 className="text-sm md:text-base font-semibold text-txt mb-2">
-                    Plan {plan.name || plan.id.slice(-8)}
+                    {t("plan.title")} {plan.name || plan.id.slice(-8)}
                   </h3>
                   <p className="text-xs md:text-sm text-muted">
-                    Creado: {new Date(plan.created_at).toLocaleDateString()}
+                    {t("plans.plan_details.created_on", { date: new Date(plan.created_at).toLocaleDateString() })}
                   </p>
                 </Card>
               ))}
@@ -213,7 +215,7 @@ export default function DashboardPage() {
                 onClick={() => router.push("/plans")}
                 className="px-6 md:px-8 w-full sm:w-auto"
               >
-                Ver Todos los Planes
+                {t("dashboard.recent_plans.view_all_plans")}
               </Button>
             </div>
           </div>
@@ -225,19 +227,17 @@ export default function DashboardPage() {
             <div className="text-center">
               <div className="text-4xl md:text-6xl mb-3 md:mb-4">🎯</div>
               <h3 className="text-xl md:text-2xl font-semibold text-txt mb-3 md:mb-4">
-                ¡Bienvenido a CreatiFit AI!
+                {t("dashboard.welcome.title")}
               </h3>
               <p className="text-sm md:text-base text-muted mb-4 md:mb-6 max-w-2xl mx-auto px-2">
-                Comienza tu viaje de fitness creando tu primer plan de
-                entrenamiento personalizado. Nuestra IA analizará tus objetivos,
-                nivel y preferencias para crear el plan perfecto para ti.
+                {t("dashboard.welcome.description")}
               </p>
               <Button
                 onClick={() => router.push("/onboarding")}
                 className="bg-primary hover:bg-primary/90 text-white px-6 md:px-8 py-3 text-base md:text-lg w-full sm:w-auto"
                 size="lg"
               >
-                🚀 Crear Mi Primer Plan
+                {t("dashboard.welcome.create_first_plan")}
               </Button>
             </div>
           </Card>

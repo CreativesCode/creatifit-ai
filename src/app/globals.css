@@ -51,3 +51,182 @@ body {
     max-width: 72rem;
   }
 }
+
+/* Mobile Safe Area Support */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  html {
+    /* Prevent zoom on input focus */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    /* Prevent overscroll bounce on iOS */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure proper viewport height on mobile */
+  .h-screen {
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height */
+  }
+
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+}
+
+/* Capacitor-specific styles */
+.capacitor-app {
+  /* Ensure content doesn't go under status bar */
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+/* Safe area utility classes */
+.safe-top {
+  padding-top: max(0.5rem, var(--sat));
+}
+
+.safe-bottom {
+  padding-bottom: max(0.5rem, var(--sab));
+}
+
+.safe-left {
+  padding-left: max(0.5rem, var(--sal));
+}
+
+.safe-right {
+  padding-right: max(0.5rem, var(--sar));
+}
+
+/* Mobile touch optimizations */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile-specific animations */
+@media (max-width: 768px) {
+  .animate-in {
+    animation-fill-mode: both;
+  }
+
+  .slide-in-from-top-2 {
+    animation: slideInFromTop 0.2s ease-out;
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Capacitor header specific styles */
+.capacitor-header {
+  /* Asegurar que el header esté por encima del status bar */
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  /* Aplicar safe area específicamente para Capacitor */
+  padding-top: max(0.5rem, var(--sat));
+
+  /* Mejorar el backdrop blur en móvil */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  /* Sombra sutil para separar del contenido */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Optimizaciones específicas para dispositivos móviles */
+@media (max-width: 768px) {
+  .capacitor-header {
+    /* Reducir el padding en móvil para maximizar espacio */
+    padding-left: max(0.25rem, var(--sal));
+    padding-right: max(0.25rem, var(--sar));
+  }
+
+  /* Mejorar la legibilidad del texto en móvil */
+  .capacitor-header .text-txt {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Bottom Navigation Styles */
+.bottom-navigation {
+  /* Asegurar que esté por encima del contenido */
+  z-index: 1000;
+
+  /* Aplicar safe area para dispositivos con notch */
+  padding-bottom: max(0.5rem, var(--sab));
+
+  /* Mejorar el backdrop blur en móvil */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  /* Sombra sutil para separar del contenido */
+  box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1), 0 -1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Optimizaciones para el bottom navigation en móvil */
+@media (max-width: 768px) {
+  .bottom-navigation {
+    /* Asegurar que los botones tengan el tamaño correcto para touch */
+    min-height: 64px;
+  }
+
+  .bottom-navigation nav {
+    /* Distribuir el espacio uniformemente para 5 elementos */
+    gap: 0.25rem;
+  }
+
+  .bottom-navigation a {
+    /* Mejorar el área de touch y optimizar para 5 elementos */
+    min-height: 48px;
+    min-width: 48px;
+    flex: 1;
+    max-width: 80px;
+  }
+
+  /* Estilos específicos para el elemento central (Inicio) */
+  .bottom-navigation a:nth-child(3) {
+    /* Dar un poco más de énfasis al botón central */
+    transform: scale(1.05);
+  }
+
+  .bottom-navigation a:nth-child(3):active {
+    transform: scale(0.95);
+  }
+}
+
+/* Optimizaciones para pantallas más grandes */
+@media (min-width: 768px) {
+  .bottom-navigation nav {
+    gap: 0.5rem;
+  }
+
+  .bottom-navigation a {
+    min-width: 60px;
+    max-width: 100px;
+  }
+}

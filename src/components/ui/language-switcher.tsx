@@ -1,10 +1,11 @@
 "use client";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
+import { FlagIcon } from "./flags";
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
-  
+  const { t, i18n } = useTranslation("common");
+
   const setLanguage = (lng: "en" | "es") => {
     i18n.changeLanguage(lng);
     localStorage.setItem("lang", lng);
@@ -12,22 +13,24 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <div className="inline-flex gap-2">
+    <div className="inline-flex gap-1">
       <Button
-        variant={i18n.language === "en" ? "default" : "outline"}
+        variant={i18n.language === "en" ? "default" : "ghost"}
         size="sm"
         onClick={() => setLanguage("en")}
-        className="px-2 py-1 text-xs"
+        className="p-2 h-auto touch-manipulation"
+        aria-label={t("ui.switch_to_english")}
       >
-        EN
+        <FlagIcon country="en" size={18} />
       </Button>
       <Button
-        variant={i18n.language === "es" ? "default" : "outline"}
+        variant={i18n.language === "es" ? "default" : "ghost"}
         size="sm"
         onClick={() => setLanguage("es")}
-        className="px-2 py-1 text-xs"
+        className="p-2 h-auto touch-manipulation"
+        aria-label={t("ui.switch_to_spanish")}
       >
-        ES
+        <FlagIcon country="es" size={18} />
       </Button>
     </div>
   );

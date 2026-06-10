@@ -1,5 +1,4 @@
 "use client";
-import { PageLoader } from "@/components/ui/loader";
 import { StatTile } from "@/components/ui/stat-tile";
 import { supabaseClient } from "@/lib/supabase-client";
 import {
@@ -130,10 +129,60 @@ export function WorkoutHistory({
     return exerciseMap;
   };
 
-  // ---------- Loading ----------
+  // ---------- Loading (skeleton que replica el historial) ----------
   if (loading) {
     return (
-      <PageLoader />
+      <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
+        <div className="pt-1 mb-4">
+          <div className="cf-eyebrow">{t("nav.workoutHistory", "Progreso")}</div>
+          <div className="cf-h1 text-[26px] mt-1.5">{t("workout_history.title")}</div>
+        </div>
+        {/* volume chart */}
+        <div className="cf-card mb-3.5 animate-pulse" style={{ padding: 18, borderRadius: 22 }}>
+          <div className="h-3 w-24 bg-surface-2 rounded mb-2" />
+          <div className="h-7 w-20 bg-surface-2 rounded mb-4" />
+          <div className="flex items-end gap-1.5" style={{ height: 70 }}>
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  height: `${30 + ((i * 37) % 60)}%`,
+                  minHeight: 8,
+                  borderRadius: 6,
+                  background: "var(--surface-2)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        {/* summary tiles */}
+        <div className="flex gap-2.5 mb-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="cf-card flex-1 animate-pulse" style={{ padding: 14, borderRadius: 18 }}>
+              <div className="h-5 w-5 bg-surface-2 rounded mb-3" />
+              <div className="h-6 w-10 bg-surface-2 rounded mb-1.5" />
+              <div className="h-3 w-16 bg-surface-2 rounded" />
+            </div>
+          ))}
+        </div>
+        {/* session list */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="cf-card flex items-center gap-3.5 animate-pulse"
+              style={{ padding: "13px 15px", borderRadius: 16 }}
+            >
+              <div className="bg-surface-2 shrink-0" style={{ width: 46, height: 46, borderRadius: 13 }} />
+              <div className="flex-1">
+                <div className="h-4 bg-surface-2 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-surface-2 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -170,7 +219,7 @@ export function WorkoutHistory({
       [Activity, selectedSession.avgRPE ? selectedSession.avgRPE.toFixed(1) : "—", t("workout_history.session_details.avg_rpe"), "var(--primary)"],
     ];
     return (
-      <div className="container mx-auto max-w-xl lg:max-w-3xl px-5 lg:px-8 pt-4 lg:pt-8">
+      <div className="container mx-auto max-w-xl lg:max-w-3xl px-4 lg:px-6 pt-4 lg:pt-8">
         <div className="flex items-center gap-3 pt-1 mb-4">
           <button
             onClick={onBack}
@@ -262,7 +311,7 @@ export function WorkoutHistory({
   const totalVolume = sessions.reduce((sum, s) => sum + s.totalVolume, 0);
 
   return (
-    <div className="container mx-auto max-w-xl lg:max-w-6xl px-5 lg:px-8 pt-4 lg:pt-8">
+    <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
       <div className="pt-1 mb-4">
         <div className="cf-eyebrow">{t("nav.workoutHistory", "Progreso")}</div>
         <div className="cf-h1 text-[26px] mt-1.5">{t("workout_history.title")}</div>

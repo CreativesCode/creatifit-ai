@@ -1,6 +1,7 @@
 "use client";
 import { supabaseClient } from "@/lib/supabase-client";
 import { type GeneratedPlan } from "@/lib/validators/schemas";
+import { useRouter as useNextRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
@@ -21,6 +22,7 @@ export function PlanDisplay({
   useRouter = false,
 }: PlanDisplayProps) {
   const { t } = useTranslation("common");
+  const router = useNextRouter();
 
   // URL base para las imágenes de ejercicios desde Supabase Storage
   const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
@@ -124,7 +126,7 @@ export function PlanDisplay({
                 onClick={
                   useRouter
                     ? () =>
-                        (window.location.href = `/session?planId=${planId}&day=${day.day}`)
+                        router.push(`/session?planId=${planId}&day=${day.day}`)
                     : () => onStartSession?.(day)
                 }
                 className="bg-primary hover:bg-primary/90 text-white px-4 py-2"
@@ -156,6 +158,8 @@ export function PlanDisplay({
                             "/placeholder-exercise.svg"
                           }
                           alt={block.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-16 h-16 rounded-lg object-cover border border-border/50"
                           onError={(e) => {
                             // Fallback a placeholder si falla la imagen
@@ -288,8 +292,12 @@ export function PlanDisplay({
         </div>
       )}
 
-      {/* Plan ID */}
-      <div className="text-center text-xs text-muted">{t("plan_display.plan_id", { id: planId })}</div>
+      {/* Plan ID (solo en desarrollo, oculto al usuario en producción) */}
+      {process.env.NODE_ENV !== "production" && (
+        <div className="text-center text-xs text-muted">
+          {t("plan_display.plan_id", { id: planId })}
+        </div>
+      )}
     </div>
   );
 }

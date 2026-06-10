@@ -139,7 +139,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".3"
         d="M134.6 213.3q-4.5 0-7.3 1l-.3-.2.1-.3a27 27 0 0 1 7.5-1q4.6 0 7.6 1l.1.3-.3.2a27 27 0 0 0-7.4-1z"
       />
@@ -214,7 +214,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".3"
         d="M134.6 217.1a25 25 0 0 1-6-.6 26 26 0 0 1 12.1 0q-2.5.6-6 .6z"
       />
@@ -395,7 +395,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="M126.2 226.8h16.9a1.4 1.4 0 0 1-1-1.2q.1-1 1-1.3h-16.9q1 .3 1 1.3a1.3 1.3 0 0 1-1 1.2z"
       />
@@ -476,7 +476,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="m126.2 308 .2.5c0 1.5-1.3 2.6-2.7 2.6h22a3 3 0 0 1-2.7-2.6v-.5z"
       />
@@ -521,7 +521,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="M158.4 257.7a50 50 0 0 0-23.3-2c-9.4 1.6-16.5 5.3-15.9 8.4v.2l-3.5-8.2c-.6-3.3 7.2-7.5 17.6-9.2a43 43 0 0 1 9.2-.7c6.6 0 12.4.8 15.8 2.1v9.4"
       />
@@ -552,7 +552,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="M117.1 282c-.4-1.2 3.8-3.6 9.8-5.8l7.8-3.2c8.3-3.7 14.4-7.9 13.6-9.4v-.2c.4.4 1 8 1 8 .8 1.3-4.8 5.5-12.4 9.1-2.5 1.2-7.6 3-10 4-4.4 1.4-8.7 4.3-8.3 5.3l-1.5-7.7z"
       />
@@ -623,7 +623,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linecap="round"
+        strokeLinecap="round"
         strokeWidth=".3"
         d="m287.8 211.2.2-1a2.7 2.7 0 0 0-2.7-2.8q-.8 0-1.3.3"
       />
@@ -662,7 +662,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linecap="round"
+        strokeLinecap="round"
         strokeWidth=".3"
         d="m267.8 211.2-.2-1a2.7 2.7 0 0 1 2.7-2.8q.8 0 1.4.3"
       />
@@ -769,7 +769,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".3"
         d="M277.8 217.1a25 25 0 0 1-6-.6 25 25 0 0 1 6-.7q3.6 0 6.1.7-2.5.6-6 .6z"
       />
@@ -971,7 +971,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="M286.3 226.8h-16.9q1-.4 1-1.2 0-1-1-1.3h17-.1q-1 .3-1 1.3 0 .8 1 1.2z"
       />
@@ -1052,7 +1052,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="m286.3 308-.1.5c0 1.5 1.2 2.6 2.7 2.6h-22c1.5 0 2.7-1.2 2.7-2.6l-.1-.5z"
       />
@@ -1097,7 +1097,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="M254.2 257.7a50 50 0 0 1 23.3-2c9.3 1.6 16.4 5.3 15.9 8.4v.2l3.5-8.2c.6-3.3-7.3-7.5-17.6-9.2a54 54 0 0 0-9.2-.7c-6.7 0-12.4.8-15.9 2.1v9.4"
       />
@@ -1128,7 +1128,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="M295.4 282c.4-1.2-3.8-3.6-9.7-5.8-2.8-1-5-2-7.8-3.2-8.3-3.7-14.4-7.9-13.6-9.4v-.2c-.4.4-1 8-1 8-.8 1.3 4.8 5.5 12.4 9.1 2.4 1.2 7.6 3 10 4 4.3 1.4 8.7 4.3 8.3 5.3l1.4-7.7z"
       />
@@ -1222,7 +1222,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".4"
         d="M206.1 215.6c-10.6 0-20.2-1.2-27.5-3.1 7.3-2 16.9-3 27.5-3.1a115 115 0 0 1 27.6 3c-7.3 2-17 3.2-27.6 3.2z"
       />
@@ -1492,7 +1492,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="#c8b100"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".5"
         d="M158 301.6a24 24 0 0 0 5.5 15v-47.5h-5.4z"
       />
@@ -2247,7 +2247,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".3"
         d="M201.2 260.9s-1.3 1.4-1.3 2.7a6 6 0 0 0 .6 2.4q-.4-.8-1.4-.8-1.3.1-1.4 1.3l.2.8.5.9q.2-.5 1-.5 1.1 0 1 1v.2h-1.2v1h1l-.8 1.5 1-.4.8.9.8-.9 1 .4-.7-1.5h1v-1h-1.1v-.3a1 1 0 0 1 1-1q.6 0 1 .6l.4-1 .2-.7a1.4 1.4 0 0 0-1.4-1.3q-1 0-1.4.9s.6-1.2.6-2.5-1.4-2.7-1.4-2.7z"
       />
@@ -2265,7 +2265,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".3"
         d="M211.4 260.9s-1.3 1.4-1.3 2.7.6 2.4.6 2.4q-.3-.8-1.4-.8-1.3.1-1.4 1.3l.2.8.5.9q.3-.5 1-.5a1 1 0 0 1 1 1v.2h-1.2v1h1l-.8 1.5 1-.4.8.9.8-.9 1 .4-.7-1.5h1v-1h-1.1v-.3a1 1 0 0 1 1-1q.7 0 1 .6l.4-1 .2-.7a1.4 1.4 0 0 0-1.4-1.3q-1 0-1.4.9s.6-1.2.6-2.5-1.4-2.7-1.4-2.7z"
       />
@@ -2283,7 +2283,7 @@ export function SpanishFlag({ className = "", size = 20 }: FlagProps) {
       <path
         fill="none"
         stroke="#000"
-        stroke-linejoin="round"
+        strokeLinejoin="round"
         strokeWidth=".3"
         d="M206.3 269.6s-1.3 1.5-1.3 2.8.6 2.4.6 2.4q-.3-.8-1.4-.9-1.3.1-1.4 1.4l.2.7.5 1q.2-.6 1-.6a1 1 0 0 1 1 1v.3h-1.2v1h1l-.8 1.5 1-.4.8.9.8-1 1 .5-.7-1.5h1v-1h-1.1v-.3a1 1 0 0 1 1-1q.6 0 .9.6l.5-1 .2-.7a1.4 1.4 0 0 0-1.4-1.4q-1 0-1.4 1s.6-1.2.6-2.5-1.4-2.7-1.4-2.7z"
       />

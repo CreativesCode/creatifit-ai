@@ -1,5 +1,4 @@
 "use client";
-import { PageLoader } from "@/components/ui/loader";
 import { WorkoutHistory } from "@/components/ui/workout-history";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -84,12 +83,37 @@ export default function WorkoutHistoryPage() {
 
   if (loading) {
     return (
-      <PageLoader />
+      <div className="container mx-auto max-w-xl lg:max-w-3xl px-4 lg:px-6 pt-4 lg:pt-8">
+        <div className="flex items-center gap-3 pt-1 mb-4">
+          <div className="cf-icon-tile bg-surface-2 animate-pulse" style={{ width: 40, height: 40 }} />
+          <div>
+            <div className="h-3 w-20 bg-surface-2 rounded animate-pulse mb-1.5" />
+            <div className="h-5 w-40 bg-surface-2 rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="flex gap-2.5 mb-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="cf-card flex-1 animate-pulse" style={{ padding: "14px 13px", borderRadius: 18 }}>
+              <div className="h-5 w-5 bg-surface-2 rounded mb-2" />
+              <div className="h-6 w-12 bg-surface-2 rounded mb-1.5" />
+              <div className="h-3 w-16 bg-surface-2 rounded" />
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col gap-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="cf-card animate-pulse" style={{ padding: 16, borderRadius: 18 }}>
+              <div className="h-4 w-1/2 bg-surface-2 rounded mb-2" />
+              <div className="h-3 w-1/3 bg-surface-2 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
-    <WorkoutHistory 
+    <WorkoutHistory
       onBack={handleBack}
       selectedSession={selectedSession}
       onSessionClick={handleSessionClick}

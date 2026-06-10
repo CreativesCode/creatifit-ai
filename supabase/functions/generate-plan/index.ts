@@ -77,6 +77,17 @@ interface Intake {
   constraints?: Record<string, boolean>;
   stepsDay?: number;
   notes?: string;
+  language?: string;
+}
+
+// Idioma en el que el modelo debe escribir el texto legible (focus + cues).
+// Los nombres de ejercicio NO se traducen: vienen del catálogo de la BD.
+function languageName(code?: string): string {
+  const map: Record<string, string> = {
+    es: "Spanish",
+    en: "English",
+  };
+  return map[(code || "").slice(0, 2).toLowerCase()] || "Spanish";
 }
 
 interface DbExercise {
@@ -160,6 +171,8 @@ function buildSystemPrompt(intake: Intake, exercises: DbExercise[]): string {
     ? `\nUSER NOTES (take into account): ${intake.notes}`
     : "";
 
+  const lang = languageName(intake.language);
+
   return `You are an expert personal fitness trainer. Create a personalized training plan based on the user's data.
 
 You MUST respond ONLY with valid JSON. No prose, no markdown — just the JSON object.
@@ -190,7 +203,8 @@ CRITICAL RULES:
 3. Pick exercises that match the user's equipment, level, objective and the RPN ranges above.
 4. Use the RPN sets/reps/rest ranges; vary within them to fit each exercise.
 5. Provide 2-3 concise form cues per block.
-6. Do not repeat the same exercise within a day.`;
+6. Do not repeat the same exercise within a day.
+7. Write the "focus" text and ALL "cues" in ${lang}. Do NOT translate or modify exercise names — they are resolved from the reference list by number.`;
 }
 
 function buildUserPrompt(intake: Intake): string {

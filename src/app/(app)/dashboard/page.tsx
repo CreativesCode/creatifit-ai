@@ -1,9 +1,8 @@
 "use client";
 
-import { PageLoader } from "@/components/ui/loader";
-import { Ring } from "@/components/ui/ring";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Mark } from "@/components/ui/brand";
+import { useAuth } from "@/lib/auth/auth-context";
 import { supabaseClient } from "@/lib/supabase-client";
 import {
   Activity,
@@ -38,6 +37,8 @@ interface DashboardStats {
 export default function DashboardPage() {
   const { t } = useTranslation("common");
   const router = useRouter();
+  const { user } = useAuth();
+  const userInitial = (user?.email?.trim().charAt(0) || "C").toUpperCase();
   const [stats, setStats] = useState<DashboardStats>({
     totalPlans: 0,
     totalSessions: 0,
@@ -59,14 +60,23 @@ export default function DashboardPage() {
 
     const fetchDashboardData = async () => {
       try {
-        const [plansData, exercisesData] = await Promise.all([
+        const [plansData, exercisesData, logs] = await Promise.all([
           supabaseClient.getPlans(),
           supabaseClient.getExercises(1, 1),
+          supabaseClient.getLogs(),
         ]);
+
+        // Sesiones completadas = nº de session_id distintos en los logs
+        // (mismo criterio que workout-history.tsx).
+        const sessionIds = new Set<string>();
+        (logs || []).forEach((log: { session_id?: string }) => {
+          if (log.session_id) sessionIds.add(log.session_id);
+        });
 
         setStats((prev) => ({
           ...prev,
           totalPlans: plansData?.length || 0,
+          totalSessions: sessionIds.size,
           recentPlans: plansData?.slice(0, 3) || [],
           totalExercises: exercisesData?.count || 0,
         }));
@@ -82,7 +92,37 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <PageLoader />
+      <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
+        {/* header */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <div className="h-3 w-24 bg-surface-2 rounded animate-pulse mb-1.5" />
+            <div className="h-5 w-32 bg-surface-2 rounded animate-pulse" />
+          </div>
+          <div className="w-[38px] h-[38px] rounded-full bg-surface-2 animate-pulse" />
+        </div>
+        {/* hero */}
+        <div className="cf-card animate-pulse mb-4" style={{ padding: 18, borderRadius: 24 }}>
+          <div className="h-6 w-24 bg-surface-2 rounded-full mb-3" />
+          <div className="h-6 w-2/3 bg-surface-2 rounded mb-3" />
+          <div className="flex gap-2 mt-4 mb-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex-1 bg-surface-2" style={{ height: 46, borderRadius: 12 }} />
+            ))}
+          </div>
+          <div className="h-12 w-full bg-surface-2 rounded-xl" />
+        </div>
+        {/* stat tiles */}
+        <div className="flex gap-2.5">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="cf-card flex-1 animate-pulse" style={{ padding: 14, borderRadius: 18 }}>
+              <div className="h-5 w-5 bg-surface-2 rounded mb-3" />
+              <div className="h-6 w-10 bg-surface-2 rounded mb-1.5" />
+              <div className="h-3 w-16 bg-surface-2 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -90,23 +130,20 @@ export default function DashboardPage() {
   const planTitle = (p: RecentPlan) => p.name || `${t("plan.title")} ${p.id.slice(-6)}`;
 
   return (
-    <div className="container mx-auto max-w-xl lg:max-w-6xl px-5 lg:px-8 pt-4 lg:pt-8">
+    <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
       {/* ---------- Header ---------- */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <Mark size={36} />
-          <div>
-            <div className="cf-muted text-[12.5px] font-semibold capitalize">
-              {today}
-            </div>
-            <div className="cf-h1 text-[24px] mt-px">{t("dashboard.title")}</div>
+        <div>
+          <div className="cf-muted text-[12.5px] font-semibold capitalize">
+            {today}
           </div>
+          <div className="cf-h1 text-[24px] mt-px">{t("dashboard.title")}</div>
         </div>
         <div
           className="w-[38px] h-[38px] rounded-full bg-grad-brand-soft flex items-center justify-center text-white font-display font-bold text-sm shadow-glow-brand"
           aria-hidden
         >
-          {t("dashboard.title")?.trim().charAt(0).toUpperCase() || "C"}
+          {userInitial}
         </div>
       </div>
 
@@ -148,27 +185,10 @@ export default function DashboardPage() {
                 </span>
               </div>
             </div>
-            <Ring value={0} size={56} stroke={6}>
-              <span className="cf-num text-[13px]">
-                {t("dashboard.title")?.trim().charAt(0).toUpperCase() || "C"}
-              </span>
-            </Ring>
-          </div>
-
-          {/* thumbs de ejercicios */}
-          <div className="flex gap-2 mt-4 mb-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex-1">
-                <div
-                  className="cf-eximg"
-                  style={{ height: 46, borderRadius: 12, border: "1px solid var(--border)" }}
-                />
-              </div>
-            ))}
           </div>
 
           <button
-            className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg"
+            className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-4"
             onClick={() => router.push(`/session?planId=${activePlan.id}`)}
           >
             <Play size={17} fill="currentColor" />

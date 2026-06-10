@@ -35,7 +35,8 @@
     "dashboard": "Inicio",
     "plans": "Planes",
     "exercises": "Ejercicios",
-    "workoutHistory": "Historial"
+    "workoutHistory": "Historial",
+    "settings": "Ajustes"
   },
   "onboarding": {
     "title": "Bienvenido a CreatiFit AI",
@@ -79,11 +80,28 @@
       }
     },
     "weeks": {
-      "label": "Duración del plan"
+      "label": "Duración del plan",
+      "unit": "semanas"
     },
     "steps": {
       "label": "Meta de pasos diarios (opcional)"
     },
+    "constraints": {
+      "label": "Restricciones",
+      "help": "Marca lo que debamos evitar por lesiones o molestias. Lo dejaremos fuera de tu plan.",
+      "jumps": "Saltos",
+      "jumps_desc": "Evita saltos y pliometría",
+      "high_impact": "Alto impacto",
+      "high_impact_desc": "Evita ejercicios de alto impacto",
+      "heavy_lifting": "Cargas pesadas",
+      "heavy_lifting_desc": "Evita levantamientos con mucho peso"
+    },
+    "retry": "Reintentar",
+    "continue": "Continuar",
+    "generating_title": "Generando tu plan…",
+    "generating_hint": "Estamos diseñando tu rutina personalizada. Esto puede tardar unos segundos.",
+    "exercises_failed_title": "Plan guardado",
+    "exercises_failed_hint": "Tu plan se guardó, pero hubo un problema al cargar los ejercicios detallados. Puedes continuar; aparecerán cuando se resuelva.",
     "submit": "Generar Mi Plan",
     "generating": "Generando Tu Plan..."
   },
@@ -116,6 +134,7 @@
     "age_range": "La edad debe estar entre 16 y 80 años",
     "weight_range": "El peso debe estar entre 30 y 200 kg",
     "height_range": "La altura debe estar entre 120 y 250 cm",
+    "intake_invalid": "Revisa tus datos: hay un campo fuera de rango.",
     "submit_error": "Error al generar el plan. Por favor, inténtalo de nuevo."
   },
   "plan": {
@@ -126,7 +145,8 @@
     "exercises": "Ejercicios",
     "start_session": "Iniciar Sesión",
     "back_to_plan": "Volver al Plan",
-    "regenerate": "Regenerar Plan"
+    "regenerate": "Regenerar Plan",
+    "ai_generated": "Generado por IA"
   },
   "session": {
     "title": "Sesión de Entrenamiento",
@@ -136,7 +156,43 @@
     "rest": "Descanso",
     "next": "Siguiente Ejercicio",
     "complete": "Completar Entrenamiento",
-    "log_workout": "Registrar Entrenamiento"
+    "log_workout": "Registrar Entrenamiento",
+    "warmup": "Calentamiento",
+    "preparing": "preparando",
+    "get_ready": "Prepárate para entrenar",
+    "warmup_desc": "Activa la musculatura y eleva tu temperatura corporal antes de empezar.",
+    "pause": "Pausar",
+    "resume": "Continuar",
+    "skip": "Saltar",
+    "set": "Serie",
+    "weight_kg": "Peso kg",
+    "rpe": "RPE",
+    "key_points": "Puntos clave",
+    "complete_set": "Completar serie",
+    "rest_label": "Descanso",
+    "rest_between_exercises": "Descanso entre ejercicios",
+    "recover": "recupera",
+    "up_next": "A continuación",
+    "skip_rest": "Saltar descanso",
+    "series_x_reps": "{{sets}} series × {{min}}–{{max}}",
+    "session_completed": "¡Sesión completada!",
+    "summary_subtitle": "Resumen de tu entrenamiento",
+    "series": "Series",
+    "volume": "Volumen",
+    "avg_rpe": "RPE medio",
+    "progress": "Progreso",
+    "good_job": "¡Buen trabajo!",
+    "sets_logged": "{{count}} series registradas",
+    "view_history": "Ver historial",
+    "exit": "Salir",
+    "day_focus": "{{focus}} · Día {{day}}",
+    "save_error": "No se pudo guardar tu última serie. Puedes continuar; lo reintentaremos.",
+    "exit_confirm_title": "¿Salir de la sesión?",
+    "exit_confirm_body": "Tienes progreso sin terminar en esta sesión. Si sales ahora, se descartará el estado actual.",
+    "exit_confirm_leave": "Salir",
+    "exit_confirm_stay": "Quedarme",
+    "resumed_notice": "Se restauró tu sesión anterior",
+    "select_day": "Selecciona tu día"
   },
   "common": {
     "loading": "Cargando...",
@@ -167,8 +223,12 @@
     "theme": {
       "title": "Tema",
       "description": "Elige entre tema claro, oscuro o automático",
-      "visual_theme": "Tema visual"
+      "visual_theme": "Tema visual",
+      "dark": "Oscuro",
+      "light": "Claro",
+      "auto": "Auto"
     },
+    "coming_soon": "Próximamente",
     "about": {
       "title": "Acerca de",
       "description": "Información sobre CreatiFit AI",
@@ -239,6 +299,7 @@
     "title": "Mis Planes de Entrenamiento",
     "subtitle": "Gestiona y revisa todos tus planes generados por IA",
     "create_new_plan": "Crear Nuevo Plan",
+    "active": "Activo",
     "no_plans": {
       "title": "No tienes planes aún",
       "description": "Crea tu primer plan de entrenamiento personalizado con IA",
@@ -246,6 +307,7 @@
     },
     "plan_details": {
       "title": "Detalles del Plan",
+      "training_days": "Días de entrenamiento",
       "back_to_plans": "Volver a Planes",
       "edit": "Editar",
       "start_session": "Iniciar Sesión",
@@ -255,6 +317,16 @@
       "duration": "Duración: {{weeks}} semanas",
       "focus": "Enfoque: {{focus}}",
       "view_details": "Ver Detalles"
+    },
+    "swap": {
+      "title": "Cambiar ejercicio",
+      "change": "Cambiar ejercicio",
+      "hint": "Toca «Cambiar ejercicio» para sustituir cualquiera por uno similar.",
+      "edit_hint": "Modo edición: abre un día para cambiar sus ejercicios.",
+      "loading": "Buscando alternativas…",
+      "no_alternatives": "No hay alternativas disponibles.",
+      "error": "No se pudieron cargar las alternativas.",
+      "save_error": "No se pudo guardar el cambio. Inténtalo de nuevo."
     },
     "loading": {
       "plans": "Cargando planes...",

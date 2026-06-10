@@ -27,19 +27,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Sesión inicial
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    let mounted = true;
 
-    // Suscripción a cambios de sesión (login, logout, refresh, confirmación)
+    // `onAuthStateChange` emite `INITIAL_SESSION` al suscribirse (con la sesión
+    // restaurada del storage) y luego login/logout/refresh/confirmación. Con eso
+    // basta para fijar el estado inicial: evitamos el doble setSession/setLoading
+    // de un getSession() paralelo y el flicker asociado.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!mounted) return;
       setSession(newSession);
       setLoading(false);
     });
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const signIn: AuthContextValue["signIn"] = async (email, password) => {

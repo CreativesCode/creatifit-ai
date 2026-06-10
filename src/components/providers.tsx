@@ -5,6 +5,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState } from 'react'
 import { AuthProvider } from '@/lib/auth/auth-context'
 
+// Las devtools solo se montan en desarrollo: no deben acabar en el bundle del .apk.
+const isDev = process.env.NODE_ENV !== 'production'
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -23,7 +26,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         {children}
       </AuthProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {isDev && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   )
 }

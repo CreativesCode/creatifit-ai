@@ -1,38 +1,18 @@
 import { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 export function useMobileApp() {
-  const [isMobileApp, setIsMobileApp] = useState(false);
+  // Detección oficial vía API de Capacitor (D-PERF-6). Sustituye el regex de
+  // userAgent y el listener `resize`. Se calcula una sola vez en el cliente:
+  // la plataforma de Capacitor no cambia en runtime.
   const [isCapacitor, setIsCapacitor] = useState(false);
 
   useEffect(() => {
-    // Detectar si estamos en Capacitor
-    const checkCapacitor = () => {
-      const hasCapacitor = typeof window !== 'undefined' && 
-        (('Capacitor' in window) || ('cordova' in window));
-      
-      setIsCapacitor(!!hasCapacitor);
-      
-      // Detectar si es una app móvil
-      const isMobile = typeof window !== 'undefined' && (
-        hasCapacitor ||
-        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-        (navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform))
-      );
-      
-      setIsMobileApp(Boolean(isMobile));
-    };
-
-    checkCapacitor();
-    
-    // Escuchar cambios en el estado de la app
-    if (typeof window !== 'undefined' && 'Capacitor' in window) {
-      window.addEventListener('resize', checkCapacitor);
-      return () => window.removeEventListener('resize', checkCapacitor);
-    }
+    setIsCapacitor(Capacitor.isNativePlatform());
   }, []);
 
   return {
-    isMobileApp,
+    isMobileApp: isCapacitor,
     isCapacitor,
     isNative: isCapacitor,
     isWeb: !isCapacitor,

@@ -18,9 +18,25 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-function Toggle({ on }: { on: boolean }) {
+function Toggle({
+  on,
+  disabled = false,
+  label,
+  onToggle,
+}: {
+  on: boolean;
+  disabled?: boolean;
+  label?: string;
+  onToggle?: () => void;
+}) {
   return (
-    <div
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onToggle}
       className="flex items-center"
       style={{
         width: 44,
@@ -30,10 +46,12 @@ function Toggle({ on }: { on: boolean }) {
         justifyContent: on ? "flex-end" : "flex-start",
         background: on ? "var(--grad-brand)" : "var(--ring-track)",
         boxShadow: on ? "var(--glow-brand)" : "none",
+        opacity: disabled ? 0.45 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
       <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#fff" }} />
-    </div>
+    </button>
   );
 }
 
@@ -52,10 +70,10 @@ function Row({
   last?: boolean;
   onClick?: () => void;
 }) {
+  const Comp = onClick ? "button" : "div";
   return (
-    <button
+    <Comp
       onClick={onClick}
-      disabled={!onClick}
       className="flex items-center gap-3.5 w-full text-left"
       style={{
         padding: "13px 0",
@@ -70,7 +88,7 @@ function Row({
         {sub && <div className="cf-muted text-[11.5px] mt-px">{sub}</div>}
       </div>
       {right}
-    </button>
+    </Comp>
   );
 }
 
@@ -91,7 +109,7 @@ export default function SettingsPage() {
   const initial = (user?.email?.trim().charAt(0) || "A").toUpperCase();
 
   return (
-    <div className="container mx-auto max-w-xl lg:max-w-2xl px-5 lg:px-8 pt-4 lg:pt-8">
+    <div className="container mx-auto max-w-xl lg:max-w-2xl px-4 lg:px-6 pt-4 lg:pt-8">
       {/* header */}
       <div className="pt-1 mb-4">
         <div className="cf-eyebrow">{t("settings.account.title", "Cuenta")}</div>
@@ -160,14 +178,32 @@ export default function SettingsPage() {
         <Row
           icon={Bell}
           label={t("settings.notifications.workout_reminders")}
-          sub={t("settings.notifications.workout_reminders_desc")}
-          right={<Toggle on />}
+          sub={`${t("settings.notifications.workout_reminders_desc")} · ${t(
+            "settings.coming_soon",
+            "Próximamente"
+          )}`}
+          right={
+            <Toggle
+              on={false}
+              disabled
+              label={t("settings.notifications.workout_reminders")}
+            />
+          }
         />
         <Row
           icon={Trophy}
           label={t("settings.notifications.achievements_progress")}
-          sub={t("settings.notifications.achievements_progress_desc")}
-          right={<Toggle on />}
+          sub={`${t("settings.notifications.achievements_progress_desc")} · ${t(
+            "settings.coming_soon",
+            "Próximamente"
+          )}`}
+          right={
+            <Toggle
+              on={false}
+              disabled
+              label={t("settings.notifications.achievements_progress")}
+            />
+          }
           last
         />
       </div>

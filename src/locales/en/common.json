@@ -35,7 +35,8 @@
     "dashboard": "Home",
     "plans": "Plans",
     "exercises": "Exercises",
-    "workoutHistory": "History"
+    "workoutHistory": "History",
+    "settings": "Settings"
   },
   "onboarding": {
     "title": "Welcome to CreatiFit AI",
@@ -79,11 +80,28 @@
       }
     },
     "weeks": {
-      "label": "Plan duration"
+      "label": "Plan duration",
+      "unit": "weeks"
     },
     "steps": {
       "label": "Daily step goal (optional)"
     },
+    "constraints": {
+      "label": "Constraints",
+      "help": "Check anything we should avoid due to injuries or discomfort. We'll leave it out of your plan.",
+      "jumps": "Jumps",
+      "jumps_desc": "Avoid jumps and plyometrics",
+      "high_impact": "High impact",
+      "high_impact_desc": "Avoid high-impact exercises",
+      "heavy_lifting": "Heavy lifting",
+      "heavy_lifting_desc": "Avoid lifting heavy loads"
+    },
+    "retry": "Retry",
+    "continue": "Continue",
+    "generating_title": "Generating your plan…",
+    "generating_hint": "We're designing your personalized routine. This may take a few seconds.",
+    "exercises_failed_title": "Plan saved",
+    "exercises_failed_hint": "Your plan was saved, but there was a problem loading the detailed exercises. You can continue; they'll appear once it's resolved.",
     "submit": "Generate My Plan",
     "generating": "Generating Your Plan..."
   },
@@ -116,6 +134,7 @@
     "age_range": "Age must be between 16 and 80",
     "weight_range": "Weight must be between 30 and 200 kg",
     "height_range": "Height must be between 120 and 250 cm",
+    "intake_invalid": "Check your details: a field is out of range.",
     "submit_error": "Failed to generate plan. Please try again."
   },
   "plan": {
@@ -126,7 +145,8 @@
     "exercises": "Exercises",
     "start_session": "Start Session",
     "back_to_plan": "Back to Plan",
-    "regenerate": "Regenerate Plan"
+    "regenerate": "Regenerate Plan",
+    "ai_generated": "AI Generated"
   },
   "session": {
     "title": "Workout Session",
@@ -136,7 +156,43 @@
     "rest": "Rest",
     "next": "Next Exercise",
     "complete": "Complete Workout",
-    "log_workout": "Log Workout"
+    "log_workout": "Log Workout",
+    "warmup": "Warm-up",
+    "preparing": "preparing",
+    "get_ready": "Get ready to train",
+    "warmup_desc": "Activate your muscles and raise your body temperature before starting.",
+    "pause": "Pause",
+    "resume": "Resume",
+    "skip": "Skip",
+    "set": "Set",
+    "weight_kg": "Weight kg",
+    "rpe": "RPE",
+    "key_points": "Key points",
+    "complete_set": "Complete set",
+    "rest_label": "Rest",
+    "rest_between_exercises": "Rest between exercises",
+    "recover": "recover",
+    "up_next": "Up next",
+    "skip_rest": "Skip rest",
+    "series_x_reps": "{{sets}} sets × {{min}}–{{max}}",
+    "session_completed": "Session completed!",
+    "summary_subtitle": "Your workout summary",
+    "series": "Sets",
+    "volume": "Volume",
+    "avg_rpe": "Avg RPE",
+    "progress": "Progress",
+    "good_job": "Great job!",
+    "sets_logged": "{{count}} sets logged",
+    "view_history": "View history",
+    "exit": "Exit",
+    "day_focus": "{{focus}} · Day {{day}}",
+    "save_error": "Could not save your last set. You can keep going; we'll retry later.",
+    "exit_confirm_title": "Leave session?",
+    "exit_confirm_body": "You have unsaved progress in this session. If you leave now, your current session state will be discarded.",
+    "exit_confirm_leave": "Leave",
+    "exit_confirm_stay": "Stay",
+    "resumed_notice": "Resumed your previous session",
+    "select_day": "Select your day"
   },
   "common": {
     "loading": "Loading...",
@@ -167,8 +223,12 @@
     "theme": {
       "title": "Theme",
       "description": "Choose between light, dark or automatic theme",
-      "visual_theme": "Visual theme"
+      "visual_theme": "Visual theme",
+      "dark": "Dark",
+      "light": "Light",
+      "auto": "Auto"
     },
+    "coming_soon": "Coming soon",
     "about": {
       "title": "About",
       "description": "Information about CreatiFit AI",
@@ -239,6 +299,7 @@
     "title": "My Training Plans",
     "subtitle": "Manage and review all your AI-generated plans",
     "create_new_plan": "Create New Plan",
+    "active": "Active",
     "no_plans": {
       "title": "You don't have plans yet",
       "description": "Create your first personalized training plan with AI",
@@ -246,6 +307,7 @@
     },
     "plan_details": {
       "title": "Plan Details",
+      "training_days": "Training Days",
       "back_to_plans": "Back to Plans",
       "edit": "Edit",
       "start_session": "Start Session",
@@ -255,6 +317,16 @@
       "duration": "Duration: {{weeks}} weeks",
       "focus": "Focus: {{focus}}",
       "view_details": "View Details"
+    },
+    "swap": {
+      "title": "Swap exercise",
+      "change": "Swap exercise",
+      "hint": "Tap “Swap exercise” to replace any with a similar one.",
+      "edit_hint": "Edit mode: open a day to change its exercises.",
+      "loading": "Finding alternatives…",
+      "no_alternatives": "No alternatives available.",
+      "error": "Couldn't load alternatives.",
+      "save_error": "Couldn't save the change. Please try again."
     },
     "loading": {
       "plans": "Loading plans...",

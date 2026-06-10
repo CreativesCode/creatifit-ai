@@ -1,5 +1,38 @@
 import { z } from "zod";
 
+// Bloque de equipamiento reutilizable (intake + generación de plan).
+export const EquipmentSchema = z.object({
+  none: z.boolean().optional(),
+  wall: z.boolean().optional(),
+  chair: z.boolean().optional(),
+  table: z.boolean().optional(),
+  resistance_band: z.boolean().optional(),
+  resistance_tubes: z.boolean().optional(),
+  dumbbells: z.boolean().optional(),
+  barbell: z.boolean().optional(),
+  weight_plates: z.boolean().optional(),
+  ez_bar: z.boolean().optional(),
+  trap_bar: z.boolean().optional(),
+  pullup_bar: z.boolean().optional(),
+  ab_wheel: z.boolean().optional(),
+  pushup_handles: z.boolean().optional(),
+  yoga_mat: z.boolean().optional(),
+  foam_roller: z.boolean().optional(),
+  jump_rope: z.boolean().optional(),
+  vibration_platform: z.boolean().optional(),
+  power_rack: z.boolean().optional(),
+  bench: z.boolean().optional(),
+  incline_bench: z.boolean().optional(),
+  dip_bars: z.boolean().optional(),
+});
+
+// Restricciones / lesiones reutilizable (intake + generación de plan).
+export const ConstraintsSchema = z.object({
+  jumps: z.boolean().optional(),
+  high_impact: z.boolean().optional(),
+  heavy_lifting: z.boolean().optional(),
+});
+
 // Esquema para el cuestionario de intake
 export const IntakeSchema = z.object({
   objective: z.enum([
@@ -21,37 +54,8 @@ export const IntakeSchema = z.object({
   weightKg: z.number().min(30).max(200),
   heightCm: z.number().min(120).max(250),
   weeks: z.number().min(4).max(12).optional(),
-  equipment: z.object({
-    none: z.boolean().optional(),
-    wall: z.boolean().optional(),
-    chair: z.boolean().optional(),
-    table: z.boolean().optional(),
-    resistance_band: z.boolean().optional(),
-    resistance_tubes: z.boolean().optional(),
-    dumbbells: z.boolean().optional(),
-    barbell: z.boolean().optional(),
-    weight_plates: z.boolean().optional(),
-    ez_bar: z.boolean().optional(),
-    trap_bar: z.boolean().optional(),
-    pullup_bar: z.boolean().optional(),
-    ab_wheel: z.boolean().optional(),
-    pushup_handles: z.boolean().optional(),
-    yoga_mat: z.boolean().optional(),
-    foam_roller: z.boolean().optional(),
-    jump_rope: z.boolean().optional(),
-    vibration_platform: z.boolean().optional(),
-    power_rack: z.boolean().optional(),
-    bench: z.boolean().optional(),
-    incline_bench: z.boolean().optional(),
-    dip_bars: z.boolean().optional(),
-  }),
-  constraints: z
-    .object({
-      jumps: z.boolean().optional(),
-      high_impact: z.boolean().optional(),
-      heavy_lifting: z.boolean().optional(),
-    })
-    .optional(),
+  equipment: EquipmentSchema,
+  constraints: ConstraintsSchema.optional(),
   stepsDay: z.number().min(1000).max(20000).optional(),
   notes: z.string().max(500).optional(),
 });
@@ -77,37 +81,8 @@ export const PlanGenerationSchema = z.object({
   age: z.number().min(16).max(80),
   weightKg: z.number().min(30).max(200),
   heightCm: z.number().min(120).max(250),
-  equipment: z.object({
-    none: z.boolean().optional(),
-    wall: z.boolean().optional(),
-    chair: z.boolean().optional(),
-    table: z.boolean().optional(),
-    resistance_band: z.boolean().optional(),
-    resistance_tubes: z.boolean().optional(),
-    dumbbells: z.boolean().optional(),
-    barbell: z.boolean().optional(),
-    weight_plates: z.boolean().optional(),
-    ez_bar: z.boolean().optional(),
-    trap_bar: z.boolean().optional(),
-    pullup_bar: z.boolean().optional(),
-    ab_wheel: z.boolean().optional(),
-    pushup_handles: z.boolean().optional(),
-    yoga_mat: z.boolean().optional(),
-    foam_roller: z.boolean().optional(),
-    jump_rope: z.boolean().optional(),
-    vibration_platform: z.boolean().optional(),
-    power_rack: z.boolean().optional(),
-    bench: z.boolean().optional(),
-    incline_bench: z.boolean().optional(),
-    dip_bars: z.boolean().optional(),
-  }),
-  constraints: z
-    .object({
-      jumps: z.boolean().optional(),
-      high_impact: z.boolean().optional(),
-      heavy_lifting: z.boolean().optional(),
-    })
-    .optional(),
+  equipment: EquipmentSchema,
+  constraints: ConstraintsSchema.optional(),
   stepsDay: z.number().min(1000).max(20000).optional(),
 });
 
@@ -147,6 +122,8 @@ export const WorkoutLogSchema = z.object({
 });
 
 // Tipos derivados
+export type Equipment = z.infer<typeof EquipmentSchema>;
+export type Constraints = z.infer<typeof ConstraintsSchema>;
 export type Intake = z.infer<typeof IntakeSchema>;
 export type PlanGeneration = z.infer<typeof PlanGenerationSchema>;
 export type GeneratedPlan = z.infer<typeof GeneratedPlanSchema>;

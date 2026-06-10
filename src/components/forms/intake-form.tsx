@@ -3,7 +3,12 @@
 import { EQUIPMENT_BY_CATEGORY } from "@/lib/constants/equipment";
 import { useAuth } from "@/lib/auth/auth-context";
 import { supabaseClient } from "@/lib/supabase-client";
-import { type GeneratedPlan, type Intake } from "@/lib/validators/schemas";
+import {
+  IntakeSchema,
+  type GeneratedPlan,
+  type Intake,
+} from "@/lib/validators/schemas";
+import { CFLoader } from "@/components/ui/loader";
 import {
   Activity,
   ArrowLeft,
@@ -15,6 +20,8 @@ import {
   HeartPulse,
   Move,
   Repeat,
+  RotateCcw,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Target,
@@ -22,7 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface IntakeFormProps {
@@ -48,14 +55,20 @@ const OBJECTIVE_ICONS: Record<string, LucideIcon> = {
 const OBJECTIVES = Object.keys(OBJECTIVE_ICONS);
 const LEVELS = ["beginner", "intermediate", "advanced"] as const;
 const GENDERS = ["male", "female", "other"] as const;
-const TOTAL_STEPS = 5;
+
+// Restricciones / lesiones que el usuario puede marcar. Se propagan a
+// apiData.constraints para que el plan evite esos patrones de movimiento.
+const CONSTRAINT_KEYS = ["jumps", "high_impact", "heavy_lifting"] as const;
+type ConstraintKey = (typeof CONSTRAINT_KEYS)[number];
+
+const TOTAL_STEPS = 6;
 
 export function IntakeForm({
   onPlanGenerated,
   isGenerating,
   setIsGenerating,
 }: IntakeFormProps) {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const { user } = useAuth();
 
   const [step, setStep] = useState(0);
@@ -67,10 +80,15 @@ export function IntakeForm({
     weightKg: 70,
     heightCm: 170,
     equipment: {},
+    constraints: {},
     stepsDay: 8000,
     weeks: 8,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // true cuando el plan se guardó pero la RPC de ejercicios falló (E-COD-3).
+  const [exercisesWarning, setExercisesWarning] = useState(false);
+  // Continuación diferida hacia el plan tras el aviso de ejercicios.
+  const pendingNavRef = useRef<(() => void) | null>(null);
 
   const set = (field: keyof Intake, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -83,6 +101,16 @@ export function IntakeForm({
       equipment: {
         ...prev.equipment,
         [key]: !prev.equipment?.[key as keyof typeof prev.equipment],
+      },
+    }));
+  };
+
+  const toggleConstraint = (key: ConstraintKey) => {
+    setFormData((prev) => ({
+      ...prev,
+      constraints: {
+        ...prev.constraints,
+        [key]: !prev.constraints?.[key],
       },
     }));
   };
@@ -110,6 +138,39 @@ export function IntakeForm({
       setStep(2);
       return;
     }
+
+    // Validación Zod del intake completo antes de enviar (E-COD-7). No reemplaza
+    // a validateMeasures (que enfoca el paso de medidas); aquí atrapamos cualquier
+    // inconsistencia de forma amable sin romper el flujo.
+    const intakeCandidate = {
+      objective: formData.objective,
+      level: formData.level,
+      gender: formData.gender,
+      age: formData.age,
+      weightKg: formData.weightKg,
+      heightCm: formData.heightCm,
+      weeks: formData.weeks || 8,
+      equipment: formData.equipment ?? {},
+      constraints: formData.constraints ?? {},
+      stepsDay: formData.stepsDay,
+    };
+    const parsed = IntakeSchema.safeParse(intakeCandidate);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      setErrors({
+        submit: t(
+          "validation.intake_invalid",
+          "Revisa tus datos: hay un campo fuera de rango."
+        ),
+        ...(first?.path?.length
+          ? { [String(first.path[0])]: first.message }
+          : {}),
+      });
+      return;
+    }
+
+    setExercisesWarning(false);
+    setErrors({});
     setIsGenerating(true);
     try {
       const apiData = {
@@ -122,7 +183,14 @@ export function IntakeForm({
         heightCm: formData.heightCm,
         equipment: formData.equipment,
         stepsDay: formData.stepsDay,
-        constraints: { jumps: false, high_impact: false, heavy_lifting: false },
+        // Idioma para que la IA escriba el focus y los cues en el idioma del usuario.
+        language: i18n.language,
+        // Restricciones reales marcadas por el usuario (B-AI-5).
+        constraints: {
+          jumps: !!formData.constraints?.jumps,
+          high_impact: !!formData.constraints?.high_impact,
+          heavy_lifting: !!formData.constraints?.heavy_lifting,
+        },
       };
 
       const { generateFitnessPlan } = await import("@/lib/ai/openai");
@@ -145,7 +213,7 @@ export function IntakeForm({
       }
 
       const planId = crypto.randomUUID();
-      const savedPlan = await supabaseClient.savePlan({
+      const { plan: savedPlan, exercisesInserted } = await supabaseClient.savePlan({
         id: planId,
         user_id: user?.id ?? null,
         weeks: formData.weeks || 8,
@@ -163,15 +231,25 @@ export function IntakeForm({
             height_cm: formData.heightCm,
             equipment: formData.equipment,
             steps_day: formData.stepsDay,
-            constraints: formData.constraints || {},
+            constraints: apiData.constraints,
             created_at: new Date().toISOString(),
           },
           ...generatedPlan,
         },
       });
 
-      if (savedPlan) onPlanGenerated(planId, generatedPlan);
-      else throw new Error("Failed to save plan to database");
+      if (!savedPlan) throw new Error("Failed to save plan to database");
+
+      // El plan se guardó. Si la RPC de ejercicios falló (E-COD-3) no perdemos el
+      // plan: avisamos al usuario y le dejamos continuar de todos modos.
+      if (!exercisesInserted) {
+        setExercisesWarning(true);
+        // Guardamos el callback de continuación para el CTA "continuar".
+        pendingNavRef.current = () => onPlanGenerated(planId, generatedPlan);
+        return;
+      }
+
+      onPlanGenerated(planId, generatedPlan);
     } catch (error) {
       console.error("💥 [INTAKE FORM] Error generating plan:", error);
       setErrors({ submit: t("validation.submit_error") });
@@ -192,6 +270,7 @@ export function IntakeForm({
     t("onboarding.level.label"),
     t("onboarding.personal.age"),
     t("onboarding.equipment.label"),
+    t("onboarding.constraints.label", "Restricciones"),
     t("onboarding.weeks.label"),
   ][step];
 
@@ -377,15 +456,74 @@ export function IntakeForm({
                 style={{ padding: "10px 14px", fontSize: 13 }}
               >
                 {on && <Check size={13} strokeWidth={3} />}
-                {label}
+                {t(`equipment.${key}`, label)}
               </button>
             );
           })}
         </div>
       )}
 
-      {/* STEP 4 · Duración + pasos */}
+      {/* STEP 4 · Restricciones / lesiones (B-AI-5) */}
       {step === 4 && (
+        <div className="flex flex-col gap-3 mt-5">
+          <p className="cf-muted text-[13px] mb-1">
+            {t(
+              "onboarding.constraints.help",
+              "Marca lo que debamos evitar por lesiones o molestias. Lo dejaremos fuera de tu plan."
+            )}
+          </p>
+          {CONSTRAINT_KEYS.map((key) => {
+            const on = !!formData.constraints?.[key];
+            return (
+              <button
+                key={key}
+                onClick={() => toggleConstraint(key)}
+                className="cf-card flex items-center gap-3.5 text-left"
+                style={{
+                  padding: "15px 16px",
+                  borderRadius: 18,
+                  border: on
+                    ? "1.5px solid var(--primary)"
+                    : "1px solid var(--border)",
+                  boxShadow: on ? "var(--glow-brand)" : "var(--shadow-card)",
+                }}
+              >
+                <div
+                  className="cf-icon-tile"
+                  style={{
+                    background: on ? "var(--grad-brand)" : "var(--surface-2)",
+                    color: on ? "#fff" : "var(--muted)",
+                  }}
+                >
+                  <ShieldAlert size={21} />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-[15px]">
+                    {t(`onboarding.constraints.${key}`, key)}
+                  </div>
+                  <div className="cf-muted text-[12px]">
+                    {t(`onboarding.constraints.${key}_desc`, "")}
+                  </div>
+                </div>
+                <div
+                  className="flex items-center justify-center rounded-full"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    border: on ? "none" : "2px solid var(--border-2)",
+                    background: on ? "var(--grad-brand)" : "transparent",
+                  }}
+                >
+                  {on && <Check size={13} color="#fff" strokeWidth={3} />}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* STEP 5 · Duración + pasos */}
+      {step === 5 && (
         <div className="flex flex-col gap-4 mt-5">
           <div className="cf-card" style={{ padding: 16, borderRadius: 18 }}>
             <div className="cf-muted text-[12px] font-semibold mb-3">
@@ -398,17 +536,19 @@ export function IntakeForm({
                   <button
                     key={w}
                     onClick={() => set("weeks", w)}
-                    className="flex-1 cf-num font-bold"
+                    className="flex-1 cf-num font-bold flex flex-col items-center leading-none"
                     style={{
-                      padding: "12px 0",
+                      padding: "10px 0",
                       borderRadius: 12,
-                      fontSize: 16,
                       background: on ? "var(--grad-brand)" : "var(--surface-2)",
                       color: on ? "#fff" : "var(--muted)",
                       boxShadow: on ? "var(--glow-brand)" : "none",
                     }}
                   >
-                    {w}
+                    <span style={{ fontSize: 16 }}>{w}</span>
+                    <span className="font-semibold" style={{ fontSize: 10, marginTop: 3, opacity: 0.85 }}>
+                      {t("onboarding.weeks.unit", "semanas")}
+                    </span>
                   </button>
                 );
               })}
@@ -432,14 +572,100 @@ export function IntakeForm({
             />
           </div>
 
-          {errors.submit && (
-            <p className="text-danger text-sm text-center">{errors.submit}</p>
+          {errors.submit && !isGenerating && (
+            <div
+              className="cf-card flex flex-col items-center gap-3 text-center"
+              style={{
+                padding: 18,
+                borderRadius: 18,
+                border: "1.5px solid var(--danger)",
+              }}
+            >
+              <ShieldAlert size={26} className="text-danger" />
+              <p className="text-danger text-sm font-semibold">{errors.submit}</p>
+              <button
+                className="cf-btn cf-btn-ghost"
+                onClick={handleSubmit}
+                style={{ gap: 8 }}
+              >
+                <RotateCcw size={16} />
+                {t("onboarding.retry", "Reintentar")}
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      {/* sticky CTA */}
-      <div className="fixed left-0 right-0 lg:left-60 bottom-0 z-40 px-5 pb-6 pt-3 safe-bottom"
+      {/* Overlay inmersivo: generando el plan (C-UX-7) */}
+      {isGenerating && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 px-8 text-center"
+          style={{
+            background: "rgba(8,8,16,0.72)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          <CFLoader size={96} />
+          <div className="cf-h1 text-[22px]">
+            {t("onboarding.generating_title", "Generando tu plan…")}
+          </div>
+          <p className="cf-muted text-[14px] max-w-xs">
+            {t(
+              "onboarding.generating_hint",
+              "Estamos diseñando tu rutina personalizada. Esto puede tardar unos segundos."
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Aviso: el plan se guardó pero los ejercicios fallaron (E-COD-3) */}
+      {exercisesWarning && !isGenerating && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-6"
+          style={{
+            background: "rgba(8,8,16,0.72)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+          }}
+          role="alertdialog"
+          aria-live="assertive"
+        >
+          <div
+            className="cf-card flex flex-col items-center gap-3 text-center"
+            style={{ padding: 22, borderRadius: 20, maxWidth: 360 }}
+          >
+            <ShieldAlert size={30} className="text-danger" />
+            <div className="cf-h1 text-[18px]">
+              {t("onboarding.exercises_failed_title", "Plan guardado")}
+            </div>
+            <p className="cf-muted text-[14px]">
+              {t(
+                "onboarding.exercises_failed_hint",
+                "Tu plan se guardó, pero hubo un problema al cargar los ejercicios detallados. Puedes continuar; aparecerán cuando se resuelva."
+              )}
+            </p>
+            <button
+              className="cf-btn cf-btn-primary cf-btn-block"
+              onClick={() => {
+                setExercisesWarning(false);
+                const nav = pendingNavRef.current;
+                pendingNavRef.current = null;
+                nav?.();
+              }}
+            >
+              {t("onboarding.continue", "Continuar")}
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* sticky CTA — en móvil se eleva por encima del bottom-nav (z-1000, ~64px);
+          en escritorio el nav está oculto y se ancla abajo. */}
+      <div className="fixed left-0 right-0 lg:left-60 bottom-[calc(76px+var(--sab))] lg:bottom-0 z-40 px-5 pt-3 pb-4 lg:pb-6"
         style={{ background: "linear-gradient(to top, var(--bg) 70%, transparent)" }}>
         <div className="container mx-auto max-w-xl px-0">
           {step < TOTAL_STEPS - 1 ? (

@@ -6,13 +6,19 @@ export const envConfig = {
   // desde la Edge Function `generate-plan`, que tiene OPENAI_API_KEY como secret.
 
   // Supabase
+  // OJO: solo URL + ANON KEY en el cliente. La service_role NUNCA debe llevar prefijo
+  // NEXT_PUBLIC_ ni referenciarse aquí: se inlinaría en el bundle/.apk y saltaría todas
+  // las RLS. Vive solo en el servidor (Edge Functions / scripts).
   SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-  SUPABASE_SERVICE_ROLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '',
-  
+
   // App
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  
+
+  // CDN/bucket público de imágenes estáticas (GIFs de ejercicios, etc.).
+  // Centralizado aquí; otros consumidores leen process.env directamente.
+  STATICS_IMAGES: process.env.NEXT_PUBLIC_STATICS_IMAGES || '',
+
   // Detectar si estamos en desarrollo
   IS_DEVELOPMENT: process.env.NODE_ENV === 'development',
   
@@ -48,18 +54,18 @@ export const validateEnvConfig = (): { isValid: boolean; errors: string[] } => {
   };
 };
 
-// Función para mostrar el estado de la configuración
+// Función para mostrar el estado de la configuración (solo en desarrollo).
 export const logEnvConfigStatus = (): void => {
   const config = getEnvConfig();
+  if (!config.IS_DEVELOPMENT) return; // no ensuciar la consola del .apk en producción
+
   const validation = validateEnvConfig();
-  
+
   console.log('🔧 [ENV CONFIG] Environment configuration status:');
-  console.log('Environment:', config.IS_DEVELOPMENT ? 'Development' : 'Production');
   console.log('Mobile App:', config.IS_MOBILE ? 'Yes' : 'No');
   console.log('Supabase URL:', config.SUPABASE_URL ? '✅ Configurada' : '❌ No configurada');
   console.log('Supabase Anon Key:', config.SUPABASE_ANON_KEY ? '✅ Configurada' : '❌ No configurada');
-  console.log('Supabase Service Role Key:', config.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configurada' : '❌ No configurada');
-  
+
   if (!validation.isValid) {
     console.error('❌ [ENV CONFIG] Configuration errors:', validation.errors);
   } else {

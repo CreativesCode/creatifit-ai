@@ -125,7 +125,7 @@ export default function SessionPage() {
 
   // Selección de día
   return (
-    <div className="container mx-auto max-w-xl lg:max-w-4xl px-5 lg:px-8 pt-4 lg:pt-8">
+    <div className="container mx-auto max-w-xl lg:max-w-4xl px-4 lg:px-6 pt-4 lg:pt-8">
       <div className="flex items-center gap-3 pt-1 mb-5">
         <button
           onClick={goBackToPlanDetails}

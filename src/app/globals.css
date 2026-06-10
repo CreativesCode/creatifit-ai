@@ -234,63 +234,59 @@ body {
   }
 }
 
-/* Bottom Navigation Styles */
-.bottom-navigation {
-  /* Asegurar que esté por encima del contenido */
-  z-index: 1000;
-
-  /* Aplicar safe area para dispositivos con notch */
-  padding-bottom: max(0.5rem, var(--sab));
-
-  /* Mejorar el backdrop blur en móvil */
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-
-  /* Sombra sutil para separar del contenido */
-  box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1), 0 -1px 2px 0 rgba(0, 0, 0, 0.06);
+/* Bottom navigation (móvil) — portado de docs/design (cf-nav).
+   Reemplaza el antiguo `.bottom-navigation`. Se oculta en ≥lg vía wrapper. */
+.cf-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 11px 12px calc(9px + max(0px, var(--sab)));
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--border);
 }
-
-/* Optimizaciones para el bottom navigation en móvil */
-@media (max-width: 768px) {
-  .bottom-navigation {
-    /* Asegurar que los botones tengan el tamaño correcto para touch */
-    min-height: 64px;
-  }
-
-  .bottom-navigation nav {
-    /* Distribuir el espacio uniformemente para 5 elementos */
-    gap: 0.25rem;
-  }
-
-  .bottom-navigation a {
-    /* Mejorar el área de touch y optimizar para 5 elementos */
-    min-height: 48px;
-    min-width: 48px;
-    flex: 1;
-    max-width: 80px;
-  }
-
-  /* Estilos específicos para el elemento central (Inicio) */
-  .bottom-navigation a:nth-child(3) {
-    /* Dar un poco más de énfasis al botón central */
-    transform: scale(1.05);
-  }
-
-  .bottom-navigation a:nth-child(3):active {
-    transform: scale(0.95);
-  }
+.dark .cf-nav {
+  background: rgba(13, 10, 24, 0.72);
 }
-
-/* Optimizaciones para pantallas más grandes */
-@media (min-width: 768px) {
-  .bottom-navigation nav {
-    gap: 0.5rem;
-  }
-
-  .bottom-navigation a {
-    min-width: 60px;
-    max-width: 100px;
-  }
+.cf-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  max-width: 84px;
+  color: var(--faint);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-align: center;
+  transition: color 0.2s;
+  touch-action: manipulation;
+}
+.cf-nav-item.active {
+  color: var(--txt);
+}
+.cf-nav-ic {
+  width: 42px;
+  height: 30px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+.cf-nav-item.active .cf-nav-ic {
+  background: var(--grad-brand);
+  color: #fff;
+  box-shadow: var(--glow-brand);
+}
+.cf-nav-item:active .cf-nav-ic {
+  transform: scale(0.94);
 }
 
 /* ============================================================
@@ -305,13 +301,18 @@ body {
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
+  /* D-PERF-5 — aislar el repintado: el mesh es decorativo y fijo, evitamos que
+     repinte el resto del árbol al hacer scroll. */
+  contain: paint;
 }
 .cf-mesh::before,
 .cf-mesh::after {
   content: "";
   position: absolute;
   border-radius: 50%;
-  filter: blur(70px);
+  /* D-PERF-5 — radio de blur reducido (70px -> 48px) para abaratar el filtro
+     sin perder el aspecto difuso del gradiente. */
+  filter: blur(48px);
   opacity: 0.55;
 }
 .dark .cf-mesh::before {
@@ -353,9 +354,11 @@ body {
   bottom: 6%;
   left: 20%;
   border-radius: 50%;
-  filter: blur(80px);
+  /* D-PERF-5 — radio de blur reducido (80px -> 56px) y repintado aislado. */
+  filter: blur(56px);
   z-index: 0;
   pointer-events: none;
+  contain: paint;
   background: radial-gradient(circle, var(--cyan) 0%, transparent 70%);
   opacity: 0.18;
 }
@@ -374,6 +377,24 @@ body {
 }
 .dark .cf-card-solid {
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* D-PERF-3 — Variante "plana" de tarjeta SIN backdrop-filter.
+   `backdrop-filter` es caro cuando se repite por fila en listas largas (cada
+   tarjeta fuerza una composición/desenfoque del fondo). Usa `.cf-card-flat` en
+   lugar de `.cf-card` para ítems de listas largas (planes, ejercicios,
+   historial): mismo aspecto (borde, radio, sombra) pero con fondo SÓLIDO y sin
+   blur. No cambia el aspecto de las tarjetas que sí usan `.cf-card`.
+   Uso: <div class="cf-card-flat"> ... </div>  (reemplaza a cf-card) */
+.cf-card-flat {
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
+}
+.dark .cf-card-flat {
+  /* Equivalente visual al glass de cf-card en oscuro, pero opaco. */
+  background: #15131f;
 }
 
 /* Buttons ------------------------------------------------------------------ */
@@ -607,12 +628,14 @@ body {
     cf-sweep 1.6s ease-in-out infinite 0.2s;
 }
 @media (prefers-reduced-motion: reduce) {
+  /* D-PERF-5 — detener por completo las animaciones de los loaders (no solo
+     ralentizarlas) cuando el usuario prefiere movimiento reducido. */
   .cf-load-outer,
   .cf-load-inner,
   .cf-load-node,
   .cf-load2-outer,
   .cf-load2-inner {
-    animation-duration: 3s;
+    animation: none;
   }
 }
 

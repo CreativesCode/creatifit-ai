@@ -32,7 +32,7 @@ export function AppHeader() {
             className="hover:opacity-80 transition-opacity active:scale-95"
             aria-label={t("app.title")}
           >
-            <Wordmark size={28} />
+            <Wordmark size={32} />
           </Link>
 
           {/* Menú de Opciones */}

@@ -18,7 +18,10 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            // D-PERF-7 — minificar y eliminar recursos no usados en release.
+            // Las reglas ProGuard de Capacitor ya están en capacitor.build.gradle.
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

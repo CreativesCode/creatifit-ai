@@ -1,8 +1,6 @@
 package com.creatifit.ai.app;
 
 import android.os.Bundle;
-import android.view.View;
-import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -31,11 +29,10 @@ public class MainActivity extends BridgeActivity {
         // Configurar el color del status bar
         getWindow().setStatusBarColor(getResources().getColor(com.creatifit.ai.R.color.colorPrimary, null));
         getWindow().setNavigationBarColor(getResources().getColor(com.creatifit.ai.R.color.colorPrimary, null));
-        
-        // Configurar el sistema de ventanas
-        getWindow().setFlags(
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-        );
+
+        // C-UX-9 / B3 — NO aplicar FLAG_LAYOUT_NO_LIMITS: choca con
+        // setDecorFitsSystemWindows(false) y el plugin SafeArea, e impide que
+        // adjustResize desplace el contenido al abrir el teclado. El edge-to-edge
+        // lo gestiona WindowCompat.setDecorFitsSystemWindows + el plugin SafeArea.
     }
 }

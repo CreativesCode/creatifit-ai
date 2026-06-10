@@ -1,5 +1,5 @@
 "use client";
-import { CFLoader, PageLoader } from "@/components/ui/loader";
+import { CFLoader } from "@/components/ui/loader";
 import { supabaseClient } from "@/lib/supabase-client";
 import {
   ArrowLeft,
@@ -57,13 +57,23 @@ export default function ExercisesPage() {
   const imgUrl = (gif?: string) =>
     gif ? `${EXERCISE_IMAGES_BASE_URL}/${gif}` : "/placeholder-exercise.svg";
 
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (exerciseId) {
+      // Evita el doble fetch: si ya tenemos en memoria el ejercicio
+      // (seleccionado al pulsar la tarjeta, con datos completos del listado
+      // que usa select("*")), lo reutilizamos sin volver a pedirlo.
+      if (selectedExercise && selectedExercise.id === exerciseId) {
+        setLoading(false);
+        return;
+      }
       fetchExercise(exerciseId);
     } else {
       fetchExercises();
       setSelectedExercise(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseId]);
 
   const fetchExercises = async (page = 1, append = false) => {
@@ -110,8 +120,16 @@ export default function ExercisesPage() {
   };
 
   const goBackToList = () => {
-    router.replace("/exercises");
+    // Limpiamos el estado PRIMERO para que el listado vuelva siempre, aunque la
+    // navegación falle en entornos como Capacitor (donde router.replace podría
+    // lanzar o no propagar el cambio de query a useSearchParams).
     setSelectedExercise(null);
+    setError(null);
+    try {
+      router.replace("/exercises");
+    } catch {
+      /* no-op: el estado ya se limpió, así que volvemos al listado igualmente */
+    }
   };
 
   const handleSearch = useCallback(() => {
@@ -127,30 +145,35 @@ export default function ExercisesPage() {
     }
   }, [hasMore, loadingMore, loading, currentPage]);
 
-  // Re-buscar al cambiar la categoría (omitiendo el primer render)
-  const firstKind = useRef(true);
+  // Re-buscar al cambiar la categoría o el término de búsqueda (con debounce 300 ms),
+  // omitiendo el primer render para no duplicar el fetch inicial.
+  const firstSearch = useRef(true);
   useEffect(() => {
-    if (firstKind.current) {
-      firstKind.current = false;
+    if (firstSearch.current) {
+      firstSearch.current = false;
       return;
     }
     if (exerciseId) return;
-    handleSearch();
+    const handle = setTimeout(() => {
+      handleSearch();
+    }, 300);
+    return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedKind]);
+  }, [selectedKind, searchTerm]);
 
-  const handleScroll = useCallback(() => {
-    if (loadingMore || loading || !hasMore) return;
-    const scrollTop = window.scrollY;
-    const windowHeight = window.innerHeight;
-    const documentHeight = document.documentElement.scrollHeight;
-    if (scrollTop + windowHeight >= documentHeight - 100) loadMore();
-  }, [loadingMore, loading, hasMore, loadMore]);
-
+  // Scroll infinito con IntersectionObserver sobre un centinela (sin reflow ni listener no pasivo).
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMore();
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   const CATS: [string, string][] = [
     ["", t("exercises.filters.all_types")],
@@ -160,10 +183,42 @@ export default function ExercisesPage() {
     ["balance", t("exercises.filters.balance")],
   ];
 
-  // ---------- Loading ----------
+  // ---------- Loading (skeleton que replica la rejilla) ----------
   if (loading) {
     return (
-      <PageLoader />
+      <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
+        <div className="pt-1 mb-4">
+          <div className="cf-eyebrow">{t("nav.exercises")}</div>
+          <div className="cf-h1 text-[26px] mt-1.5">{t("exercises.title")}</div>
+        </div>
+        <div className="flex gap-2.5 mb-3.5">
+          <div className="cf-card flex-1 h-[46px] animate-pulse" style={{ borderRadius: 15 }} />
+        </div>
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="cf-chip shrink-0 animate-pulse bg-surface-2"
+              style={{ width: 76, height: 30 }}
+            />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="cf-card flex items-center gap-3.5 animate-pulse"
+              style={{ padding: 11, borderRadius: 18 }}
+            >
+              <div className="bg-surface-2 shrink-0" style={{ width: 58, height: 58, borderRadius: 14 }} />
+              <div className="flex-1">
+                <div className="h-4 bg-surface-2 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-surface-2 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
@@ -211,6 +266,8 @@ export default function ExercisesPage() {
             <img
               src={imgUrl(ex.gif_url)}
               alt={ex.name}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/placeholder-exercise.svg";
@@ -362,7 +419,7 @@ export default function ExercisesPage() {
 
   // ---------- Exercise list ----------
   return (
-    <div className="container mx-auto max-w-xl lg:max-w-6xl px-5 lg:px-8 pt-4 lg:pt-8">
+    <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
       <div className="pt-1 mb-4">
         <div className="cf-eyebrow">{t("nav.exercises")}</div>
         <div className="cf-h1 text-[26px] mt-1.5">{t("exercises.title")}</div>
@@ -378,7 +435,6 @@ export default function ExercisesPage() {
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder={t("exercises.search.placeholder")}
             className="bg-transparent outline-none w-full text-[14px] py-3"
           />
@@ -436,10 +492,11 @@ export default function ExercisesPage() {
               <button
                 key={`${exercise.id}-${index}`}
                 onClick={() => {
-                  router.replace(`/exercises?id=${exercise.id}`);
+                  // Usamos el objeto ya cargado y avanzamos con push (jerarquía).
                   setSelectedExercise(exercise as ExerciseDetail);
+                  router.push(`/exercises?id=${exercise.id}`);
                 }}
-                className="cf-card flex items-center gap-3.5 text-left"
+                className="cf-card-flat flex items-center gap-3.5 text-left"
                 style={{ padding: 11, borderRadius: 18 }}
               >
                 <div
@@ -450,6 +507,8 @@ export default function ExercisesPage() {
                     <img
                       src={imgUrl(exercise.gif_url)}
                       alt={exercise.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = "/placeholder-exercise.svg";
@@ -487,7 +546,7 @@ export default function ExercisesPage() {
               [...Array(3)].map((_, index) => (
                 <div
                   key={`loading-${index}`}
-                  className="cf-card flex items-center gap-3.5 animate-pulse"
+                  className="cf-card-flat flex items-center gap-3.5 animate-pulse"
                   style={{ padding: 11, borderRadius: 18 }}
                 >
                   <div className="bg-surface-2 shrink-0" style={{ width: 58, height: 58, borderRadius: 14 }} />
@@ -498,6 +557,9 @@ export default function ExercisesPage() {
                 </div>
               ))}
           </div>
+
+          {/* Centinela para el scroll infinito (IntersectionObserver) */}
+          <div ref={sentinelRef} aria-hidden style={{ height: 1 }} />
 
           {hasMore && (
             <div className="text-center py-6">

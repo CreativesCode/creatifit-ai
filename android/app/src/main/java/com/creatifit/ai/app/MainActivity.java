@@ -27,8 +27,8 @@ public class MainActivity extends BridgeActivity {
         controller.setAppearanceLightNavigationBars(false);
         
         // Configurar el color del status bar
-        getWindow().setStatusBarColor(getResources().getColor(com.creatifit.ai.R.color.colorPrimary, null));
-        getWindow().setNavigationBarColor(getResources().getColor(com.creatifit.ai.R.color.colorPrimary, null));
+        getWindow().setStatusBarColor(getResources().getColor(R.color.colorPrimary, null));
+        getWindow().setNavigationBarColor(getResources().getColor(R.color.colorPrimary, null));
 
         // C-UX-9 / B3 — NO aplicar FLAG_LAYOUT_NO_LIMITS: choca con
         // setDecorFitsSystemWindows(false) y el plugin SafeArea, e impide que

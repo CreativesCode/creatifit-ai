@@ -95,9 +95,12 @@ export default function DashboardPage() {
       <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
         {/* header */}
         <div className="flex items-center justify-between mb-5">
-          <div>
-            <div className="h-3 w-24 bg-surface-2 rounded animate-pulse mb-1.5" />
-            <div className="h-5 w-32 bg-surface-2 rounded animate-pulse" />
+          <div className="flex items-center gap-3">
+            <div className="bg-surface-2 rounded-xl animate-pulse" style={{ width: 36, height: 36 }} />
+            <div>
+              <div className="h-3 w-24 bg-surface-2 rounded animate-pulse mb-1.5" />
+              <div className="h-5 w-32 bg-surface-2 rounded animate-pulse" />
+            </div>
           </div>
           <div className="w-[38px] h-[38px] rounded-full bg-surface-2 animate-pulse" />
         </div>
@@ -133,11 +136,14 @@ export default function DashboardPage() {
     <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
       {/* ---------- Header ---------- */}
       <div className="flex items-center justify-between mb-5">
-        <div>
-          <div className="cf-muted text-[12.5px] font-semibold capitalize">
-            {today}
+        <div className="flex items-center gap-3">
+          <Mark size={36} />
+          <div>
+            <div className="cf-muted text-[12.5px] font-semibold capitalize">
+              {today}
+            </div>
+            <div className="cf-h1 text-[24px] mt-px">{t("dashboard.title")}</div>
           </div>
-          <div className="cf-h1 text-[24px] mt-px">{t("dashboard.title")}</div>
         </div>
         <div
           className="w-[38px] h-[38px] rounded-full bg-grad-brand-soft flex items-center justify-center text-white font-display font-bold text-sm shadow-glow-brand"

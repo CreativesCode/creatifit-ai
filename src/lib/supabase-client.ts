@@ -70,6 +70,20 @@ export const supabaseClient = {
     }
   },
 
+  // Cuenta los planes del usuario autenticado (RLS limita al dueño). Se usa para
+  // aplicar el límite del tier Free (1 generación). `head: true` no trae filas,
+  // solo el conteo — barato.
+  async countPlans(): Promise<number> {
+    const { count, error } = await supabase
+      .from("plans")
+      .select("*", { count: "exact", head: true });
+    if (error) {
+      console.error("Error counting plans:", error);
+      return 0;
+    }
+    return count ?? 0;
+  },
+
   async getPlanById(id: string) {
     try {
       // RLS asegura que solo el dueño pueda leer su plan.

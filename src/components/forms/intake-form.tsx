@@ -2,6 +2,8 @@
 
 import { EQUIPMENT_BY_CATEGORY } from "@/lib/constants/equipment";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
+import { canGenerate } from "@/lib/config/plans-config";
 import { supabaseClient } from "@/lib/supabase-client";
 import {
   IntakeSchema,
@@ -70,6 +72,7 @@ export function IntakeForm({
 }: IntakeFormProps) {
   const { t, i18n } = useTranslation("common");
   const { user } = useAuth();
+  const { isPro, isNative, presentPaywall } = useRevenueCat();
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<Partial<Intake>>({
@@ -167,6 +170,31 @@ export function IntakeForm({
           : {}),
       });
       return;
+    }
+
+    // GATING POR TIER — el plan Free permite 1 generación; Pro es ilimitado.
+    // Pro se determina por el entitlement de RevenueCat. Para el free contamos
+    // los planes existentes del usuario. (La verdad última se valida en el
+    // servidor; esto evita gastar la llamada a OpenAI y guía al usuario al paywall.)
+    if (!isPro) {
+      const used = await supabaseClient.countPlans();
+      if (!canGenerate("free", used)) {
+        if (isNative) {
+          // En la app: mostramos el paywall de RevenueCat. Si compra, seguimos.
+          const purchased = await presentPaywall();
+          if (!purchased) return; // canceló: no generamos
+        } else {
+          // En web no hay compras: invitamos a usar la app móvil para mejorar.
+          setErrors({
+            submit: t(
+              "paywall.limit_reached",
+              "Ya usaste tu plan gratuito. Mejora a Pro desde la app móvil para generar planes ilimitados."
+            ),
+          });
+          setStep(TOTAL_STEPS - 1);
+          return;
+        }
+      }
     }
 
     setExercisesWarning(false);

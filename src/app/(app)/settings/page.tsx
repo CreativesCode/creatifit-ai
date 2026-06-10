@@ -2,15 +2,20 @@
 
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import {
   Bell,
   ChevronRight,
+  Crown,
   Globe,
   Heart,
   LogOut,
   Monitor,
   Moon,
+  RefreshCw,
+  Settings2,
   ShieldCheck,
+  Sparkles,
   Sun,
   Trophy,
 } from "lucide-react";
@@ -95,6 +100,8 @@ function Row({
 export default function SettingsPage() {
   const { t } = useTranslation("common");
   const { user, signOut } = useAuth();
+  const { isPro, isNative, presentPaywall, openCustomerCenter, restorePurchases } =
+    useRevenueCat();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -139,6 +146,69 @@ export default function SettingsPage() {
           <LogOut size={17} />
         </button>
       </div>
+
+      {/* subscription */}
+      {isPro ? (
+        <div
+          className="cf-card mb-3.5 relative overflow-hidden"
+          style={{ padding: 16, borderRadius: 20, border: "1.5px solid var(--primary)" }}
+        >
+          <div className="absolute inset-0 bg-grad-brand" style={{ opacity: 0.08 }} aria-hidden />
+          <div className="relative">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="cf-icon-tile" style={{ width: 38, height: 38, background: "var(--grad-brand)", color: "#fff" }}>
+                <Crown size={18} />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-[15px]">{t("subscription.pro_active", "CreatiFit AI Pro")}</div>
+                <div className="cf-muted text-[12px]">{t("subscription.pro_desc", "Planes con IA ilimitados")}</div>
+              </div>
+            </div>
+            {isNative && (
+              <button className="cf-btn cf-btn-ghost cf-btn-block" onClick={openCustomerCenter} style={{ gap: 8 }}>
+                <Settings2 size={16} />
+                {t("subscription.manage", "Gestionar suscripción")}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div
+          className="cf-card mb-3.5 relative overflow-hidden"
+          style={{ padding: 16, borderRadius: 20, border: "1.5px solid var(--primary)", boxShadow: "var(--glow-brand)" }}
+        >
+          <div className="absolute inset-0 bg-grad-brand" style={{ opacity: 0.1 }} aria-hidden />
+          <div className="relative">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <Sparkles size={18} className="text-primary" fill="currentColor" />
+              <div className="font-bold text-[15px]">{t("subscription.upgrade_title", "Mejora a Pro")}</div>
+            </div>
+            <div className="cf-muted text-[12.5px] mb-3.5">
+              {t("subscription.upgrade_desc", "Genera planes con IA ilimitados y desbloquea las analíticas avanzadas.")}
+            </div>
+            {isNative ? (
+              <div className="flex flex-col gap-2">
+                <button className="cf-btn cf-btn-primary cf-btn-block" onClick={presentPaywall} style={{ gap: 8 }}>
+                  <Crown size={16} />
+                  {t("subscription.see_plans", "Ver planes Pro")}
+                </button>
+                <button
+                  className="cf-btn cf-btn-ghost cf-btn-sm cf-btn-block"
+                  onClick={restorePurchases}
+                  style={{ gap: 6 }}
+                >
+                  <RefreshCw size={14} />
+                  {t("subscription.restore", "Restaurar compras")}
+                </button>
+              </div>
+            ) : (
+              <div className="cf-muted text-[12px] font-semibold">
+                {t("subscription.mobile_only", "Disponible en la app móvil.")}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* theme segmented */}
       <div className="cf-card mb-3.5" style={{ padding: 16, borderRadius: 20 }}>

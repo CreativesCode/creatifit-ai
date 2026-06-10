@@ -350,9 +350,9 @@ export default function WelcomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-start">
             {[
-              { n: "Free", p: "0", d: "/siempre", f: ["1 plan activo", "Seguimiento básico", "Biblioteca de ejercicios"], cta: "Empezar gratis", hot: false },
-              { n: "Pro", p: "9", d: "/mes", f: ["Planes con IA ilimitados", "Analíticas avanzadas", "Progresión automática", "Sin anuncios"], cta: "Probar Pro", hot: true },
-              { n: "Team", p: "19", d: "/mes", f: ["Todo en Pro", "Para entrenadores", "Hasta 10 atletas", "Panel de seguimiento"], cta: "Contactar", hot: false },
+              { n: "Free", p: "0", d: "/siempre", f: ["1 plan generado con IA", "Seguimiento básico", "Biblioteca de ejercicios"], cta: "Empezar gratis", hot: false },
+              { n: "Pro", p: "7,99", d: "/mes", f: ["Planes con IA ilimitados", "Analíticas avanzadas", "Progresión automática", "Sin anuncios"], cta: "Probar Pro", hot: true },
+              { n: "Pro Anual", p: "59,99", d: "/año", f: ["Todo lo de Pro", "Ahorra 37% vs. mensual", "≈ 5 €/mes", "Facturación anual"], cta: "Elegir anual", hot: false },
             ].map((pl, i) => (
               <div key={i} className="cf-card relative overflow-hidden" style={{ padding: 30, borderRadius: 24, border: pl.hot ? "1.5px solid var(--primary)" : "1px solid var(--border)", boxShadow: pl.hot ? "var(--glow-brand)" : "var(--shadow-card)" }}>
                 {pl.hot && <div className="absolute inset-0 bg-grad-brand" style={{ opacity: 0.08 }} aria-hidden />}

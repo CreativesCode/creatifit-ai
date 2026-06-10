@@ -424,6 +424,29 @@
     },
     "retry": "Retry"
   },
+  "progress": {
+    "new_prs_title": "New records!",
+    "pr_line_weight": "{{exercise}} · {{value}} kg",
+    "pr_line_1rm": "{{exercise}} · 1RM {{value}} kg",
+    "pr_line_reps": "{{exercise}} · {{value}} reps",
+    "records_title": "Records",
+    "achievements_title": "Achievements",
+    "best_weight": "Max weight",
+    "best_1rm": "Est. 1RM",
+    "best_reps": "Max reps",
+    "ach": {
+      "first_session": { "title": "First workout", "desc": "Completed your first session" },
+      "sessions_5": { "title": "Getting going", "desc": "5 sessions completed" },
+      "sessions_10": { "title": "Consistent", "desc": "10 sessions completed" },
+      "sessions_25": { "title": "Dedicated", "desc": "25 sessions completed" },
+      "sessions_50": { "title": "Unstoppable", "desc": "50 sessions completed" },
+      "streak_3": { "title": "3-day streak", "desc": "3 days in a row" },
+      "streak_7": { "title": "Perfect week", "desc": "7 days in a row" },
+      "tonnage_1000": { "title": "One tonne", "desc": "1,000 kg lifted" },
+      "tonnage_10000": { "title": "Ten tonnes", "desc": "10,000 kg lifted" },
+      "tonnage_50000": { "title": "Beast", "desc": "50,000 kg lifted" }
+    }
+  },
   "workout_history": {
     "title": "Workout History",
     "subtitle": "Track your progress and completed sessions",

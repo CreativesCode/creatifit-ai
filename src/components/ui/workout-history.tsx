@@ -1,17 +1,29 @@
 "use client";
 import { StatTile } from "@/components/ui/stat-tile";
+import {
+  computeAchievements,
+  computeExerciseRecords,
+} from "@/lib/progress/records";
 import { supabaseClient } from "@/lib/supabase-client";
 import {
   Activity,
   ArrowLeft,
   CheckCircle2,
   Dumbbell,
+  Flame,
+  Lock,
+  Medal,
   Repeat,
   TrendingUp,
+  Trophy,
   Weight,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+const fmtKg = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
+const fmtMetric = (n: number, metric: string) =>
+  metric === "tonnage" ? `${Math.round(n / 1000)}t` : `${n}`;
 
 interface WorkoutLog {
   id: string;
@@ -50,16 +62,31 @@ export function WorkoutHistory({
 }: WorkoutHistoryProps) {
   const { t } = useTranslation("common");
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  const [allLogs, setAllLogs] = useState<WorkoutLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchWorkoutHistory();
   }, []);
 
+  // Récords (mejor marca por ejercicio) y logros, derivados de todos los logs.
+  const records = useMemo(
+    () =>
+      Array.from(computeExerciseRecords(allLogs).values())
+        .filter((r) => r.bestWeight != null || r.bestReps != null)
+        .sort(
+          (a, b) => (b.best1RM ?? b.bestWeight ?? 0) - (a.best1RM ?? a.bestWeight ?? 0)
+        )
+        .slice(0, 8),
+    [allLogs]
+  );
+  const achievements = useMemo(() => computeAchievements(allLogs), [allLogs]);
+
   const fetchWorkoutHistory = async () => {
     try {
       const logs = await supabaseClient.getLogs();
       if (logs) {
+        setAllLogs(logs as WorkoutLog[]);
         const sessionMap = new Map<string, WorkoutSession>();
         logs.forEach((log: WorkoutLog) => {
           const sessionKey = log.session_id;
@@ -351,6 +378,86 @@ export function WorkoutHistory({
         <StatTile icon={CheckCircle2} value={sessions.length} label={t("workout_history.general_summary.completed_sessions", "Sesiones")} accent="mint" />
         <StatTile icon={Repeat} value={totalSets} label={t("workout_history.general_summary.total_sets", "Series")} accent="brand" />
         <StatTile icon={Activity} value={globalAvgRPE ? globalAvgRPE.toFixed(1) : "—"} label={t("workout_history.general_summary.avg_rpe", "RPE medio")} accent="cyan" />
+      </div>
+
+      {/* récords */}
+      {records.length > 0 && (
+        <>
+          <div className="cf-h2 text-[15px] mb-3 flex items-center gap-2">
+            <Trophy size={17} style={{ color: "var(--primary)" }} />
+            {t("progress.records_title", "Récords")}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mb-5">
+            {records.map((r) => (
+              <div
+                key={r.exerciseName}
+                className="cf-card"
+                style={{ padding: "13px 15px", borderRadius: 16 }}
+              >
+                <div className="font-bold text-[14px] truncate mb-2">
+                  {r.exerciseName}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {r.bestWeight != null && (
+                    <span className="cf-chip cf-chip-cyan" style={{ fontSize: 11 }}>
+                      {t("progress.best_weight", "Peso máx")}: {fmtKg(r.bestWeight)} kg
+                    </span>
+                  )}
+                  {r.best1RM != null && (
+                    <span className="cf-chip cf-chip-brand" style={{ fontSize: 11 }}>
+                      {t("progress.best_1rm", "1RM est.")}: {Math.round(r.best1RM)} kg
+                    </span>
+                  )}
+                  {r.bestReps != null && (
+                    <span className="cf-chip cf-chip-mint" style={{ fontSize: 11 }}>
+                      {t("progress.best_reps", "Máx reps")}: {r.bestReps}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* logros */}
+      <div className="cf-h2 text-[15px] mb-3 flex items-center gap-2">
+        <Medal size={17} style={{ color: "var(--amber)" }} />
+        {t("progress.achievements_title", "Logros")}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mb-5">
+        {achievements.map((a) => {
+          const Icon =
+            a.metric === "streak" ? Flame : a.metric === "tonnage" ? Weight : Trophy;
+          return (
+            <div
+              key={a.id}
+              className="cf-card flex flex-col items-center text-center"
+              style={{ padding: "14px 10px", borderRadius: 16, opacity: a.unlocked ? 1 : 0.5 }}
+            >
+              <div
+                className="cf-icon-tile mb-2 flex items-center justify-center"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: a.unlocked ? "var(--grad-amber)" : "var(--surface-2)",
+                  color: a.unlocked ? "#3A2400" : "var(--muted)",
+                }}
+              >
+                {a.unlocked ? <Icon size={20} /> : <Lock size={16} />}
+              </div>
+              <div className="font-bold text-[12px] leading-tight">
+                {t(`progress.ach.${a.id}.title`)}
+              </div>
+              <div className="cf-muted text-[10.5px] mt-1">
+                {a.unlocked
+                  ? t(`progress.ach.${a.id}.desc`)
+                  : `${fmtMetric(a.current, a.metric)}/${fmtMetric(a.target, a.metric)}`}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* session list */}

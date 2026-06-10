@@ -1,5 +1,6 @@
 "use client";
 import { Ring } from "@/components/ui/ring";
+import { detectNewPRs, type LogEntry, type NewPR } from "@/lib/progress/records";
 import { supabaseClient } from "@/lib/supabase-client";
 import {
   Activity,
@@ -664,6 +665,7 @@ function CompletedStep({
   completedSets,
   totalSets,
   workoutLogs,
+  newPRs,
   onComplete,
   onExit,
   t,
@@ -671,12 +673,34 @@ function CompletedStep({
   completedSets: number;
   totalSets: number;
   workoutLogs: WorkoutLog[];
+  newPRs: NewPR[];
   planDay: PlanDay;
   onComplete: () => void;
   onExit: () => void;
   t: TFunction;
 }) {
   const progress = (completedSets / totalSets) * 100;
+  const fmtKg = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
+  const prLine = (pr: NewPR): string => {
+    switch (pr.type) {
+      case "weight":
+        return t("progress.pr_line_weight", "{{exercise}} · {{value}} kg", {
+          exercise: pr.exerciseName,
+          value: fmtKg(pr.value),
+        });
+      case "e1rm":
+        return t("progress.pr_line_1rm", "{{exercise}} · 1RM {{value}} kg", {
+          exercise: pr.exerciseName,
+          value: Math.round(pr.value),
+        });
+      case "reps":
+      default:
+        return t("progress.pr_line_reps", "{{exercise}} · {{value}} reps", {
+          exercise: pr.exerciseName,
+          value: pr.value,
+        });
+    }
+  };
   const totalVolume = workoutLogs.reduce((sum, log) => sum + log.actualReps * (log.weight || 0), 0);
   const rpeLogs = workoutLogs.filter((log) => log.rpe);
   const avgRPE = rpeLogs.length
@@ -717,6 +741,37 @@ function CompletedStep({
           </div>
         ))}
       </div>
+
+      {/* nuevos récords */}
+      {newPRs.length > 0 && (
+        <div
+          className="cf-card mb-4"
+          style={{
+            padding: "14px 16px",
+            borderRadius: 18,
+            border: "1px solid rgba(124,108,255,0.4)",
+            background: "rgba(124,108,255,0.1)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2.5">
+            <Trophy size={18} style={{ color: "var(--primary)" }} />
+            <div className="font-bold text-[14.5px]">
+              {t("progress.new_prs_title", "¡Nuevos récords!")}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {newPRs.map((pr, i) => (
+              <div
+                key={`${pr.exerciseName}-${i}`}
+                className="flex items-center gap-2 text-[13px] font-semibold cf-txt2"
+              >
+                <span>🏆</span>
+                {prLine(pr)}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* motivación */}
       <div
@@ -796,6 +851,20 @@ export function WorkoutSession({
     const prior = history.filter((l) => l.session_id !== sessionId);
     return computeProgression(prior, currentExercise.name, currentExercise.reps);
   }, [history, currentExercise, sessionId]);
+
+  // Récords batidos en esta sesión (se calcula al llegar al resumen final).
+  const newPRs = useMemo<NewPR[]>(() => {
+    if (phase !== "completed" || !history) return [];
+    const prior = history.filter((l) => l.session_id !== sessionId);
+    const sessionEntries: LogEntry[] = workoutLogs.map((l) => ({
+      exercise_name: l.exerciseName,
+      session_id: sessionId,
+      actual_reps: l.actualReps,
+      weight: l.weight,
+      rpe: l.rpe,
+    }));
+    return detectNewPRs(prior, sessionEntries);
+  }, [phase, history, sessionId, workoutLogs]);
 
   // Construir estructura de fallback unificada (misma forma que getPlanExercises)
   const buildFallback = useCallback((): ExercisesWithDetails => {
@@ -1236,6 +1305,7 @@ export function WorkoutSession({
             completedSets={completedSets}
             totalSets={totalSets}
             workoutLogs={workoutLogs}
+            newPRs={newPRs}
             planDay={planDay}
             onComplete={handleShowHistory}
             onExit={handleCompletedExit}

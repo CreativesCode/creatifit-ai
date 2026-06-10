@@ -279,6 +279,21 @@ export function IntakeForm({
 
       onPlanGenerated(planId, generatedPlan);
     } catch (error) {
+      // Backstop del servidor: el usuario free superó su límite (debería haberse
+      // frenado antes, pero por si se saltó el gate del cliente lo llevamos al paywall).
+      if (error instanceof Error && error.message === "FREE_LIMIT_REACHED") {
+        if (isNative) {
+          await presentPaywall();
+        } else {
+          setErrors({
+            submit: t(
+              "paywall.limit_reached",
+              "Ya usaste tu plan gratuito. Mejora a Pro desde la app móvil para generar planes ilimitados."
+            ),
+          });
+        }
+        return;
+      }
       console.error("💥 [INTAKE FORM] Error generating plan:", error);
       setErrors({ submit: t("validation.submit_error") });
     } finally {

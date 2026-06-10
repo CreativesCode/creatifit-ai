@@ -12,6 +12,20 @@ export async function generateFitnessPlan(intake: any): Promise<any> {
     });
 
     if (error) {
+      // La función devuelve 402 { error: "FREE_LIMIT_REACHED" } cuando un usuario
+      // free intenta superar su límite (backstop del paywall, no falsificable).
+      try {
+        const ctx = (error as { context?: { json?: () => Promise<any> } }).context;
+        const payload = ctx?.json ? await ctx.json() : null;
+        if (payload?.error === "FREE_LIMIT_REACHED") {
+          throw new Error("FREE_LIMIT_REACHED");
+        }
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message === "FREE_LIMIT_REACHED") {
+          throw parseErr;
+        }
+        // si falla el parseo, caemos al error genérico de abajo
+      }
       console.error("Error invoking generate-plan function:", error);
       throw new Error("Error de conexión al generar el plan. Inténtalo de nuevo.");
     }

@@ -356,7 +356,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 1) Obtener ejercicios reales de la BD según el perfil del usuario.
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceKey) {
@@ -368,6 +367,47 @@ Deno.serve(async (req: Request) => {
     }
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // 0) ENFORCEMENT DE SUSCRIPCIÓN (blindaje server-side, no falsificable).
+    //    El gate del cliente puede saltarse llamando aquí directamente; esta es la
+    //    barrera real. Límite Free = 1 generación de por vida (espejo de
+    //    src/lib/config/plans-config.ts). Pro (mensual/anual) = ilimitado.
+    const FREE_PLAN_LIMIT = 1;
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    const userId = userData?.user?.id;
+    if (userErr || !userId) {
+      return new Response(JSON.stringify({ error: "Authentication required" }), {
+        status: 401,
+        headers: jsonHeaders,
+      });
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tier")
+      .eq("id", userId)
+      .single();
+    const tier = profile?.tier ?? "free";
+    const isPro = tier === "pro_monthly" || tier === "pro_annual";
+
+    if (!isPro) {
+      const { count } = await supabase
+        .from("plans")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+      if ((count ?? 0) >= FREE_PLAN_LIMIT) {
+        return new Response(
+          JSON.stringify({
+            error: "FREE_LIMIT_REACHED",
+            message:
+              "Has alcanzado el límite del plan gratuito. Mejora a Pro para generar más planes.",
+          }),
+          { status: 402, headers: jsonHeaders }
+        );
+      }
+    }
+
+    // 1) Obtener ejercicios reales de la BD según el perfil del usuario.
     const exercises = await fetchExercises(supabase, intake.equipment);
 
     if (exercises.length === 0) {

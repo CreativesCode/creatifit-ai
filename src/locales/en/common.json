@@ -350,6 +350,19 @@
       "apply_filters": "Apply Filters",
       "clear_filters": "Clear Filters"
     },
+    "uncategorized": "Other",
+    "categories": {
+      "Chest": "Chest",
+      "Back": "Back",
+      "Legs": "Legs",
+      "Shoulders": "Shoulders",
+      "Arms": "Arms",
+      "Core": "Core",
+      "Cardio": "Cardio",
+      "Flexibility": "Flexibility",
+      "Strength": "Strength",
+      "General": "General"
+    },
     "filters": {
       "all_types": "All types",
       "all_equipment": "All equipment",

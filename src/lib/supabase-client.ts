@@ -14,6 +14,10 @@ export const supabaseClient = {
     let query = supabase
       .from("exercises")
       .select("*", { count: "exact" })
+      // Ordenado por categoría (y nombre) para que el listado se agrupe de forma
+      // estable y el scroll infinito recorra una categoría tras otra.
+      .order("category", { ascending: true })
+      .order("name", { ascending: true })
       .range((page - 1) * limit, page * limit - 1);
 
     if (search) {

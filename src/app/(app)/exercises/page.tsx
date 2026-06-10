@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Dumbbell,
   Heart,
+  Layers,
   Search,
   Target,
 } from "lucide-react";
@@ -182,6 +183,79 @@ export default function ExercisesPage() {
     ["flexibility", t("exercises.filters.flexibility")],
     ["balance", t("exercises.filters.balance")],
   ];
+
+  // Etiqueta traducida de una categoría (grupo muscular); cae al valor crudo si
+  // no hay traducción definida para esa categoría.
+  const categoryLabel = (cat: string) => t(`exercises.categories.${cat}`, cat);
+
+  // Agrupa el listado cargado por categoría preservando el orden (el server ya
+  // ordena por categoría, así que las secciones salen completas y estables).
+  const groupedExercises = exercises.reduce<{ cat: string; items: Exercise[] }[]>(
+    (acc, ex) => {
+      const cat = ex.category?.trim() || t("exercises.uncategorized", "Otros");
+      let group = acc.find((g) => g.cat === cat);
+      if (!group) {
+        group = { cat, items: [] };
+        acc.push(group);
+      }
+      group.items.push(ex);
+      return acc;
+    },
+    []
+  );
+
+  // Tarjeta de ejercicio (reutilizada en cada sección de categoría).
+  const renderCard = (exercise: Exercise, index: number) => (
+    <button
+      key={`${exercise.id}-${index}`}
+      onClick={() => {
+        // Usamos el objeto ya cargado y avanzamos con push (jerarquía).
+        setSelectedExercise(exercise as ExerciseDetail);
+        router.push(`/exercises?id=${exercise.id}`);
+      }}
+      className="cf-card-flat flex items-center gap-3.5 text-left"
+      style={{ padding: 11, borderRadius: 18 }}
+    >
+      <div
+        className="cf-eximg flex items-center justify-center shrink-0 overflow-hidden"
+        style={{ width: 58, height: 58, borderRadius: 14 }}
+      >
+        {exercise.gif_url ? (
+          <img
+            src={imgUrl(exercise.gif_url)}
+            alt={exercise.name}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder-exercise.svg";
+            }}
+          />
+        ) : (
+          <Dumbbell size={24} color="rgba(255,255,255,0.8)" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-bold text-[15.5px] truncate">{exercise.name}</div>
+        <div className="cf-muted text-[12px] font-semibold mt-0.5 truncate">
+          {exercise.kind || t("exercises.exercise_details.no_type")}
+        </div>
+        <div className="flex gap-1.5 mt-2">
+          {exercise.equipment && (
+            <span className="cf-chip" style={{ padding: "3px 9px", fontSize: 10.5 }}>
+              {exercise.equipment}
+            </span>
+          )}
+          {exercise.difficulty && (
+            <span className="cf-chip cf-chip-cyan" style={{ padding: "3px 9px", fontSize: 10.5 }}>
+              {exercise.difficulty}
+            </span>
+          )}
+        </div>
+      </div>
+      <ChevronRight size={18} className="text-faint shrink-0" />
+    </button>
+  );
 
   // ---------- Loading (skeleton que replica la rejilla) ----------
   if (loading) {
@@ -487,63 +561,26 @@ export default function ExercisesPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {exercises.map((exercise, index) => (
-              <button
-                key={`${exercise.id}-${index}`}
-                onClick={() => {
-                  // Usamos el objeto ya cargado y avanzamos con push (jerarquía).
-                  setSelectedExercise(exercise as ExerciseDetail);
-                  router.push(`/exercises?id=${exercise.id}`);
-                }}
-                className="cf-card-flat flex items-center gap-3.5 text-left"
-                style={{ padding: 11, borderRadius: 18 }}
-              >
-                <div
-                  className="cf-eximg flex items-center justify-center shrink-0 overflow-hidden"
-                  style={{ width: 58, height: 58, borderRadius: 14 }}
-                >
-                  {exercise.gif_url ? (
-                    <img
-                      src={imgUrl(exercise.gif_url)}
-                      alt={exercise.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/placeholder-exercise.svg";
-                      }}
-                    />
-                  ) : (
-                    <Dumbbell size={24} color="rgba(255,255,255,0.8)" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-[15.5px] truncate">{exercise.name}</div>
-                  <div className="cf-muted text-[12px] font-semibold mt-0.5 truncate">
-                    {exercise.kind || t("exercises.exercise_details.no_type")}
-                  </div>
-                  <div className="flex gap-1.5 mt-2">
-                    {exercise.equipment && (
-                      <span className="cf-chip" style={{ padding: "3px 9px", fontSize: 10.5 }}>
-                        {exercise.equipment}
-                      </span>
-                    )}
-                    {exercise.difficulty && (
-                      <span className="cf-chip cf-chip-cyan" style={{ padding: "3px 9px", fontSize: 10.5 }}>
-                        {exercise.difficulty}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <ChevronRight size={18} className="text-faint shrink-0" />
-              </button>
-            ))}
+          {/* secciones agrupadas por categoría */}
+          {groupedExercises.map((group) => (
+            <section key={group.cat} className="mb-5">
+              <div className="cf-h2 text-[15px] mb-3 flex items-center gap-2 capitalize">
+                <Layers size={16} style={{ color: "var(--primary)" }} />
+                {categoryLabel(group.cat)}
+                <span className="cf-muted text-[12px] font-normal">
+                  ({group.items.length})
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {group.items.map((exercise, index) => renderCard(exercise, index))}
+              </div>
+            </section>
+          ))}
 
-            {/* skeletons */}
-            {loadingMore &&
-              hasMore &&
-              [...Array(3)].map((_, index) => (
+          {/* skeletons al cargar más */}
+          {loadingMore && hasMore && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[...Array(3)].map((_, index) => (
                 <div
                   key={`loading-${index}`}
                   className="cf-card-flat flex items-center gap-3.5 animate-pulse"
@@ -556,7 +593,8 @@ export default function ExercisesPage() {
                   </div>
                 </div>
               ))}
-          </div>
+            </div>
+          )}
 
           {/* Centinela para el scroll infinito (IntersectionObserver) */}
           <div ref={sentinelRef} aria-hidden style={{ height: 1 }} />

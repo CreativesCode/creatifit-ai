@@ -350,6 +350,19 @@
       "apply_filters": "Aplicar Filtros",
       "clear_filters": "Limpiar Filtros"
     },
+    "uncategorized": "Otros",
+    "categories": {
+      "Chest": "Pecho",
+      "Back": "Espalda",
+      "Legs": "Piernas",
+      "Shoulders": "Hombros",
+      "Arms": "Brazos",
+      "Core": "Core",
+      "Cardio": "Cardio",
+      "Flexibility": "Flexibilidad",
+      "Strength": "Fuerza",
+      "General": "General"
+    },
     "filters": {
       "all_types": "Todos los tipos",
       "all_equipment": "Todo el equipo",

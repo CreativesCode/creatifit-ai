@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS public.day_exercises (
 -- Tabla de logs de entrenamiento
 CREATE TABLE IF NOT EXISTS public.workout_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
   exercise_name TEXT NOT NULL,
   set_index INTEGER NOT NULL,
   target_reps TEXT[] NOT NULL,

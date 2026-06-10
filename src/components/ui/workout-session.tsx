@@ -7,17 +7,19 @@ import {
   Clock,
   Dumbbell,
   Flame,
+  Info,
   Pause,
   Play,
   Repeat,
   SkipForward,
   Target,
+  TrendingUp,
   Trophy,
   Weight,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
@@ -60,6 +62,110 @@ interface WorkoutLog {
   rpe?: number;
   notes?: string;
   completed: boolean;
+}
+
+// Fila de workout_logs tal como la devuelve Supabase (snake_case)
+interface HistoryLog {
+  exercise_name: string;
+  session_id: string;
+  set_index: number;
+  actual_reps: number;
+  weight?: number | null;
+  rpe?: number | null;
+  created_at?: string;
+}
+
+// Resultado de la progresión por reglas (determinista, sin IA)
+type ProgressionKind =
+  | "first" // sin historial previo de este ejercicio
+  | "increase_weight" // fue fácil y hay carga → subir kg
+  | "increase_reps" // fue fácil sin carga (peso corporal) → más reps
+  | "hold" // en el punto justo → mantener y sumar 1 rep
+  | "deload"; // demasiado duro → consolidar el peso
+
+interface Progression {
+  kind: ProgressionKind;
+  last?: { weight?: number; reps: number; rpe?: number };
+  suggestedWeight?: number;
+  suggestedReps?: number;
+}
+
+// Incremento de carga sensato según el peso actual (saltos típicos de mancuerna/disco)
+const weightIncrement = (w: number): number => (w >= 40 ? 5 : 2.5);
+
+// Calcula la sugerencia de progresión a partir del historial real del usuario.
+// Mira la última sesión previa de ESTE ejercicio y aplica reglas por RPE.
+function computeProgression(
+  priorLogs: HistoryLog[],
+  exerciseName: string,
+  repRange: [number, number]
+): Progression {
+  const [lo, hi] = repRange;
+  // priorLogs viene ordenado por created_at desc (getLogs)
+  const mine = priorLogs.filter((l) => l.exercise_name === exerciseName);
+  if (mine.length === 0) return { kind: "first", suggestedReps: hi };
+
+  // Series de la sesión más reciente de este ejercicio
+  const latestSessionId = mine[0].session_id;
+  const sessionSets = mine.filter((l) => l.session_id === latestSessionId);
+
+  // Serie de trabajo representativa: la de mayor carga; si no hay cargas, la de menos
+  // reps (la más exigente) para no sobreestimar en ejercicios de peso corporal.
+  const withWeight = sessionSets.filter(
+    (s) => typeof s.weight === "number" && (s.weight as number) > 0
+  );
+  let last: { weight?: number; reps: number; rpe?: number };
+  if (withWeight.length) {
+    const top = withWeight.reduce((a, b) =>
+      (b.weight as number) > (a.weight as number) ? b : a
+    );
+    last = {
+      weight: top.weight as number,
+      reps: top.actual_reps,
+      rpe: top.rpe ?? undefined,
+    };
+  } else {
+    const worst = sessionSets.reduce((a, b) =>
+      b.actual_reps < a.actual_reps ? b : a
+    );
+    last = { reps: worst.actual_reps, rpe: worst.rpe ?? undefined };
+  }
+
+  const rpe = last.rpe;
+
+  // Sin RPE no podemos juzgar el esfuerzo: mantenemos carga y mostramos el dato.
+  if (rpe == null) {
+    return { kind: "hold", last, suggestedWeight: last.weight, suggestedReps: hi };
+  }
+
+  if (rpe <= 6) {
+    if (last.weight != null) {
+      return {
+        kind: "increase_weight",
+        last,
+        suggestedWeight: last.weight + weightIncrement(last.weight),
+        suggestedReps: lo,
+      };
+    }
+    return { kind: "increase_reps", last, suggestedReps: last.reps + 2 };
+  }
+
+  if (rpe >= 9) {
+    return {
+      kind: "deload",
+      last,
+      suggestedWeight: last.weight,
+      suggestedReps: Math.max(lo, last.reps),
+    };
+  }
+
+  // RPE 7–8: en el punto justo → mantener carga e intentar sumar 1 rep dentro del rango
+  return {
+    kind: "hold",
+    last,
+    suggestedWeight: last.weight,
+    suggestedReps: Math.min(last.reps + 1, hi),
+  };
 }
 
 // Detalle de ejercicio devuelto por getPlanExercises (item de exercises[dayLetter])
@@ -178,6 +284,7 @@ function ExerciseLogField({
   step,
   min,
   max,
+  info,
 }: {
   label: string;
   value: number | "";
@@ -186,10 +293,26 @@ function ExerciseLogField({
   step?: string;
   min?: string;
   max?: string;
+  info?: string;
 }) {
+  const [showInfo, setShowInfo] = useState(false);
   return (
-    <div className="cf-card-solid flex-1" style={{ padding: "11px 12px", borderRadius: 14 }}>
-      <div className="cf-muted text-[10.5px] font-semibold mb-1">{label}</div>
+    <div className="cf-card-solid flex-1 relative" style={{ padding: "11px 12px", borderRadius: 14 }}>
+      <div className="cf-muted text-[10.5px] font-semibold mb-1 flex items-center gap-1">
+        <span>{label}</span>
+        {info && (
+          <button
+            type="button"
+            onClick={() => setShowInfo((s) => !s)}
+            aria-label={info}
+            aria-expanded={showInfo}
+            className="inline-flex items-center justify-center shrink-0"
+            style={{ width: 15, height: 15, color: "var(--muted)" }}
+          >
+            <Info size={13} />
+          </button>
+        )}
+      </div>
       <input
         type="number"
         inputMode="numeric"
@@ -200,8 +323,34 @@ function ExerciseLogField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="cf-num bg-transparent outline-none w-full"
-        style={{ fontSize: 20, color: "var(--txt)" }}
+        style={{
+          fontSize: 20,
+          color: "var(--txt)",
+          borderBottom: "1.5px solid var(--border-2)",
+          paddingBottom: 2,
+        }}
       />
+      {info && showInfo && (
+        <div
+          className="cf-card-solid"
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            marginTop: 6,
+            padding: "10px 12px",
+            borderRadius: 12,
+            zIndex: 30,
+            fontSize: 12,
+            lineHeight: 1.45,
+            color: "var(--txt-2)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.28)",
+          }}
+        >
+          {info}
+        </div>
+      )}
     </div>
   );
 }
@@ -214,6 +363,7 @@ function ExerciseStep({
   onStartRest,
   onLogChange,
   exerciseDetails,
+  progression,
   t,
 }: {
   currentExercise: ExerciseBlock;
@@ -223,6 +373,7 @@ function ExerciseStep({
   onStartRest: () => void;
   onLogChange: (log: Partial<WorkoutLog>) => void;
   exerciseDetails?: ExerciseDetail;
+  progression?: Progression | null;
   t: TFunction;
 }) {
   const gif = exerciseDetails?.gif_url ?? exerciseDetails?.exercise_details?.gif_url;
@@ -233,6 +384,49 @@ function ExerciseStep({
     [Target, `${currentSetIndex + 1}/${currentExercise.sets}`, t("session.set", "Serie"), "var(--cyan)"],
     [Clock, `${currentExercise.rest_sec}s`, t("session.rest_label", "Descanso"), "var(--mint)"],
   ];
+
+  // Pista de progresión por reglas (solo si hay historial previo del ejercicio)
+  const showProg = !!progression && progression.kind !== "first" && !!progression.last;
+  let progRecommendation = "";
+  let progLastSummary = "";
+  if (showProg && progression?.last) {
+    const last = progression.last;
+    const parts: string[] = [];
+    if (last.weight != null) parts.push(`${last.weight} kg`);
+    parts.push(`${last.reps} ${t("session.reps_short", "reps")}`);
+    progLastSummary =
+      parts.join(" × ") + (last.rpe != null ? ` · RPE ${last.rpe}` : "");
+    switch (progression.kind) {
+      case "increase_weight":
+        progRecommendation = t(
+          "session.prog_increase_weight",
+          "Te tocó suave — sube a {{weight}} kg",
+          { weight: progression.suggestedWeight }
+        );
+        break;
+      case "increase_reps":
+        progRecommendation = t(
+          "session.prog_increase_reps",
+          "Te tocó suave — intenta {{reps}} reps",
+          { reps: progression.suggestedReps }
+        );
+        break;
+      case "deload":
+        progRecommendation = t(
+          "session.prog_deload",
+          "Fue muy duro — consolida este peso"
+        );
+        break;
+      case "hold":
+      default:
+        progRecommendation = t(
+          "session.prog_hold",
+          "En el punto justo — repite e intenta sumar 1 rep"
+        );
+        break;
+    }
+  }
+
   return (
     <div className="px-5">
       {/* media */}
@@ -281,6 +475,24 @@ function ExerciseStep({
         ))}
       </div>
 
+      {/* progresión por reglas */}
+      {showProg && (
+        <div
+          className="cf-card mb-3.5 flex items-start gap-2.5"
+          style={{ padding: "11px 13px", borderRadius: 14 }}
+        >
+          <span style={{ color: "var(--mint)", marginTop: 1 }} className="shrink-0">
+            <TrendingUp size={16} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[13px] font-bold cf-txt2">{progRecommendation}</div>
+            <div className="cf-muted text-[11.5px] mt-0.5">
+              {t("session.prog_last_label", "La vez pasada")}: {progLastSummary}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* log inputs */}
       <div className="flex gap-2.5 mb-3.5">
         <ExerciseLogField
@@ -289,7 +501,12 @@ function ExerciseStep({
           min="0"
           max="50"
           placeholder="0"
-          onChange={(v) => onLogChange({ ...currentLog, actualReps: parseInt(v) || 0 })}
+          onChange={(v) =>
+            onLogChange({
+              ...currentLog,
+              actualReps: v === "" ? undefined : parseInt(v) || 0,
+            })
+          }
         />
         <ExerciseLogField
           label={t("session.weight_kg", "Peso kg")}
@@ -301,6 +518,10 @@ function ExerciseStep({
         />
         <ExerciseLogField
           label={t("session.rpe", "RPE")}
+          info={t(
+            "session.rpe_info",
+            "Esfuerzo percibido (1–10): qué tan dura sentiste la serie. 10 = al fallo, no podías una rep más; 8 = te quedaban ~2."
+          )}
           value={currentLog.rpe ?? ""}
           min="1"
           max="10"
@@ -550,10 +771,14 @@ export function WorkoutSession({
   const [currentLog, setCurrentLog] = useState<Partial<WorkoutLog>>({});
   const [sessionId, setSessionId] = useState<string>("");
   const [exercisesWithDetails, setExercisesWithDetails] = useState<ExercisesWithDetails | null>(null);
+  // Historial de sesiones previas (para la progresión por reglas, sin IA)
+  const [history, setHistory] = useState<HistoryLog[] | null>(null);
   const [, setLoading] = useState(true);
   // Feedback no bloqueante (toast) y confirmación de salida
   const [toast, setToast] = useState<string | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  // Destino al que el usuario intentó navegar (link del menú). null = salir vía onExit.
+  const [pendingNav, setPendingNav] = useState<string | null>(null);
   // Indica si ya intentamos restaurar el estado persistido (evita re-restaurar)
   const [restored, setRestored] = useState(false);
 
@@ -561,6 +786,16 @@ export function WorkoutSession({
   const totalSets = planDay.blocks.reduce((total, block) => total + block.sets, 0);
   const completedSets = workoutLogs.filter((log) => log.completed).length;
   const progress = (completedSets / totalSets) * 100;
+  // Sesión en curso (no en el resumen final): activa los guards de navegación.
+  const isSessionActive = phase !== "completed";
+
+  // Sugerencia de progresión para el ejercicio actual a partir del historial real.
+  // Excluye la sesión en curso para no apoyarse en lo recién hecho.
+  const progression = useMemo<Progression | null>(() => {
+    if (!history || !currentExercise) return null;
+    const prior = history.filter((l) => l.session_id !== sessionId);
+    return computeProgression(prior, currentExercise.name, currentExercise.reps);
+  }, [history, currentExercise, sessionId]);
 
   // Construir estructura de fallback unificada (misma forma que getPlanExercises)
   const buildFallback = useCallback((): ExercisesWithDetails => {
@@ -651,6 +886,56 @@ export function WorkoutSession({
     return () => clearTimeout(id);
   }, [toast]);
 
+  // Guard 1 · Interceptar clics en enlaces de navegación (menú inferior/lateral)
+  // mientras la sesión está activa: en vez de navegar, pedimos confirmación.
+  useEffect(() => {
+    if (!isSessionActive) return;
+    const onClickCapture = (e: MouseEvent) => {
+      // respetar click con modificadores (abrir en pestaña nueva) y botón no primario
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const anchor = (e.target as HTMLElement)?.closest?.("a[href]");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      const target = anchor.getAttribute("target");
+      if (!href || href.startsWith("#") || target === "_blank") return;
+      // misma ruta (p. ej. /session): no es salir, dejar pasar
+      const dest = href.split("?")[0].replace(/\/$/, "");
+      if (dest === window.location.pathname.replace(/\/$/, "")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNav(href);
+      setShowExitConfirm(true);
+    };
+    document.addEventListener("click", onClickCapture, true);
+    return () => document.removeEventListener("click", onClickCapture, true);
+  }, [isSessionActive]);
+
+  // Guard 2 · Botón atrás del navegador / hardware: atrapar con un estado centinela
+  // y mostrar la confirmación en lugar de abandonar la sesión.
+  useEffect(() => {
+    if (!isSessionActive) return;
+    window.history.pushState(null, "", window.location.href);
+    const onPop = () => {
+      // volver a fijar el centinela para mantener al usuario en la sesión
+      window.history.pushState(null, "", window.location.href);
+      setPendingNav(null); // atrás → salir vía onExit (a detalles del plan)
+      setShowExitConfirm(true);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [isSessionActive]);
+
+  // Guard 3 · Refresco/cierre de pestaña: prompt nativo del navegador.
+  useEffect(() => {
+    if (!isSessionActive) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isSessionActive]);
+
   // Obtener ejercicios reales con imágenes desde Supabase
   useEffect(() => {
     const fetchExerciseDetails = async () => {
@@ -673,6 +958,23 @@ export function WorkoutSession({
     fetchExerciseDetails();
   }, [planId, exercisesWithDetails, buildFallback]);
 
+  // Traer el historial de logs una vez para calcular la progresión por reglas.
+  // Degrada de forma elegante: si falla o está vacío, no se muestra sugerencia.
+  useEffect(() => {
+    let active = true;
+    supabaseClient
+      .getLogs()
+      .then((logs) => {
+        if (active) setHistory((logs as HistoryLog[]) ?? []);
+      })
+      .catch(() => {
+        if (active) setHistory([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // Generar session_id único al iniciar el entrenamiento
   useEffect(() => {
     if (!sessionId) {
@@ -680,13 +982,18 @@ export function WorkoutSession({
     }
   }, [sessionId]);
 
-  // Pre-llenar repeticiones al cambiar de ejercicio/serie
+  // Pre-llenar repeticiones (máximo del rango) y peso (sugerido por la progresión)
+  // al cambiar de ejercicio/serie. Usa ?? para no pisar lo que el usuario ya escribió.
   useEffect(() => {
     if (currentExercise && phase === "exercise") {
       const maxReps = currentExercise.reps[1];
-      setCurrentLog((prev) => ({ ...prev, actualReps: maxReps }));
+      setCurrentLog((prev) => ({
+        ...prev,
+        actualReps: prev.actualReps ?? maxReps,
+        weight: prev.weight ?? progression?.suggestedWeight,
+      }));
     }
-  }, [currentExerciseIndex, currentSetIndex, phase, currentExercise]);
+  }, [currentExerciseIndex, currentSetIndex, phase, currentExercise, progression]);
 
   // Timer único para calentamiento y descanso
   useEffect(() => {
@@ -819,7 +1126,21 @@ export function WorkoutSession({
   const handleConfirmExit = () => {
     setShowExitConfirm(false);
     clearPersistedSession();
-    onExit();
+    const dest = pendingNav;
+    setPendingNav(null);
+    if (dest) {
+      // Salida hacia un enlace del menú: navegar al destino solicitado.
+      router.push(dest);
+    } else {
+      // Botón X o atrás: salir por el flujo normal (detalles del plan).
+      onExit();
+    }
+  };
+
+  // Cancelar la salida y permanecer en la sesión.
+  const handleCancelExit = () => {
+    setShowExitConfirm(false);
+    setPendingNav(null);
   };
 
   const currentExerciseDetails = exercisesWithDetails?.exercises?.[planDay.day]?.find(
@@ -881,6 +1202,7 @@ export function WorkoutSession({
               onStartRest={handleStartRest}
               onLogChange={setCurrentLog}
               exerciseDetails={currentExerciseDetails}
+              progression={progression}
               t={t}
             />
           </div>
@@ -969,7 +1291,7 @@ export function WorkoutSession({
             <div className="flex gap-3">
               <button
                 className="cf-btn cf-btn-ghost flex-1"
-                onClick={() => setShowExitConfirm(false)}
+                onClick={handleCancelExit}
               >
                 {t("session.exit_confirm_stay", "Quedarme")}
               </button>

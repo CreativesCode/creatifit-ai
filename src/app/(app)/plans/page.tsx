@@ -1,5 +1,6 @@
 "use client";
 import { supabaseClient } from "@/lib/supabase-client";
+import { planTitle } from "@/lib/plan-display";
 
 import {
   ArrowLeft,
@@ -38,6 +39,7 @@ interface Plan {
   created_at: string;
   payload: {
     days: PlanDay[];
+    meta?: { objective?: string; name?: string };
   };
 }
 
@@ -566,10 +568,9 @@ export default function PlansPage() {
               <Sparkles size={12} fill="currentColor" />
               {t("plan.ai_generated", "Generado por IA")}
             </span>
-            <div className="cf-h1 text-[24px] mt-3">
-              {t("plans.plan_details.plan_duration", {
-                weeks: selectedPlan.weeks,
-              })}
+            <div className="cf-h1 text-[24px] mt-3">{planTitle(selectedPlan, t)}</div>
+            <div className="cf-muted text-[13px] mt-1">
+              {t("plans.plan_details.plan_duration", { weeks: selectedPlan.weeks })}
             </div>
             <div className="cf-muted text-[12px] mt-1.5">
               {t("plans.plan_details.created_on", {
@@ -717,13 +718,11 @@ export default function PlansPage() {
                     </span>
                   )}
                 </div>
-                <div className="cf-h2 text-[18px]">
-                  {t("plans.plan_details.plan_duration", { weeks: plan.weeks })}
-                </div>
+                <div className="cf-h2 text-[18px]">{planTitle(plan, t)}</div>
                 <div className="cf-muted text-[12.5px] font-semibold mt-1.5">
                   {focus
                     ? t("plans.plan_details.focus", { focus })
-                    : t("plan.ai_generated", "Generado por IA")}
+                    : t("plans.plan_details.plan_duration", { weeks: plan.weeks })}
                 </div>
                 <div className="flex items-center gap-2 mt-3.5 cf-muted text-[12px] font-semibold">
                   <Dumbbell size={14} />

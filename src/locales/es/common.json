@@ -300,6 +300,7 @@
     "subtitle": "Gestiona y revisa todos tus planes generados por IA",
     "create_new_plan": "Crear Nuevo Plan",
     "active": "Activo",
+    "objective_name": "Plan de {{objective}}",
     "no_plans": {
       "title": "No tienes planes aún",
       "description": "Crea tu primer plan de entrenamiento personalizado con IA",

@@ -300,6 +300,7 @@
     "subtitle": "Manage and review all your AI-generated plans",
     "create_new_plan": "Create New Plan",
     "active": "Active",
+    "objective_name": "{{objective}} Plan",
     "no_plans": {
       "title": "You don't have plans yet",
       "description": "Create your first personalized training plan with AI",

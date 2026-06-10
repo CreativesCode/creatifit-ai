@@ -16,10 +16,11 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: "dark",
       backgroundColor: "#08060F",
-      overlaysWebView: false,
-    },
-    SafeArea: {
-      enabled: true,
+      // Edge-to-edge: la webview ocupa toda la pantalla (obligatorio en Android 15
+      // / targetSdk 35) y el inset de la barra de estado lo gestiona el CSS vía
+      // `env(safe-area-inset-top)` (.safe-top). Con `false` se duplicaba el espacio
+      // superior: el sistema reservaba la barra Y el CSS añadía el inset.
+      overlaysWebView: true,
     },
   },
   android: {

@@ -4,6 +4,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { Mark } from "@/components/ui/brand";
 import { useAuth } from "@/lib/auth/auth-context";
 import { supabaseClient } from "@/lib/supabase-client";
+import { planTitle } from "@/lib/plan-display";
 import {
   Activity,
   ClipboardList,
@@ -21,10 +22,13 @@ import { useTranslation } from "react-i18next";
 
 interface RecentPlan {
   id: string;
-  name: string;
   weeks: number;
-  days: number;
   created_at: string;
+  // El nombre y los días reales viven en el payload (no hay columnas `name`/`days`).
+  payload?: {
+    meta?: { objective?: string; name?: string };
+    days?: unknown[];
+  };
 }
 
 interface DashboardStats {
@@ -130,7 +134,8 @@ export default function DashboardPage() {
   }
 
   const activePlan = stats.recentPlans[0];
-  const planTitle = (p: RecentPlan) => p.name || `${t("plan.title")} ${p.id.slice(-6)}`;
+  const titleOf = (p: RecentPlan) => planTitle(p, t);
+  const daysOf = (p: RecentPlan) => p.payload?.days?.length ?? 0;
 
   return (
     <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
@@ -179,11 +184,11 @@ export default function DashboardPage() {
                 <Zap size={12} fill="currentColor" />
                 {t("dashboard.recent_plans.title")}
               </span>
-              <div className="cf-h2 text-[22px] mt-2.5">{planTitle(activePlan)}</div>
+              <div className="cf-h2 text-[22px] mt-2.5">{titleOf(activePlan)}</div>
               <div className="flex gap-3.5 mt-2.5 text-txt-2 text-[12.5px] font-semibold">
                 <span className="flex items-center gap-1.5">
                   <ClipboardList size={14} />
-                  {activePlan.days} {t("plan.day")}s
+                  {daysOf(activePlan)} {t("plan.day")}s
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Clock size={14} />
@@ -275,10 +280,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-[14.5px] truncate">
-                    {planTitle(plan)}
+                    {titleOf(plan)}
                   </div>
                   <div className="cf-muted text-[11.5px] font-semibold mt-0.5">
-                    {plan.weeks} {t("plan.weeks")} · {plan.days} {t("plan.day")}s
+                    {plan.weeks} {t("plan.weeks")} · {daysOf(plan)} {t("plan.day")}s
                   </div>
                 </div>
               </button>

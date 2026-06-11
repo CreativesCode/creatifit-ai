@@ -1,7 +1,7 @@
 import { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.creatifit.ai",
+  appId: "com.creatifit.ai.app",
   appName: "CreatiFit AI",
   webDir: "out",
   server: {

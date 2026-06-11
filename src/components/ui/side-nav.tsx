@@ -1,11 +1,13 @@
 "use client";
 import { Mark } from "@/components/ui/brand";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useIsAdmin } from "@/lib/admin/use-is-admin";
 import {
   Calendar,
   Dumbbell,
   Home,
   Settings,
+  ShieldCheck,
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +18,7 @@ import { useTranslation } from "react-i18next";
 export function SideNav() {
   const { t } = useTranslation("common");
   const { user } = useAuth();
+  const isAdmin = useIsAdmin();
   const pathname = usePathname();
 
   const items = [
@@ -24,6 +27,10 @@ export function SideNav() {
     { href: "/exercises", icon: Dumbbell, label: t("nav.exercises") },
     { href: "/workout-history", icon: TrendingUp, label: t("nav.workoutHistory") },
     { href: "/settings", icon: Settings, label: t("nav.settings", "Ajustes") },
+    // Solo para administradores.
+    ...(isAdmin
+      ? [{ href: "/admin", icon: ShieldCheck, label: t("nav.admin", "Admin") }]
+      : []),
   ];
 
   const isActive = (href: string) => {

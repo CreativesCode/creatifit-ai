@@ -2,16 +2,16 @@ import { Mark, Wordmark } from "@/components/ui/brand";
 import {
   Activity,
   ArrowRight,
-  Calendar,
+  Camera,
   Check,
   ClipboardList,
   Clock,
-  Dumbbell,
   Flame,
   Play,
   Sparkles,
   Star,
   Target,
+  Timer,
   TrendingUp,
   Trophy,
   Zap,
@@ -281,10 +281,11 @@ export default function WelcomePage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             <Feature icon={Sparkles} color="var(--primary)" title="Planes con IA" body="Rutinas personalizadas que evolucionan contigo, semana a semana." />
-            <Feature icon={Activity} color="var(--cyan)" title="Seguimiento real" body="Registra series, peso y RPE. Visualiza volumen y tendencias." />
-            <Feature icon={Trophy} color="var(--amber)" title="Récords y logros" body="Celebra cada PR y mantén tu racha viva con recordatorios." />
-            <Feature icon={Dumbbell} color="var(--mint)" title="Biblioteca de ejercicios" body="Cientos de movimientos con técnica, músculos y alternativas." />
-            <Feature icon={Calendar} color="var(--primary)" title="Sesiones guiadas" body="Calentamiento, descansos cronometrados y resumen al terminar." span />
+            <Feature icon={Flame} color="var(--amber)" title="Rachas y constancia" body="Mantén tu racha de días viva. Un motivo para volver cada día y no parar." />
+            <Feature icon={Trophy} color="var(--mint)" title="Récords y logros" body="Cada vez que bates un récord o desbloqueas un logro, lo celebramos contigo." />
+            <Feature icon={Camera} color="var(--cyan)" title="Fotos y medidas" body="Registra peso y medidas, sube fotos y compara tu antes y después con el tiempo." />
+            <Feature icon={TrendingUp} color="var(--primary)" title="Tendencias visuales" body="Gráficas de volumen semanal y peso corporal para ver tu progreso real." />
+            <Feature icon={Timer} color="var(--mint)" title="Sesiones guiadas" body="Calentamiento, descansos cronometrados con aviso y resumen al terminar." />
           </div>
         </section>
 
@@ -360,7 +361,7 @@ export default function WelcomePage() {
             {[
               { n: "Free", p: "0", d: "/siempre", f: ["1 plan generado con IA", "Seguimiento básico", "Biblioteca de ejercicios"], cta: "Empezar gratis", hot: false },
               { n: "Pro", p: "7,99", d: "/mes", f: ["Planes con IA ilimitados", "Analíticas avanzadas", "Progresión automática", "Sin anuncios"], cta: "Probar Pro", hot: true },
-              { n: "Pro Anual", p: "59,99", d: "/año", f: ["Todo lo de Pro", "Ahorra 37% vs. mensual", "≈ 5 €/mes", "Facturación anual"], cta: "Elegir anual", hot: false },
+              { n: "Pro Anual", p: "59,99", d: "/año", f: ["Todo lo de Pro", "Ahorra 37% vs. mensual", "≈ 5 USD/mes", "Facturación anual"], cta: "Elegir anual", hot: false },
             ].map((pl, i) => (
               <div key={i} className="cf-card relative overflow-hidden" style={{ padding: 30, borderRadius: 24, border: pl.hot ? "1.5px solid var(--primary)" : "1px solid var(--border)", boxShadow: pl.hot ? "var(--glow-brand)" : "var(--shadow-card)" }}>
                 {pl.hot && <div className="absolute inset-0 bg-grad-brand" style={{ opacity: 0.08 }} aria-hidden />}
@@ -368,7 +369,7 @@ export default function WelcomePage() {
                   {pl.hot && <span className="cf-chip cf-chip-brand mb-3.5"><Sparkles size={12} fill="currentColor" />Más popular</span>}
                   <div className="cf-h2 text-[20px]">{pl.n}</div>
                   <div className="flex items-baseline gap-1 mt-3">
-                    <span className="cf-num text-[17px] text-muted">€</span>
+                    <span className="cf-num text-[17px] text-muted">USD</span>
                     <span className="cf-num text-[46px] tracking-tight">{pl.p}</span>
                     <span className="cf-muted text-[14px] font-semibold">{pl.d}</span>
                   </div>

@@ -6,6 +6,7 @@ import {
   Calendar,
   Dumbbell,
   Home,
+  Scale,
   Settings,
   ShieldCheck,
   TrendingUp,
@@ -26,6 +27,7 @@ export function SideNav() {
     { href: "/plans", icon: Calendar, label: t("nav.plans") },
     { href: "/exercises", icon: Dumbbell, label: t("nav.exercises") },
     { href: "/workout-history", icon: TrendingUp, label: t("nav.workoutHistory") },
+    { href: "/body", icon: Scale, label: t("nav.body", "Cuerpo") },
     { href: "/settings", icon: Settings, label: t("nav.settings", "Ajustes") },
     // Solo para administradores.
     ...(isAdmin

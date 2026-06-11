@@ -36,6 +36,7 @@
     "plans": "Plans",
     "exercises": "Exercises",
     "workoutHistory": "History",
+    "body": "Body",
     "settings": "Settings"
   },
   "onboarding": {
@@ -189,6 +190,14 @@
     "avg_rpe": "Avg RPE",
     "progress": "Progress",
     "good_job": "Great job!",
+    "new_achievements_title": "Achievements unlocked!",
+    "celebration": {
+      "title": "You did it!",
+      "prs_one": "{{count}} new record",
+      "prs_other": "{{count}} new records",
+      "cta": "Awesome!",
+      "close": "Close"
+    },
     "sets_logged": "{{count}} sets logged",
     "view_history": "View history",
     "exit": "Exit",
@@ -272,6 +281,16 @@
       "sessions_completed": "Sessions Completed",
       "exercises_available": "Exercises Available"
     },
+    "streak": {
+      "days_one": "{{count}}-day streak 🔥",
+      "days_other": "{{count}}-day streak 🔥",
+      "start": "Start your streak",
+      "start_sub": "Train today to light the flame 🔥",
+      "keep_going": "Keep it going, don't lose it!",
+      "done_today": "You trained today 💪",
+      "at_risk": "Train today to keep your streak!",
+      "best": "Best"
+    },
     "quick_actions": {
       "title": "Quick Actions",
       "create_new_plan": {
@@ -301,6 +320,36 @@
       "create_first_plan": "🚀 Create My First Plan"
     },
     "loading": "Loading dashboard..."
+  },
+  "body": {
+    "eyebrow": "Your body",
+    "title": "Body progress",
+    "back": "Back",
+    "add": "Log",
+    "cancel": "Cancel",
+    "save": "Save entry",
+    "saving": "Saving…",
+    "date": "Date",
+    "weight": "Weight (kg)",
+    "body_fat": "Body fat %",
+    "chest": "Chest",
+    "waist": "Waist",
+    "hips": "Hips",
+    "arms": "Arms",
+    "thighs": "Thighs",
+    "photo": "Progress photo",
+    "photo_hint": "Optional · private, only you can see it",
+    "compare_title": "Before & after",
+    "compare_locked": "Compare your progress with Pro",
+    "before": "Before",
+    "after": "After",
+    "empty_title": "No entries yet",
+    "empty_desc": "Log your weight, measurements and a photo to see your transformation over time.",
+    "add_first": "Add first entry",
+    "delete": "Delete",
+    "fat_short": "fat",
+    "nav": "My body",
+    "dashboard_hint": "Weight, measurements & progress photos"
   },
   "plans": {
     "title": "My Training Plans",
@@ -443,6 +492,10 @@
     "pr_line_1rm": "{{exercise}} · 1RM {{value}} kg",
     "pr_line_reps": "{{exercise}} · {{value}} reps",
     "records_title": "Records",
+    "trends_title": "Trends",
+    "range_weeks": "{{count}}w",
+    "weekly_volume": "Weekly volume",
+    "bodyweight": "Body weight",
     "achievements_title": "Achievements",
     "best_weight": "Max weight",
     "best_1rm": "Est. 1RM",

@@ -36,6 +36,7 @@
     "plans": "Planes",
     "exercises": "Ejercicios",
     "workoutHistory": "Historial",
+    "body": "Cuerpo",
     "settings": "Ajustes"
   },
   "onboarding": {
@@ -189,6 +190,14 @@
     "avg_rpe": "RPE medio",
     "progress": "Progreso",
     "good_job": "¡Buen trabajo!",
+    "new_achievements_title": "¡Logros desbloqueados!",
+    "celebration": {
+      "title": "¡Lo lograste!",
+      "prs_one": "{{count}} nuevo récord",
+      "prs_other": "{{count}} nuevos récords",
+      "cta": "¡Genial!",
+      "close": "Cerrar"
+    },
     "sets_logged": "{{count}} series registradas",
     "view_history": "Ver historial",
     "exit": "Salir",
@@ -272,6 +281,16 @@
       "sessions_completed": "Sesiones Completadas",
       "exercises_available": "Ejercicios Disponibles"
     },
+    "streak": {
+      "days_one": "Racha de {{count}} día 🔥",
+      "days_other": "Racha de {{count}} días 🔥",
+      "start": "Enciende tu racha",
+      "start_sub": "Entrena hoy para empezar 🔥",
+      "keep_going": "¡Sigue así, no la pierdas!",
+      "done_today": "Hoy ya entrenaste 💪",
+      "at_risk": "¡Entrena hoy para no romperla!",
+      "best": "Mejor"
+    },
     "quick_actions": {
       "title": "Acciones Rápidas",
       "create_new_plan": {
@@ -301,6 +320,36 @@
       "create_first_plan": "🚀 Crear Mi Primer Plan"
     },
     "loading": "Cargando dashboard..."
+  },
+  "body": {
+    "eyebrow": "Tu cuerpo",
+    "title": "Progreso corporal",
+    "back": "Volver",
+    "add": "Registrar",
+    "cancel": "Cancelar",
+    "save": "Guardar registro",
+    "saving": "Guardando…",
+    "date": "Fecha",
+    "weight": "Peso (kg)",
+    "body_fat": "% grasa",
+    "chest": "Pecho",
+    "waist": "Cintura",
+    "hips": "Cadera",
+    "arms": "Brazos",
+    "thighs": "Muslos",
+    "photo": "Foto de progreso",
+    "photo_hint": "Opcional · privada, solo tú la ves",
+    "compare_title": "Antes y después",
+    "compare_locked": "Compara tu progreso con Pro",
+    "before": "Antes",
+    "after": "Después",
+    "empty_title": "Aún no hay registros",
+    "empty_desc": "Registra tu peso, medidas y una foto para ver tu transformación con el tiempo.",
+    "add_first": "Añadir primer registro",
+    "delete": "Borrar",
+    "fat_short": "grasa",
+    "nav": "Mi cuerpo",
+    "dashboard_hint": "Peso, medidas y fotos de progreso"
   },
   "plans": {
     "title": "Mis Planes de Entrenamiento",
@@ -443,6 +492,10 @@
     "pr_line_1rm": "{{exercise}} · 1RM {{value}} kg",
     "pr_line_reps": "{{exercise}} · {{value}} reps",
     "records_title": "Récords",
+    "trends_title": "Tendencias",
+    "range_weeks": "{{count}} sem",
+    "weekly_volume": "Volumen semanal",
+    "bodyweight": "Peso corporal",
     "achievements_title": "Logros",
     "best_weight": "Peso máx",
     "best_1rm": "1RM est.",

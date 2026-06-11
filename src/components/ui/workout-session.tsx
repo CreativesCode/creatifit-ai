@@ -1,7 +1,15 @@
 "use client";
 import { Ring } from "@/components/ui/ring";
-import { detectNewPRs, type LogEntry, type NewPR } from "@/lib/progress/records";
+import { CelebrationOverlay } from "@/components/ui/celebration-overlay";
+import {
+  detectNewAchievements,
+  detectNewPRs,
+  type Achievement,
+  type LogEntry,
+  type NewPR,
+} from "@/lib/progress/records";
 import { supabaseClient } from "@/lib/supabase-client";
+import { playRestEndCue } from "@/lib/feedback";
 import {
   Activity,
   Check,
@@ -9,6 +17,7 @@ import {
   Dumbbell,
   Flame,
   Info,
+  Medal,
   Pause,
   Play,
   Repeat,
@@ -20,7 +29,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
@@ -666,6 +675,7 @@ function CompletedStep({
   totalSets,
   workoutLogs,
   newPRs,
+  newAchievements,
   onComplete,
   onExit,
   t,
@@ -674,6 +684,7 @@ function CompletedStep({
   totalSets: number;
   workoutLogs: WorkoutLog[];
   newPRs: NewPR[];
+  newAchievements: Achievement[];
   planDay: PlanDay;
   onComplete: () => void;
   onExit: () => void;
@@ -773,6 +784,37 @@ function CompletedStep({
         </div>
       )}
 
+      {/* logros desbloqueados */}
+      {newAchievements.length > 0 && (
+        <div
+          className="cf-card mb-4"
+          style={{
+            padding: "14px 16px",
+            borderRadius: 18,
+            border: "1px solid rgba(255,178,62,0.4)",
+            background: "rgba(255,178,62,0.1)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2.5">
+            <Medal size={18} style={{ color: "var(--amber)" }} />
+            <div className="font-bold text-[14.5px]">
+              {t("session.new_achievements_title", "¡Logros desbloqueados!")}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {newAchievements.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-2 text-[13px] font-semibold cf-txt2"
+              >
+                <span>🏅</span>
+                {t(`progress.ach.${a.id}.title`)}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* motivación */}
       <div
         className="cf-card flex items-center gap-3.5 mb-5"
@@ -852,19 +894,46 @@ export function WorkoutSession({
     return computeProgression(prior, currentExercise.name, currentExercise.reps);
   }, [history, currentExercise, sessionId]);
 
+  // Entradas de la sesión en curso normalizadas (forma de LogEntry), reutilizadas
+  // tanto para PRs como para logros recién desbloqueados.
+  const sessionEntries = useMemo<LogEntry[]>(
+    () =>
+      workoutLogs.map((l) => ({
+        exercise_name: l.exerciseName,
+        session_id: sessionId,
+        actual_reps: l.actualReps,
+        weight: l.weight,
+        rpe: l.rpe,
+        // `timestamp` ausente: hoy. detectNewAchievements solo compara conteos.
+      })),
+    [workoutLogs, sessionId]
+  );
+
   // Récords batidos en esta sesión (se calcula al llegar al resumen final).
   const newPRs = useMemo<NewPR[]>(() => {
     if (phase !== "completed" || !history) return [];
     const prior = history.filter((l) => l.session_id !== sessionId);
-    const sessionEntries: LogEntry[] = workoutLogs.map((l) => ({
-      exercise_name: l.exerciseName,
-      session_id: sessionId,
-      actual_reps: l.actualReps,
-      weight: l.weight,
-      rpe: l.rpe,
-    }));
     return detectNewPRs(prior, sessionEntries);
-  }, [phase, history, sessionId, workoutLogs]);
+  }, [phase, history, sessionId, sessionEntries]);
+
+  // Logros desbloqueados con esta sesión (sesiones totales, tonelaje, racha…).
+  const newAchievements = useMemo<Achievement[]>(() => {
+    if (phase !== "completed" || !history) return [];
+    const prior = history.filter((l) => l.session_id !== sessionId);
+    return detectNewAchievements(prior, [...prior, ...sessionEntries]);
+  }, [phase, history, sessionId, sessionEntries]);
+
+  // Overlay de celebración: se muestra una vez al entrar al resumen si hay algo
+  // que celebrar (PR o logro nuevo). El usuario lo cierra para ver el resumen.
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrated, setCelebrated] = useState(false);
+  useEffect(() => {
+    if (phase !== "completed" || celebrated) return;
+    if (newPRs.length > 0 || newAchievements.length > 0) {
+      setShowCelebration(true);
+    }
+    setCelebrated(true);
+  }, [phase, celebrated, newPRs.length, newAchievements.length]);
 
   // Construir estructura de fallback unificada (misma forma que getPlanExercises)
   const buildFallback = useCallback((): ExercisesWithDetails => {
@@ -1065,13 +1134,25 @@ export function WorkoutSession({
   }, [currentExerciseIndex, currentSetIndex, phase, currentExercise, progression]);
 
   // Timer único para calentamiento y descanso
+  // Evita que el aviso de fin de descanso suene dos veces para el mismo descanso
+  // (re-render / StrictMode). Se rearma cada vez que empieza un descanso nuevo.
+  const restCueFiredRef = useRef(false);
+
   useEffect(() => {
     if ((phase === "warmup" || phase === "rest") && timer > 0 && !isPaused) {
       const interval = setTimeout(() => setTimer((prev) => prev - 1), 1000);
       return () => clearTimeout(interval);
     } else if (timer === 0) {
       if (phase === "warmup") setPhase("exercise");
-      else if (phase === "rest") setPhase("exercise");
+      else if (phase === "rest") {
+        // Solo al agotarse el descanso de forma natural (no al saltar/ajustar):
+        // señal háptica + sonora para volver al ejercicio sin mirar la pantalla.
+        if (!restCueFiredRef.current) {
+          restCueFiredRef.current = true;
+          playRestEndCue();
+        }
+        setPhase("exercise");
+      }
     }
   }, [timer, phase, isPaused]);
 
@@ -1083,6 +1164,7 @@ export function WorkoutSession({
   const handleWarmupSkip = () => setTimer(0);
 
   const handleStartRest = useCallback(() => {
+    restCueFiredRef.current = false;
     setTimer(currentExercise.rest_sec);
     setRestTotal(currentExercise.rest_sec);
     setPhase("rest");
@@ -1142,6 +1224,7 @@ export function WorkoutSession({
         const nextBlock = planDay.blocks[currentExerciseIndex + 1];
         const rawRest = nextBlock?.rest_sec || currentExercise.rest_sec || 60;
         const betweenExerciseRest = Math.min(60, Math.max(45, rawRest));
+        restCueFiredRef.current = false;
         setTimer(betweenExerciseRest);
         setRestTotal(betweenExerciseRest);
         setPhase("rest");
@@ -1306,6 +1389,7 @@ export function WorkoutSession({
             totalSets={totalSets}
             workoutLogs={workoutLogs}
             newPRs={newPRs}
+            newAchievements={newAchievements}
             planDay={planDay}
             onComplete={handleShowHistory}
             onExit={handleCompletedExit}
@@ -1321,6 +1405,15 @@ export function WorkoutSession({
   return (
     <>
       {renderPhase()}
+
+      {/* Celebración (confeti) al completar la sesión */}
+      {showCelebration && (
+        <CelebrationOverlay
+          prCount={newPRs.length}
+          achievements={newAchievements}
+          onDismiss={() => setShowCelebration(false)}
+        />
+      )}
 
       {/* Toast no bloqueante (errores de guardado, restauración, etc.) */}
       {toast && (

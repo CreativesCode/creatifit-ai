@@ -384,4 +384,65 @@ export const supabaseClient = {
 
     return { data, error, count };
   },
+
+  // ===== Seguimiento corporal (peso, medidas y fotos de progreso) =====
+  // Tabla `body_measurements` + bucket privado `progress-photos` (RLS owner-only).
+
+  async getMeasurements() {
+    const { data, error } = await supabase
+      .from("body_measurements")
+      .select("*")
+      .order("date", { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  async saveMeasurement(entry: Record<string, unknown>) {
+    // `user_id` lo pone el DEFAULT auth.uid() de la tabla (RLS lo valida).
+    const { data, error } = await supabase
+      .from("body_measurements")
+      .insert([entry])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteMeasurement(id: string, photoPath?: string | null) {
+    if (photoPath) {
+      // Borrado best-effort de la foto; no bloquea el borrado de la fila.
+      await supabase.storage.from("progress-photos").remove([photoPath]);
+    }
+    const { error } = await supabase
+      .from("body_measurements")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  // Sube una foto al bucket privado bajo {user_id}/... (lo exige la RLS de Storage).
+  // Devuelve la ruta guardable en `body_measurements.photo_path`.
+  async uploadProgressPhoto(file: File): Promise<string> {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    if (!uid) throw new Error("No authenticated user");
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    // Sin Math.random/Date inseguros: el nombre se basa en el id de usuario +
+    // marca temporal; colisiones improbables y, si ocurre, upsert lo resuelve.
+    const path = `${uid}/${Date.now()}-${file.size}.${ext}`;
+    const { error } = await supabase.storage
+      .from("progress-photos")
+      .upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
+    if (error) throw error;
+    return path;
+  },
+
+  // URL firmada temporal para mostrar una foto privada (bucket no público).
+  async getPhotoUrl(path: string, expiresInSec = 3600): Promise<string | null> {
+    const { data, error } = await supabase.storage
+      .from("progress-photos")
+      .createSignedUrl(path, expiresInSec);
+    if (error) return null;
+    return data?.signedUrl ?? null;
+  },
 };

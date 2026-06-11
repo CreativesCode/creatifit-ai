@@ -1,10 +1,13 @@
 "use client";
 import { StatTile } from "@/components/ui/stat-tile";
+import { TrendChart, type ChartPoint } from "@/components/ui/trend-chart";
 import {
   computeAchievements,
   computeExerciseRecords,
 } from "@/lib/progress/records";
+import { bodyWeightSeries, weeklyVolume } from "@/lib/progress/trends";
 import { supabaseClient } from "@/lib/supabase-client";
+import i18n from "@/lib/i18n";
 import {
   Activity,
   ArrowLeft,
@@ -22,6 +25,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const fmtKg = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
+const shortDay = (dateString: string) =>
+  new Date(dateString + "T00:00:00").toLocaleDateString(i18n.language, {
+    day: "numeric",
+    month: "short",
+  });
 const fmtMetric = (n: number, metric: string) =>
   metric === "tonnage" ? `${Math.round(n / 1000)}t` : `${n}`;
 
@@ -60,14 +68,43 @@ export function WorkoutHistory({
   selectedSession,
   onSessionClick,
 }: WorkoutHistoryProps) {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [allLogs, setAllLogs] = useState<WorkoutLog[]>([]);
+  const [weights, setWeights] = useState<{ date: string; weight?: number | null }[]>([]);
+  const [rangeWeeks, setRangeWeeks] = useState(12);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchWorkoutHistory();
+    // Peso corporal (para la gráfica de tendencia); best-effort, no bloquea.
+    supabaseClient
+      .getMeasurements()
+      .then((rows) => setWeights(rows as { date: string; weight?: number | null }[]))
+      .catch(() => setWeights([]));
   }, []);
+
+  // ---- Series de tendencias (memoizadas y recortadas al rango elegido) ----
+  const cutoff = useMemo(() => {
+    const d = new Date(Date.now() - rangeWeeks * 7 * 86400000);
+    return d.toISOString().split("T")[0];
+  }, [rangeWeeks]);
+
+  const volumePoints = useMemo<ChartPoint[]>(
+    () =>
+      weeklyVolume(allLogs)
+        .filter((w) => w.week >= cutoff)
+        .map((w) => ({ label: shortDay(w.week), value: w.volume })),
+    [allLogs, cutoff]
+  );
+
+  const weightPoints = useMemo<ChartPoint[]>(
+    () =>
+      bodyWeightSeries(weights)
+        .filter((p) => p.date >= cutoff)
+        .map((p) => ({ label: shortDay(p.date), value: p.weight })),
+    [weights, cutoff]
+  );
 
   // Récords (mejor marca por ejercicio) y logros, derivados de todos los logs.
   const records = useMemo(
@@ -123,7 +160,7 @@ export function WorkoutHistory({
   };
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString(undefined, {
+    new Date(dateString).toLocaleDateString(i18n.language, {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -131,7 +168,7 @@ export function WorkoutHistory({
     });
 
   const formatShort = (dateString: string) =>
-    new Date(dateString).toLocaleDateString(undefined, {
+    new Date(dateString).toLocaleDateString(i18n.language, {
       day: "numeric",
       month: "short",
     });
@@ -379,6 +416,52 @@ export function WorkoutHistory({
         <StatTile icon={Repeat} value={totalSets} label={t("workout_history.general_summary.total_sets", "Series")} accent="brand" />
         <StatTile icon={Activity} value={globalAvgRPE ? globalAvgRPE.toFixed(1) : "—"} label={t("workout_history.general_summary.avg_rpe", "RPE medio")} accent="cyan" />
       </div>
+
+      {/* tendencias */}
+      {(volumePoints.length > 0 || weightPoints.length > 0) && (
+        <>
+          <div className="flex items-center justify-between mb-3">
+            <div className="cf-h2 text-[15px] flex items-center gap-2">
+              <TrendingUp size={17} style={{ color: "var(--mint)" }} />
+              {t("progress.trends_title", "Tendencias")}
+            </div>
+            <div className="flex gap-1.5">
+              {[4, 12, 26].map((w) => (
+                <button
+                  key={w}
+                  onClick={() => setRangeWeeks(w)}
+                  className={rangeWeeks === w ? "cf-chip cf-chip-mint" : "cf-chip"}
+                  style={{ fontSize: 11 }}
+                >
+                  {t("progress.range_weeks", "{{count}} sem", { count: w })}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 mb-5">
+            {volumePoints.length > 0 && (
+              <TrendChart
+                title={t("progress.weekly_volume", "Volumen semanal")}
+                points={volumePoints}
+                variant="bar"
+                color="var(--mint)"
+                unit="t"
+                formatValue={(n) => (n / 1000).toFixed(1)}
+              />
+            )}
+            {weightPoints.length > 0 && (
+              <TrendChart
+                title={t("progress.bodyweight", "Peso corporal")}
+                points={weightPoints}
+                variant="line"
+                color="var(--cyan)"
+                unit="kg"
+                formatValue={(n) => (Number.isInteger(n) ? `${n}` : n.toFixed(1))}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       {/* récords */}
       {records.length > 0 && (

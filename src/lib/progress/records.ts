@@ -188,3 +188,18 @@ export function computeAchievements(logs: LogEntry[]): Achievement[] {
     };
   });
 }
+
+// Logros que pasan de bloqueado→desbloqueado al añadir la sesión en curso.
+// `priorLogs` = historial sin la sesión; `allLogs` = historial + sesión actual.
+// Se usa para celebrar SOLO los hitos recién conseguidos (no los ya logrados).
+export function detectNewAchievements(
+  priorLogs: LogEntry[],
+  allLogs: LogEntry[]
+): Achievement[] {
+  const before = new Map(
+    computeAchievements(priorLogs).map((a) => [a.id, a.unlocked])
+  );
+  return computeAchievements(allLogs).filter(
+    (a) => a.unlocked && !before.get(a.id)
+  );
+}

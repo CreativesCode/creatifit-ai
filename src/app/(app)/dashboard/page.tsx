@@ -1,17 +1,25 @@
 "use client";
 
 import { StatTile } from "@/components/ui/stat-tile";
+import { StreakCard } from "@/components/ui/streak-card";
 import { Mark } from "@/components/ui/brand";
 import { useAuth } from "@/lib/auth/auth-context";
 import { supabaseClient } from "@/lib/supabase-client";
 import { planTitle } from "@/lib/plan-display";
 import {
+  computeStreak,
+  todayLocal,
+  type StreakInfo,
+} from "@/lib/progress/streak";
+import {
   Activity,
+  ChevronRight,
   ClipboardList,
   Clock,
   Dumbbell,
   Play,
   Plus,
+  Scale,
   Sparkles,
   Target,
   Zap,
@@ -39,7 +47,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const router = useRouter();
   const { user } = useAuth();
   const userInitial = (user?.email?.trim().charAt(0) || "C").toUpperCase();
@@ -51,17 +59,22 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [today, setToday] = useState("");
+  const [streak, setStreak] = useState<StreakInfo | null>(null);
 
   useEffect(() => {
-    // Fecha en cliente para evitar mismatch de hidratación
+    // Fecha en cliente para evitar mismatch de hidratación. Usamos el idioma de la
+    // app (i18n), no el del dispositivo, para que la fecha salga en español/inglés
+    // según el ajuste de la app.
     setToday(
-      new Date().toLocaleDateString(undefined, {
+      new Date().toLocaleDateString(i18n.language, {
         weekday: "long",
         day: "numeric",
         month: "short",
       })
     );
+  }, [i18n.language]);
 
+  useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const [plansData, exercisesData, logs] = await Promise.all([
@@ -76,6 +89,9 @@ export default function DashboardPage() {
         (logs || []).forEach((log: { session_id?: string }) => {
           if (log.session_id) sessionIds.add(log.session_id);
         });
+
+        // Racha viva anclada a hoy (días locales). Mismos logs que ya pedimos.
+        setStreak(computeStreak(logs || [], todayLocal()));
 
         setStats((prev) => ({
           ...prev,
@@ -157,6 +173,9 @@ export default function DashboardPage() {
           {userInitial}
         </div>
       </div>
+
+      {/* ---------- Racha ---------- */}
+      {streak && stats.totalSessions > 0 && <StreakCard streak={streak} />}
 
       <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
         <div className="lg:col-span-2 lg:flex lg:flex-col lg:gap-4">
@@ -249,6 +268,24 @@ export default function DashboardPage() {
           accent="cyan"
         />
       </div>
+
+      {/* ---------- Acceso a progreso corporal ---------- */}
+      <button
+        onClick={() => router.push("/body")}
+        className="cf-card flex items-center gap-3.5 text-left w-full mt-4 lg:mt-0"
+        style={{ padding: "13px 15px", borderRadius: 18 }}
+      >
+        <div className="cf-icon-tile bg-grad-brand text-white shrink-0" style={{ width: 42, height: 42, borderRadius: 12 }}>
+          <Scale size={20} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-[14.5px]">{t("body.nav", "Mi cuerpo")}</div>
+          <div className="cf-muted text-[11.5px] font-semibold mt-0.5">
+            {t("body.dashboard_hint", "Peso, medidas y fotos de progreso")}
+          </div>
+        </div>
+        <ChevronRight size={18} className="cf-muted shrink-0" />
+      </button>
 
         </div>{/* /col-span-2 */}
 

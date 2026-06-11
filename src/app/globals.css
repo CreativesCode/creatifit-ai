@@ -288,6 +288,16 @@ body {
 .cf-nav-item:active .cf-nav-ic {
   transform: scale(0.94);
 }
+/* En pantallas muy estrechas (con 6 tabs las etiquetas se apretarían): solo icono.
+   La pastilla del icono se centra y la barra respira. */
+@media (max-width: 380px) {
+  .cf-nav-label {
+    display: none;
+  }
+  .cf-nav-item {
+    gap: 0;
+  }
+}
 
 /* ============================================================
    Redesign component layer (cf-*)
@@ -602,6 +612,34 @@ body {
   }
   100% {
     stroke-dashoffset: var(--c);
+  }
+}
+
+/* Celebración al terminar una sesión (overlay de confeti + pop del trofeo) */
+@keyframes cf-confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(540deg);
+    opacity: 0.9;
+  }
+}
+@keyframes cf-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="cf-confetti-fall"] {
+    animation: none !important;
+    opacity: 0 !important;
   }
 }
 

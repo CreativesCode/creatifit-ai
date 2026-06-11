@@ -44,7 +44,7 @@ interface Plan {
 }
 
 export default function PlansPage() {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -146,7 +146,7 @@ export default function PlansPage() {
   };
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString(undefined, {
+    new Date(dateString).toLocaleDateString(i18n.language, {
       year: "numeric",
       month: "long",
       day: "numeric",

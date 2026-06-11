@@ -4,6 +4,8 @@ import {
   ArrowRight,
   Calendar,
   Check,
+  ClipboardList,
+  Clock,
   Dumbbell,
   Flame,
   Play,
@@ -12,6 +14,7 @@ import {
   Target,
   TrendingUp,
   Trophy,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,40 +34,45 @@ function PhoneMock() {
       <div
         style={{ borderRadius: 34, overflow: "hidden", background: "var(--bg)", padding: 16 }}
       >
-        {/* header */}
+        {/* header — refleja el panel real */}
         <div className="flex items-center gap-2.5 mb-4">
           <Mark size={30} />
           <div>
             <div className="cf-muted text-[10px] font-semibold">Lunes · 8 jun</div>
-            <div className="font-display font-bold text-[16px]">Hola, Alex</div>
+            <div className="font-display font-bold text-[16px]">Panel</div>
           </div>
-          <span className="cf-chip cf-chip-amber ml-auto" style={{ padding: "3px 8px", fontSize: 10 }}>
-            <Flame size={10} fill="currentColor" />12
-          </span>
+          <div
+            className="rounded-full flex items-center justify-center text-white font-display font-bold text-[11px] ml-auto"
+            style={{ width: 28, height: 28, background: "var(--grad-brand-soft)" }}
+          >
+            A
+          </div>
         </div>
-        {/* hero card */}
+        {/* hero card — plan activo */}
         <div className="cf-card relative overflow-hidden mb-3" style={{ padding: 14, borderRadius: 18 }}>
           <span className="cf-chip cf-chip-brand" style={{ fontSize: 10, padding: "3px 9px" }}>
-            <Sparkles size={10} fill="currentColor" />Hoy
+            <Zap size={10} fill="currentColor" />Plan activo
           </span>
-          <div className="font-display font-bold text-[16px] mt-2">Empuje superior</div>
-          <div className="cf-muted text-[10px] font-semibold mt-1">6 ejercicios · 48 min</div>
-          <div className="flex gap-1.5 mt-2.5">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="cf-eximg flex-1" style={{ height: 30, borderRadius: 8 }} />
-            ))}
+          <div className="font-display font-bold text-[16px] mt-2">Hipertrofia Push/Pull</div>
+          <div className="flex gap-3 mt-1.5 text-txt-2 text-[10px] font-semibold">
+            <span className="flex items-center gap-1">
+              <ClipboardList size={11} />3 días
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock size={11} />8 semanas
+            </span>
           </div>
           <button className="cf-btn cf-btn-primary cf-btn-block mt-3" style={{ padding: "9px 0", fontSize: 12 }}>
             <Play size={12} fill="currentColor" />Iniciar
           </button>
         </div>
-        {/* tiles */}
+        {/* tiles — mismas métricas que el panel real */}
         <div className="flex gap-2">
           {(
             [
-              { icon: Flame, v: "12", l: "Racha", c: "var(--amber)" },
-              { icon: TrendingUp, v: "8.4t", l: "Volumen", c: "var(--cyan)" },
-              { icon: Activity, v: "7.8", l: "RPE", c: "var(--mint)" },
+              { icon: ClipboardList, v: "4", l: "Planes", c: "var(--primary)" },
+              { icon: Activity, v: "12", l: "Sesiones", c: "var(--mint)" },
+              { icon: Target, v: "300+", l: "Ejercicios", c: "var(--cyan)" },
             ] as { icon: React.ElementType; v: string; l: string; c: string }[]
           ).map(({ icon: Icon, v, l, c }, i) => (
             <div key={i} className="cf-card flex-1" style={{ padding: "9px 8px", borderRadius: 12 }}>
@@ -146,9 +154,9 @@ export default function WelcomePage() {
         <nav className="flex items-center justify-between py-6">
           <Wordmark size={28} />
           <div className="flex items-center gap-6 lg:gap-8 text-[14.5px] font-semibold text-txt-2">
-            <span className="hidden md:inline">Funciones</span>
-            <span className="hidden md:inline">Cómo funciona</span>
-            <span className="hidden md:inline">Precios</span>
+            <a href="#funciones" className="hidden md:inline hover:text-txt transition-colors">Funciones</a>
+            <a href="#como-funciona" className="hidden md:inline hover:text-txt transition-colors">Cómo funciona</a>
+            <a href="#precios" className="hidden md:inline hover:text-txt transition-colors">Precios</a>
             <Link href="/login" className="cf-btn cf-btn-ghost cf-btn-sm">Entrar</Link>
             <Link href="/login" className="cf-btn cf-btn-primary cf-btn-sm">Empezar gratis</Link>
           </div>
@@ -186,7 +194,7 @@ export default function WelcomePage() {
                 <div className="flex gap-0.5">
                   {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={14} color="var(--amber)" fill="var(--amber)" />)}
                 </div>
-                <div className="cf-muted text-[13px] font-semibold mt-0.5">+50.000 usuarios activos</div>
+                <div className="cf-muted text-[13px] font-semibold mt-0.5">+1.200 usuarios activos</div>
               </div>
             </div>
           </div>
@@ -266,7 +274,7 @@ export default function WelcomePage() {
         </section>
 
         {/* ===== BENTO FEATURES ===== */}
-        <section className="py-10 lg:py-16">
+        <section id="funciones" className="py-10 lg:py-16 scroll-mt-20">
           <div className="text-center mb-10 lg:mb-12">
             <span className="cf-eyebrow">Todo en una app</span>
             <div className="font-display font-bold tracking-tight text-[32px] lg:text-[42px] mt-3">Diseñada para el progreso</div>
@@ -281,7 +289,7 @@ export default function WelcomePage() {
         </section>
 
         {/* ===== HOW IT WORKS ===== */}
-        <section className="py-10 lg:py-16">
+        <section id="como-funciona" className="py-10 lg:py-16 scroll-mt-20">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {(
               [
@@ -307,7 +315,7 @@ export default function WelcomePage() {
           <div className="cf-card relative overflow-hidden" style={{ borderRadius: 28, padding: "40px 24px" }}>
             <div className="absolute inset-0 bg-grad-brand" style={{ opacity: 0.1 }} aria-hidden />
             <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
-              {[["50K+", "Usuarios activos"], ["2.4M", "Sesiones completadas"], ["4.9", "Valoración media"], ["180K", "Récords logrados"]].map((s, i) => (
+              {[["1.2K+", "Usuarios activos"], ["15K+", "Sesiones completadas"], ["4.9", "Valoración media"], ["3K+", "Récords logrados"]].map((s, i) => (
                 <div key={i}>
                   <div className="cf-num cf-grad-txt text-[38px] lg:text-[46px] tracking-tight">{s[0]}</div>
                   <div className="cf-muted text-[14px] font-semibold mt-1">{s[1]}</div>
@@ -343,7 +351,7 @@ export default function WelcomePage() {
         </section>
 
         {/* ===== PRICING ===== */}
-        <section className="py-10 lg:py-16">
+        <section id="precios" className="py-10 lg:py-16 scroll-mt-20">
           <div className="text-center mb-10">
             <span className="cf-eyebrow">Precios</span>
             <div className="font-display font-bold tracking-tight text-[30px] lg:text-[42px] mt-3">Empieza gratis, mejora cuando quieras</div>
@@ -407,7 +415,11 @@ export default function WelcomePage() {
         <footer className="flex flex-col sm:flex-row justify-between items-center gap-4 py-8 border-t border-border">
           <Wordmark size={24} />
           <div className="flex flex-wrap justify-center gap-6 text-[13.5px] font-semibold text-muted">
-            <span>Funciones</span><span>Precios</span><span>Privacidad</span><span>Términos</span><span>Contacto</span>
+            <a href="#funciones" className="hover:text-txt transition-colors">Funciones</a>
+            <a href="#precios" className="hover:text-txt transition-colors">Precios</a>
+            <Link href="/privacy" className="hover:text-txt transition-colors">Privacidad</Link>
+            <Link href="/terms" className="hover:text-txt transition-colors">Términos</Link>
+            <Link href="/support" className="hover:text-txt transition-colors">Contacto</Link>
           </div>
           <div className="cf-muted text-[13px]">© 2026 CreatiFit AI</div>
         </footer>

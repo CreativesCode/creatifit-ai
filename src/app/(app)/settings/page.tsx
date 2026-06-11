@@ -3,23 +3,31 @@
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
+import { deleteOwnAccount } from "@/lib/account/delete-account";
 import {
+  AlertTriangle,
   Bell,
   ChevronRight,
   Crown,
+  FileText,
   Globe,
   Heart,
+  LifeBuoy,
+  Loader2,
   LogOut,
   Monitor,
   Moon,
   RefreshCw,
+  ScrollText,
   Settings2,
   ShieldCheck,
   Sparkles,
   Sun,
+  Trash2,
   Trophy,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -100,11 +108,30 @@ function Row({
 export default function SettingsPage() {
   const { t } = useTranslation("common");
   const { user, signOut } = useAuth();
+  const router = useRouter();
   const { isPro, isNative, presentPaywall, openCustomerCenter, restorePurchases } =
     useRevenueCat();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Borrado de cuenta.
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteOwnAccount();
+      await signOut();
+      router.replace("/welcome");
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "No se pudo eliminar la cuenta");
+      setDeleting(false);
+    }
+  };
 
   const current = mounted ? theme ?? "system" : "system";
   const themeOptions: [string, React.ElementType, string][] = [
@@ -278,21 +305,117 @@ export default function SettingsPage() {
         />
       </div>
 
-      {/* about */}
-      <div className="cf-card" style={{ padding: "4px 16px", borderRadius: 20 }}>
+      {/* about / legal */}
+      <div className="cf-card mb-3.5" style={{ padding: "4px 16px", borderRadius: 20 }}>
         <Row
           icon={ShieldCheck}
-          label={t("settings.about.title", "Privacidad")}
+          label={t("settings.legal.privacy", "Política de privacidad")}
           right={<ChevronRight size={17} className="text-faint" />}
+          onClick={() => router.push("/privacy")}
+        />
+        <Row
+          icon={ScrollText}
+          label={t("settings.legal.terms", "Términos de servicio")}
+          right={<ChevronRight size={17} className="text-faint" />}
+          onClick={() => router.push("/terms")}
+        />
+        <Row
+          icon={LifeBuoy}
+          label={t("settings.legal.support", "Soporte y contacto")}
+          right={<ChevronRight size={17} className="text-faint" />}
+          onClick={() => router.push("/support")}
         />
         <Row
           icon={Heart}
           label={t("settings.about.developed_by", "Acerca de")}
           sub={`CreatiFit AI · v1.0.0`}
-          right={<ChevronRight size={17} className="text-faint" />}
+          right={<FileText size={16} className="text-faint" />}
           last
         />
       </div>
+
+      {/* danger zone */}
+      <div className="cf-card" style={{ padding: "4px 16px", borderRadius: 20 }}>
+        <Row
+          icon={Trash2}
+          label={t("settings.account.delete", "Eliminar cuenta")}
+          sub={t("settings.account.delete_desc", "Borra tu cuenta y todos tus datos")}
+          right={<ChevronRight size={17} className="text-faint" />}
+          onClick={() => {
+            setDeleteError(null);
+            setShowDeleteConfirm(true);
+          }}
+          last
+        />
+      </div>
+
+      {/* modal de confirmación de borrado */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => !deleting && setShowDeleteConfirm(false)}
+        >
+          <div
+            className="cf-card w-full max-w-sm"
+            style={{ padding: 22, borderRadius: 22 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="cf-icon-tile mx-auto mb-3"
+              style={{ width: 52, height: 52, background: "color-mix(in srgb, #ef4444 16%, transparent)", color: "#ef4444" }}
+            >
+              <AlertTriangle size={24} />
+            </div>
+            <div className="cf-h2 text-[19px] text-center">
+              {t("settings.account.delete_confirm_title", "¿Eliminar tu cuenta?")}
+            </div>
+            <p className="cf-muted text-[13.5px] leading-relaxed text-center mt-2">
+              {t(
+                "settings.account.delete_confirm_desc",
+                "Se borrarán de forma permanente tu perfil, tus planes y todo tu historial de entrenamiento. Esta acción no se puede deshacer."
+              )}
+            </p>
+
+            {deleteError && (
+              <div
+                className="text-[12.5px] font-semibold text-center mt-3"
+                style={{ color: "#ef4444" }}
+              >
+                {deleteError}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 mt-5">
+              <button
+                className="cf-btn cf-btn-block"
+                disabled={deleting}
+                onClick={handleDeleteAccount}
+                style={{ background: "#ef4444", color: "#fff", gap: 8 }}
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    {t("settings.account.deleting", "Eliminando…")}
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    {t("settings.account.delete_confirm_cta", "Sí, eliminar mi cuenta")}
+                  </>
+                )}
+              </button>
+              <button
+                className="cf-btn cf-btn-ghost cf-btn-block"
+                disabled={deleting}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                {t("common.cancel", "Cancelar")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

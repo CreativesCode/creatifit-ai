@@ -29,6 +29,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# android signing — NUNCA versionar la clave de firma ni sus contraseñas
+/android/key.properties
+*.jks
+*.keystore
+
 # local env files
 .env*.local
 .env

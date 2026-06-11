@@ -1,8 +1,25 @@
 apply plugin: 'com.android.application'
 
+// Carga la configuración de firma desde android/key.properties (no se sube a git).
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace "com.creatifit.ai.app"
     compileSdk rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
     defaultConfig {
         applicationId "com.creatifit.ai.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -18,6 +35,7 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             // D-PERF-7 — minificar y eliminar recursos no usados en release.
             // Las reglas ProGuard de Capacitor ya están en capacitor.build.gradle.
             minifyEnabled true

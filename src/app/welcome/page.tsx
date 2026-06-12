@@ -146,7 +146,7 @@ function Feature({
 
 export default function WelcomePage() {
   return (
-    <div className="dark relative min-h-screen overflow-hidden" style={{ background: "var(--bg)", color: "var(--txt)" }}>
+    <div className="dark relative min-h-screen overflow-hidden safe-top safe-bottom" style={{ background: "var(--bg)", color: "var(--txt)" }}>
       <div className="cf-mesh fixed inset-0" aria-hidden />
 
       <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8 lg:px-12">

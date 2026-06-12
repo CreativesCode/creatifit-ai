@@ -22,6 +22,23 @@
       "then_signin": "Confírmalo y luego inicia sesión.",
       "resend": "Reenviar correo de confirmación",
       "back_to_signin": "Volver a iniciar sesión"
+    },
+    "reset_sent": "Te enviamos un enlace para restablecer tu contraseña.",
+    "reset": {
+      "checking": "Verificando el enlace…",
+      "invalid_title": "Enlace no válido",
+      "invalid_body": "El enlace de recuperación no es válido o ha caducado. Solicita uno nuevo desde la pantalla de inicio de sesión.",
+      "go_login": "Ir a iniciar sesión",
+      "title": "Nueva contraseña",
+      "subtitle": "Elige una contraseña nueva para tu cuenta.",
+      "new_password": "Nueva contraseña",
+      "confirm_password": "Repite la contraseña",
+      "mismatch": "Las contraseñas no coinciden",
+      "same_password": "La nueva contraseña debe ser distinta a la anterior",
+      "cta": "Guardar contraseña",
+      "done_title": "Contraseña actualizada",
+      "done_body": "Ya puedes seguir entrenando con tu nueva contraseña.",
+      "go_app": "Entrar a la app"
     }
   },
   "app": {
@@ -413,6 +430,7 @@
       "General": "General"
     },
     "filters": {
+      "favorites": "Favoritos",
       "all_types": "Todos los tipos",
       "all_equipment": "Todo el equipo",
       "strength": "Fuerza",
@@ -428,7 +446,8 @@
     "no_results": {
       "title": "No se encontraron ejercicios",
       "description": "Intenta ajustar los filtros de búsqueda",
-      "no_exercises": "No hay ejercicios disponibles en este momento"
+      "no_exercises": "No hay ejercicios disponibles en este momento",
+      "no_favorites": "Aún no tienes favoritos. Toca el corazón en un ejercicio para guardarlo aquí."
     },
     "exercise_details": {
       "title": "Detalles del Ejercicio",

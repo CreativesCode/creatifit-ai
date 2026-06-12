@@ -37,8 +37,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      {/* Sin `capacitor-app` en el body: el padding de safe-area lo aplica cada
+          shell (.safe-top/.safe-bottom). Tenerlo aquí Y en los shells duplicaba
+          el inset y generaba scroll fantasma en todas las páginas. */}
       <body
-        className={`${jakarta.variable} ${spaceGrotesk.variable} font-body capacitor-app`}
+        className={`${jakarta.variable} ${spaceGrotesk.variable} font-body`}
       >
         <ThemeProvider>
           <LanguageProvider>

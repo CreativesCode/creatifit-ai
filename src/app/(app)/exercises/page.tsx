@@ -52,6 +52,9 @@ export default function ExercisesPage() {
   const [selectedKind, setSelectedKind] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  // Favoritos del usuario (ids) + filtro "solo favoritos" del listado.
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [onlyFavs, setOnlyFavs] = useState(false);
 
   const exerciseId = searchParams.get("id");
   const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
@@ -59,6 +62,38 @@ export default function ExercisesPage() {
     gif ? `${EXERCISE_IMAGES_BASE_URL}/${gif}` : "/placeholder-exercise.svg";
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Carga inicial de favoritos (best-effort: si la tabla aún no existe o falla
+  // la red, el listado funciona igual sin favoritos).
+  useEffect(() => {
+    supabaseClient
+      .getFavoriteIds()
+      .then((ids) => setFavorites(new Set(ids)))
+      .catch(() => {});
+  }, []);
+
+  // Toggle optimista: la UI responde al instante y revierte si el guardado falla.
+  const toggleFavorite = async (id: string) => {
+    const wasFav = favorites.has(id);
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (wasFav) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    try {
+      if (wasFav) await supabaseClient.removeFavorite(id);
+      else await supabaseClient.addFavorite(id);
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        if (wasFav) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     if (exerciseId) {
@@ -86,7 +121,8 @@ export default function ExercisesPage() {
         page,
         20,
         searchTerm || undefined,
-        selectedKind || undefined
+        selectedKind || undefined,
+        onlyFavs ? Array.from(favorites) : undefined
       );
 
       if (data && data.data) {
@@ -138,7 +174,8 @@ export default function ExercisesPage() {
     setHasMore(true);
     setExercises([]);
     fetchExercises(1, false);
-  }, [searchTerm, selectedKind]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedKind, onlyFavs, favorites]);
 
   const loadMore = useCallback(() => {
     if (hasMore && !loadingMore && !loading) {
@@ -160,7 +197,7 @@ export default function ExercisesPage() {
     }, 300);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedKind, searchTerm]);
+  }, [selectedKind, searchTerm, onlyFavs]);
 
   // Scroll infinito con IntersectionObserver sobre un centinela (sin reflow ni listener no pasivo).
   useEffect(() => {
@@ -360,11 +397,22 @@ export default function ExercisesPage() {
               <ArrowLeft size={20} />
             </button>
             <button
-              className="cf-icon-tile text-white"
-              style={{ width: 40, height: 40, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(8px)" }}
-              aria-label="Favorito"
+              onClick={() => toggleFavorite(ex.id)}
+              className="cf-icon-tile"
+              style={{
+                width: 40,
+                height: 40,
+                background: "rgba(0,0,0,0.3)",
+                backdropFilter: "blur(8px)",
+                color: favorites.has(ex.id) ? "var(--danger, #ef4444)" : "#fff",
+              }}
+              aria-label={t("exercises.favorite", "Favorito")}
+              aria-pressed={favorites.has(ex.id)}
             >
-              <Heart size={19} />
+              <Heart
+                size={19}
+                fill={favorites.has(ex.id) ? "currentColor" : "none"}
+              />
             </button>
           </div>
         </div>
@@ -517,6 +565,15 @@ export default function ExercisesPage() {
 
       {/* category chips */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        <button
+          onClick={() => setOnlyFavs((v) => !v)}
+          className={`cf-chip shrink-0 ${onlyFavs ? "cf-chip-brand" : ""}`}
+          style={{ padding: "8px 14px", fontSize: 12.5, gap: 5 }}
+          aria-pressed={onlyFavs}
+        >
+          <Heart size={12} fill={onlyFavs ? "currentColor" : "none"} />
+          {t("exercises.filters.favorites", "Favoritos")}
+        </button>
         {CATS.map(([value, label]) => (
           <button
             key={value}
@@ -540,19 +597,24 @@ export default function ExercisesPage() {
           </div>
           <h3 className="cf-h2 text-[18px] mb-2">{t("exercises.no_results.title")}</h3>
           <p className="cf-muted text-sm mb-6">
-            {searchTerm || selectedKind
+            {onlyFavs && favorites.size === 0
+              ? t(
+                  "exercises.no_results.no_favorites",
+                  "Aún no tienes favoritos. Toca el corazón en un ejercicio para guardarlo aquí."
+                )
+              : searchTerm || selectedKind || onlyFavs
               ? t("exercises.no_results.description")
               : t("exercises.no_results.no_exercises")}
           </p>
-          {(searchTerm || selectedKind) && (
+          {(searchTerm || selectedKind || onlyFavs) && (
             <button
               className="cf-btn cf-btn-ghost"
               onClick={() => {
+                // Solo limpiamos estado: el efecto con debounce re-busca al
+                // cambiar los filtros (llamar fetch aquí usaría el closure viejo).
                 setSearchTerm("");
                 setSelectedKind("");
-                setCurrentPage(1);
-                setHasMore(true);
-                fetchExercises(1, false);
+                setOnlyFavs(false);
               }}
             >
               {t("exercises.search.clear_filters")}

@@ -173,7 +173,7 @@ export default function AdminPage() {
 
   // ── Panel ───────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg safe-top safe-bottom">
       <div className="cf-mesh fixed inset-0" aria-hidden />
       <div className="relative z-10 container mx-auto max-w-5xl px-4 lg:px-6 py-6 lg:py-8">
         {/* header */}

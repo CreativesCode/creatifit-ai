@@ -148,15 +148,6 @@ body {
   }
 }
 
-/* Capacitor-specific styles */
-.capacitor-app {
-  /* Ensure content doesn't go under status bar */
-  padding-top: var(--sat);
-  padding-bottom: var(--sab);
-  padding-left: var(--sal);
-  padding-right: var(--sar);
-}
-
 /* Safe area utility classes */
 .safe-top {
   padding-top: max(0.5rem, var(--sat));

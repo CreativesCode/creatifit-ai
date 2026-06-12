@@ -190,7 +190,7 @@ export function AuthScreen() {
   if (mode === "signup") {
     return (
       <Shell>
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
           <div className="flex items-center gap-3 pt-1 mb-5">
             <button
               type="button"
@@ -297,7 +297,7 @@ export function AuthScreen() {
   // ---------- Login ----------
   return (
     <Shell>
-      <form onSubmit={handleSubmit} className="flex flex-col h-full">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1">
         <div className="flex flex-col items-center pt-7 mb-7">
           <AppIcon size={72} variant="gradient" />
           <div className="cf-h1 text-[24px] mt-4">{t("auth.signin_title", "Bienvenido de nuevo")}</div>
@@ -412,7 +412,11 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="relative flex-1 flex flex-col lg:items-center lg:justify-center bg-bg overflow-hidden safe-top safe-bottom">
         <div className="cf-mesh fixed inset-0 lg:hidden" aria-hidden />
         <div className="cf-mesh-3 fixed lg:hidden" aria-hidden />
-        <div className="relative z-10 w-full max-w-md mx-auto flex flex-col min-h-screen lg:min-h-0 px-6 lg:py-12">
+        {/* flex-1 (no min-h-screen): el panel padre ya mide 100dvh incluyendo el
+            padding de safe areas; un 100dvh extra aquí obligaba a hacer scroll
+            aunque el formulario cupiera en pantalla. En lg vuelve a alto natural
+            centrado. */}
+        <div className="relative z-10 w-full max-w-md mx-auto flex flex-col flex-1 lg:flex-initial px-6 lg:py-12">
           {children}
         </div>
       </div>

@@ -36,9 +36,12 @@ export default function WorkoutHistoryPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (sessionId) {
+    // Evita el doble fetch cuando handleSessionClick ya pidió esta sesión
+    // (estado primero, navegación best-effort — ver handleSessionClick).
+    if (sessionId && selectedSession?.id !== sessionId && !loading) {
       fetchSessionDetails(sessionId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   const fetchSessionDetails = async (id: string) => {
@@ -67,18 +70,30 @@ export default function WorkoutHistoryPage() {
   };
 
   const handleBack = () => {
-    if (sessionId) {
-      // Si estamos en detalles de sesión, volver al historial
-      router.replace("/workout-history");
+    if (sessionId || selectedSession) {
+      // Detalle de sesión → historial. Estado PRIMERO: en Capacitor la
+      // navegación de query puede fallar/no propagarse (mismo workaround que
+      // en /exercises) y el botón quedaba muerto.
       setSelectedSession(null);
+      try {
+        router.replace("/workout-history");
+      } catch {
+        /* no-op: el estado ya muestra el historial */
+      }
     } else {
-      // Si estamos en el historial, volver a planes
+      // Historial → planes
       router.push("/plans");
     }
   };
 
-  const handleSessionClick = (sessionId: string) => {
-    router.replace(`/workout-history?id=${sessionId}`);
+  const handleSessionClick = (id: string) => {
+    // Estado primero; push (jerarquía) best-effort para historial/deep-link.
+    fetchSessionDetails(id);
+    try {
+      router.push(`/workout-history?id=${id}`);
+    } catch {
+      /* no-op */
+    }
   };
 
   if (loading) {

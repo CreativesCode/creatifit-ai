@@ -22,6 +22,23 @@
       "then_signin": "Confirm it and then sign in.",
       "resend": "Resend confirmation email",
       "back_to_signin": "Back to sign in"
+    },
+    "reset_sent": "We sent you a link to reset your password.",
+    "reset": {
+      "checking": "Verifying the link…",
+      "invalid_title": "Invalid link",
+      "invalid_body": "The recovery link is invalid or has expired. Request a new one from the sign-in screen.",
+      "go_login": "Go to sign in",
+      "title": "New password",
+      "subtitle": "Choose a new password for your account.",
+      "new_password": "New password",
+      "confirm_password": "Repeat password",
+      "mismatch": "Passwords don't match",
+      "same_password": "The new password must be different from the old one",
+      "cta": "Save password",
+      "done_title": "Password updated",
+      "done_body": "You can keep training with your new password.",
+      "go_app": "Open the app"
     }
   },
   "app": {
@@ -413,6 +430,7 @@
       "General": "General"
     },
     "filters": {
+      "favorites": "Favorites",
       "all_types": "All types",
       "all_equipment": "All equipment",
       "strength": "Strength",
@@ -428,7 +446,8 @@
     "no_results": {
       "title": "No exercises found",
       "description": "Try adjusting your search filters",
-      "no_exercises": "No exercises available at the moment"
+      "no_exercises": "No exercises available at the moment",
+      "no_favorites": "No favorites yet. Tap the heart on an exercise to save it here."
     },
     "exercise_details": {
       "title": "Exercise Details",

@@ -80,8 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword: AuthContextValue["resetPassword"] = async (email) => {
+    // La página /reset-password verifica el enlace y pide la nueva contraseña.
+    // La URL debe estar en la allowlist de Redirect URLs del proyecto Supabase.
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${envConfig.APP_URL}/`,
+      redirectTo: `${envConfig.APP_URL}/reset-password/`,
     });
     return { error: error?.message ?? null };
   };

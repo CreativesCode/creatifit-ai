@@ -17,7 +17,7 @@ export function LegalShell({
 }) {
   return (
     <div
-      className="dark relative min-h-screen overflow-hidden"
+      className="dark relative min-h-screen overflow-hidden safe-top safe-bottom"
       style={{ background: "var(--bg)", color: "var(--txt)" }}
     >
       <div className="cf-mesh fixed inset-0" aria-hidden />

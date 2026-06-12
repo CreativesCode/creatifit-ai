@@ -92,12 +92,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <AuthGate>
       {/* overflow-x-clip (no -hidden): evita scroll horizontal sin crear un
           contenedor de scroll, para no romper el `sticky` del header móvil. */}
-      <div className="relative min-h-screen bg-bg safe-top safe-bottom overflow-x-clip">
+      {/* El interior usa flex-1 (no min-h-screen): el padding de safe-top/bottom
+          ya cuenta dentro del 100dvh del exterior; sumar otro 100dvh dentro
+          provocaba ~(safe areas) de scroll fantasma en TODAS las páginas. */}
+      <div className="relative min-h-screen bg-bg safe-top safe-bottom overflow-x-clip flex flex-col">
         {/* Mesh gradient backdrop (fijo, detrás del contenido) */}
         <div className="cf-mesh fixed inset-0" aria-hidden />
         <div className="cf-mesh-3 fixed" aria-hidden />
 
-        <div className="relative z-10 flex min-h-screen">
+        <div className="relative z-10 flex flex-1">
           {/* Sidebar (tablet/escritorio) */}
           <SideNav />
 

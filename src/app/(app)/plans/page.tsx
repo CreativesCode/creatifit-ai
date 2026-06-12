@@ -68,7 +68,19 @@ export default function PlansPage() {
 
   const planId = searchParams.get("id");
   const dayParam = searchParams.get("day");
-  const editing = !!dayParam && searchParams.get("edit") === "1";
+
+  // Vista del día en estado local, sincronizada desde la URL. La URL sigue
+  // sirviendo para deep-links, pero los botones actualizan PRIMERO el estado:
+  // en Capacitor router.replace/push puede no propagar el cambio de query a
+  // useSearchParams (mismo workaround que goBackToList en /exercises), y el
+  // botón de atrás del día quedaba muerto.
+  const [dayView, setDayView] = useState<string | null>(null);
+  const [dayEditing, setDayEditing] = useState(false);
+  useEffect(() => {
+    setDayView(dayParam);
+    setDayEditing(!!dayParam && searchParams.get("edit") === "1");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayParam]);
 
   const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
   const buildImageUrl = (gif?: string | null) => {
@@ -95,7 +107,7 @@ export default function PlansPage() {
   // Al abrir el detalle de un día, traemos los GIF de sus ejercicios para mostrar
   // las imágenes. El cruce con los bloques del payload se hace por exercise_id.
   useEffect(() => {
-    if (!planId || !dayParam) {
+    if (!planId || !dayView) {
       setDayGifs({});
       return;
     }
@@ -104,7 +116,7 @@ export default function PlansPage() {
       .getPlanExercises(planId)
       .then((res: any) => {
         if (cancelled) return;
-        const list = res?.exercises?.[dayParam] || [];
+        const list = res?.exercises?.[dayView] || [];
         const map: Record<string, string> = {};
         for (const ex of list) {
           if (ex.exercise_id && ex.gif_url) map[ex.exercise_id] = ex.gif_url;
@@ -117,7 +129,7 @@ export default function PlansPage() {
     return () => {
       cancelled = true;
     };
-  }, [planId, dayParam]);
+  }, [planId, dayView]);
 
   const fetchPlans = async () => {
     try {
@@ -153,8 +165,16 @@ export default function PlansPage() {
     });
 
   const goBackToList = () => {
-    router.replace("/plans");
+    // Estado primero (ver comentario de dayView); la navegación es best-effort.
     setSelectedPlan(null);
+    setDayView(null);
+    // Si se entró por deep-link (?id=...) el listado nunca se cargó.
+    if (plans.length === 0) fetchPlans();
+    try {
+      router.replace("/plans");
+    } catch {
+      /* no-op: el estado ya muestra el listado */
+    }
   };
 
   // Abre la hoja de alternativas para el ejercicio (bloque) indicado.
@@ -192,14 +212,14 @@ export default function PlansPage() {
     name: string;
     gif_url?: string;
   }) => {
-    if (!selectedPlan || !dayParam || !swapTarget) return;
+    if (!selectedPlan || !dayView || !swapTarget) return;
     try {
       setSwapping(true);
       setSwapError(null);
       const payload = await supabaseClient.swapPlanExercise({
         planId: selectedPlan.id,
         currentPayload: selectedPlan.payload,
-        dayLetter: dayParam,
+        dayLetter: dayView,
         blockIndex: swapTarget.blockIndex,
         newExerciseId: alt.id,
         newName: alt.name,
@@ -266,9 +286,9 @@ export default function PlansPage() {
   }
 
   // ---------- Day detail (ejercicios del día seleccionado) ----------
-  if (selectedPlan && dayParam) {
+  if (selectedPlan && dayView) {
     const day = (selectedPlan.payload?.days || []).find(
-      (d) => d.day === dayParam
+      (d) => d.day === dayView
     );
 
     if (day) {
@@ -277,7 +297,16 @@ export default function PlansPage() {
           {/* top bar */}
           <div className="flex items-center gap-3 pt-1 mb-4">
             <button
-              onClick={() => router.replace(`/plans?id=${selectedPlan.id}`)}
+              onClick={() => {
+                // Estado primero: el back debe funcionar aunque la navegación
+                // de query falle en Capacitor.
+                setDayView(null);
+                try {
+                  router.replace(`/plans?id=${selectedPlan.id}`);
+                } catch {
+                  /* no-op */
+                }
+              }}
               className="cf-icon-tile bg-surface-2 border border-border"
               style={{ width: 40, height: 40 }}
               aria-label={t("plans.plan_details.back_to_plans")}
@@ -291,26 +320,20 @@ export default function PlansPage() {
               <div className="cf-h2 text-[16px] truncate">{day.focus}</div>
             </div>
             <button
-              onClick={() =>
-                router.replace(
-                  `/plans?id=${selectedPlan.id}&day=${day.day}${
-                    editing ? "" : "&edit=1"
-                  }`
-                )
-              }
+              onClick={() => setDayEditing((v) => !v)}
               className={
-                editing
+                dayEditing
                   ? "cf-icon-tile bg-grad-brand text-white shadow-glow-brand"
                   : "cf-icon-tile bg-surface-2 border border-border"
               }
               style={{ width: 40, height: 40 }}
               aria-label={t("plans.plan_details.edit")}
             >
-              {editing ? <Check size={18} /> : <Edit size={18} />}
+              {dayEditing ? <Check size={18} /> : <Edit size={18} />}
             </button>
           </div>
 
-          {editing && (
+          {dayEditing && (
             <p className="cf-muted text-[12.5px] mb-3 -mt-1">
               {t(
                 "plans.swap.hint",
@@ -372,7 +395,7 @@ export default function PlansPage() {
                     )}
                   </div>
                 </div>
-                {editing && (
+                {dayEditing && (
                   <button
                     onClick={() => openSwap(i, block)}
                     className="cf-btn cf-btn-ghost cf-btn-block mt-3"
@@ -602,13 +625,20 @@ export default function PlansPage() {
           {days.map((d, i) => (
             <button
               key={i}
-              onClick={() =>
-                router.push(
-                  `/plans?id=${selectedPlan.id}&day=${d.day}${
-                    editMode ? "&edit=1" : ""
-                  }`
-                )
-              }
+              onClick={() => {
+                // Estado primero (ver dayView); push best-effort para el historial.
+                setDayView(d.day);
+                setDayEditing(editMode);
+                try {
+                  router.push(
+                    `/plans?id=${selectedPlan.id}&day=${d.day}${
+                      editMode ? "&edit=1" : ""
+                    }`
+                  );
+                } catch {
+                  /* no-op */
+                }
+              }}
               className="cf-card flex items-center gap-3.5 text-left"
               style={{ padding: "14px 15px", borderRadius: 18 }}
             >

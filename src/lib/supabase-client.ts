@@ -9,8 +9,15 @@ export const supabaseClient = {
     page: number = 1,
     limit: number = 20,
     search?: string,
-    category?: string
+    category?: string,
+    // Restringe el listado a estos ids (filtro "Favoritos"). Con lista vacía
+    // devolvemos vacío sin tocar la red.
+    onlyIds?: string[]
   ) {
+    if (onlyIds && onlyIds.length === 0) {
+      return { data: [], count: 0, hasMore: false };
+    }
+
     let query = supabase
       .from("exercises")
       .select("*", { count: "exact" })
@@ -26,6 +33,10 @@ export const supabaseClient = {
 
     if (category && category !== "all") {
       query = query.eq("category", category);
+    }
+
+    if (onlyIds) {
+      query = query.in("id", onlyIds);
     }
 
     const { data, error, count } = await query;
@@ -44,6 +55,33 @@ export const supabaseClient = {
 
     if (error) throw error;
     return data;
+  },
+
+  // ===== Favoritos de ejercicios (tabla exercise_favorites, RLS owner-only) =====
+
+  async getFavoriteIds(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("exercise_favorites")
+      .select("exercise_id");
+    if (error) throw error;
+    return (data ?? []).map((r) => String(r.exercise_id));
+  },
+
+  async addFavorite(exerciseId: string) {
+    // `user_id` lo pone el DEFAULT auth.uid() de la tabla (RLS lo valida).
+    const { error } = await supabase
+      .from("exercise_favorites")
+      .insert([{ exercise_id: exerciseId }]);
+    // 23505 = ya era favorito (clave duplicada): lo tratamos como éxito.
+    if (error && error.code !== "23505") throw error;
+  },
+
+  async removeFavorite(exerciseId: string) {
+    const { error } = await supabase
+      .from("exercise_favorites")
+      .delete()
+      .eq("exercise_id", exerciseId);
+    if (error) throw error;
   },
 
   // Planes

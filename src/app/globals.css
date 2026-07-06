@@ -452,6 +452,57 @@ body {
   transform: scale(0.98);
 }
 
+/* Feedback de puntero (escritorio) y foco por teclado ----------------------
+   En táctil no hay hover, así que los estados :hover se limitan a dispositivos
+   con puntero fino (@media hover:hover) para no dejar estados "pegados" tras un
+   tap. El anillo de :focus-visible sí se aplica siempre (accesibilidad). Muchas
+   tarjetas/chips/tiles son <button>, por eso los targeteamos por elemento. */
+button.cf-icon-tile,
+button.cf-chip {
+  transition: border-color 0.18s, filter 0.18s, background 0.18s, transform 0.18s;
+}
+button.cf-card,
+button.cf-card-flat,
+button.cf-card-solid,
+a.cf-card {
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cf-btn:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+  .cf-btn-ghost:hover {
+    border-color: var(--primary);
+  }
+  button.cf-card:hover,
+  button.cf-card-flat:hover,
+  button.cf-card-solid:hover,
+  a.cf-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--glow-brand);
+  }
+  button.cf-icon-tile:hover {
+    border-color: var(--primary);
+    filter: brightness(1.08);
+  }
+  button.cf-chip:hover {
+    border-color: var(--primary);
+    filter: brightness(1.04);
+  }
+}
+.cf-btn:focus-visible,
+button.cf-card:focus-visible,
+button.cf-card-flat:focus-visible,
+button.cf-card-solid:focus-visible,
+button.cf-icon-tile:focus-visible,
+button.cf-chip:focus-visible,
+a.cf-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 /* Chips / badges ----------------------------------------------------------- */
 .cf-chip {
   display: inline-flex;

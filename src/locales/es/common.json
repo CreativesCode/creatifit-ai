@@ -373,6 +373,22 @@
     "subtitle": "Gestiona y revisa todos tus planes generados por IA",
     "create_new_plan": "Crear Nuevo Plan",
     "active": "Activo",
+    "delete": {
+      "action": "Eliminar plan",
+      "confirm_title": "¿Eliminar este plan?",
+      "confirm_desc": "Se borrará este plan y sus días de entrenamiento. Tu historial de entrenamientos se conserva. Esta acción no se puede deshacer.",
+      "confirm_cta": "Sí, eliminar plan",
+      "deleting": "Eliminando…",
+      "error": "No se pudo eliminar el plan. Inténtalo de nuevo."
+    },
+    "improve": {
+      "cta": "Mejorar plan con mi progreso",
+      "hint": "Genera una versión progresada de este plan según tus entrenamientos.",
+      "improving": "Mejorando tu plan…",
+      "improved_name": "Plan mejorado",
+      "not_enough_data": "Aún no hay datos suficientes. Completa al menos un entrenamiento para poder mejorar el plan.",
+      "error": "No se pudo mejorar el plan. Inténtalo de nuevo."
+    },
     "objective_name": "Plan de {{objective}}",
     "no_plans": {
       "title": "No tienes planes aún",
@@ -420,7 +436,11 @@
     "categories": {
       "Chest": "Pecho",
       "Back": "Espalda",
+      "Back / Wing": "Espalda",
       "Legs": "Piernas",
+      "Leg": "Piernas",
+      "Hips": "Glúteos y cadera",
+      "Abs / Core": "Abdomen y core",
       "Shoulders": "Hombros",
       "Arms": "Brazos",
       "Core": "Core",

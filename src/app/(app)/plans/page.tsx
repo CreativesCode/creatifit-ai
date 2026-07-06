@@ -1,17 +1,29 @@
 "use client";
 import { supabaseClient } from "@/lib/supabase-client";
 import { planTitle } from "@/lib/plan-display";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
+import { canGenerate } from "@/lib/config/plans-config";
+import {
+  computeImproveEligibility,
+  buildProgressionNotes,
+  buildImproveIntake,
+} from "@/lib/ai/improve-plan";
 
 import {
+  AlertTriangle,
   ArrowLeft,
   Check,
   ChevronRight,
   Dumbbell,
   Edit,
+  Loader2,
   Play,
   Plus,
   Repeat,
   Sparkles,
+  Trash2,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -46,6 +58,8 @@ interface Plan {
 export default function PlansPage() {
   const { t, i18n } = useTranslation("common");
   const router = useRouter();
+  const { user } = useAuth();
+  const { isPro, isNative, presentPaywall } = useRevenueCat();
   const searchParams = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -65,6 +79,14 @@ export default function PlansPage() {
   const [altLoading, setAltLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
   const [swapError, setSwapError] = useState<string | null>(null);
+  // Borrado de plan (modal de confirmación).
+  const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  // "Mejorar plan": elegibilidad (según historial) + estado de la generación.
+  const [improveEligible, setImproveEligible] = useState(false);
+  const [improving, setImproving] = useState(false);
+  const [improveError, setImproveError] = useState<string | null>(null);
 
   const planId = searchParams.get("id");
   const dayParam = searchParams.get("day");
@@ -130,6 +152,28 @@ export default function PlansPage() {
       cancelled = true;
     };
   }, [planId, dayView]);
+
+  // Al abrir el detalle de un plan, evaluamos si hay datos suficientes para
+  // "Mejorar plan" (≥1 entrenamiento terminado con series registradas). El botón
+  // solo aparece si el usuario ya entrenó, evitando ofrecer una mejora sin datos.
+  useEffect(() => {
+    if (!planId) {
+      setImproveEligible(false);
+      return;
+    }
+    let cancelled = false;
+    supabaseClient
+      .getLogs()
+      .then((logs) => {
+        if (!cancelled) setImproveEligible(computeImproveEligibility(logs).eligible);
+      })
+      .catch(() => {
+        if (!cancelled) setImproveEligible(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [planId]);
 
   const fetchPlans = async () => {
     try {
@@ -237,6 +281,225 @@ export default function PlansPage() {
       setSwapping(false);
     }
   };
+
+  // Borra el plan seleccionado y vuelve al listado (quitándolo del estado local
+  // para que la lista se refresque sin recargar).
+  const confirmDeletePlan = async () => {
+    if (!planToDelete) return;
+    const id = planToDelete.id;
+    try {
+      setDeleting(true);
+      setDeleteError(null);
+      await supabaseClient.deletePlan(id);
+      setPlans((prev) => prev.filter((p) => p.id !== id));
+      setPlanToDelete(null);
+      // Si estábamos dentro del detalle de este plan, salimos al listado.
+      if (selectedPlan?.id === id) {
+        setSelectedPlan(null);
+        setDayView(null);
+        try {
+          router.replace("/plans");
+        } catch {
+          /* no-op: el estado ya muestra el listado */
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting plan:", err);
+      setDeleteError(t("plans.delete.error", "No se pudo eliminar el plan. Inténtalo de nuevo."));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Genera una PROGRESIÓN del plan actual usando el historial de entrenamientos
+  // y la guarda como plan nuevo. Reutiliza la misma Edge Function `generate-plan`
+  // (vía notes) y el mismo gating de tier que la creación de un plan.
+  const handleImprovePlan = async () => {
+    if (!selectedPlan || improving) return;
+    setImproveError(null);
+    try {
+      setImproving(true);
+
+      // 1) Datos reales de entrenamiento + comprobación de elegibilidad.
+      const logs = (await supabaseClient.getLogs()) || [];
+      const eligibility = computeImproveEligibility(logs);
+      if (!eligibility.eligible) {
+        setImproveError(
+          t(
+            "plans.improve.not_enough_data",
+            "Aún no hay datos suficientes. Completa al menos un entrenamiento para poder mejorar el plan."
+          )
+        );
+        return;
+      }
+
+      // 2) Gating por tier (mejorar = nueva generación con IA). Free = 1 en total.
+      if (!isPro) {
+        const used = await supabaseClient.countPlans();
+        if (!canGenerate("free", used)) {
+          if (isNative) {
+            const purchased = await presentPaywall();
+            if (!purchased) return;
+          } else {
+            setImproveError(
+              t(
+                "paywall.limit_reached",
+                "Ya usaste tu plan gratuito. Mejora a Pro desde la app móvil para generar planes ilimitados."
+              )
+            );
+            return;
+          }
+        }
+      }
+
+      // 3) Reconstruir el intake desde el meta del plan + notas de progresión.
+      const notes = buildProgressionNotes(logs, eligibility);
+      const intake = buildImproveIntake(
+        selectedPlan.payload?.meta,
+        selectedPlan.weeks,
+        i18n.language,
+        notes
+      );
+
+      const { generateFitnessPlan } = await import("@/lib/ai/openai");
+      const generatedPlan = await generateFitnessPlan(intake);
+      if (!generatedPlan?.days?.length) {
+        throw new Error("Plan structure is invalid");
+      }
+
+      // 4) Guardar como plan NUEVO (el anterior y el historial se conservan).
+      const planId = crypto.randomUUID();
+      const meta = selectedPlan.payload?.meta || {};
+      const { plan: savedPlan } = await supabaseClient.savePlan({
+        id: planId,
+        user_id: user?.id ?? null,
+        weeks: selectedPlan.weeks,
+        version: 1,
+        source_hash: planId,
+        payload: {
+          meta: {
+            ...meta,
+            name: t("plans.improve.improved_name", "Plan mejorado"),
+            improved_from: selectedPlan.id,
+            created_at: new Date().toISOString(),
+          },
+          ...generatedPlan,
+        },
+      });
+      if (!savedPlan) throw new Error("Failed to save improved plan");
+
+      // 5) Navegar al plan nuevo.
+      setEditMode(false);
+      setDayView(null);
+      const improved: Plan = {
+        ...savedPlan,
+        payload:
+          typeof savedPlan.payload === "string"
+            ? JSON.parse(savedPlan.payload)
+            : savedPlan.payload,
+      };
+      setPlans((prev) => [improved, ...prev.filter((p) => p.id !== improved.id)]);
+      setSelectedPlan(improved);
+      try {
+        router.push(`/plans?id=${improved.id}`);
+      } catch {
+        /* no-op: el estado ya muestra el plan nuevo */
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === "FREE_LIMIT_REACHED") {
+        if (isNative) {
+          await presentPaywall();
+        } else {
+          setImproveError(
+            t(
+              "paywall.limit_reached",
+              "Ya usaste tu plan gratuito. Mejora a Pro desde la app móvil para generar planes ilimitados."
+            )
+          );
+        }
+        return;
+      }
+      console.error("Error improving plan:", err);
+      setImproveError(
+        t("plans.improve.error", "No se pudo mejorar el plan. Inténtalo de nuevo.")
+      );
+    } finally {
+      setImproving(false);
+    }
+  };
+
+  // Modal de confirmación de borrado (compartido entre el detalle y el listado).
+  const deleteModal = planToDelete && (
+    <div
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.6)" }}
+      onClick={() => !deleting && setPlanToDelete(null)}
+    >
+      <div
+        className="cf-card w-full max-w-sm"
+        style={{ padding: 22, borderRadius: 22 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="cf-icon-tile mx-auto mb-3"
+          style={{
+            width: 52,
+            height: 52,
+            background: "color-mix(in srgb, #ef4444 16%, transparent)",
+            color: "#ef4444",
+          }}
+        >
+          <AlertTriangle size={24} />
+        </div>
+        <div className="cf-h2 text-[19px] text-center">
+          {t("plans.delete.confirm_title", "¿Eliminar este plan?")}
+        </div>
+        <p className="cf-muted text-[13.5px] leading-relaxed text-center mt-2">
+          {t(
+            "plans.delete.confirm_desc",
+            "Se borrará este plan y sus días de entrenamiento. Tu historial de entrenamientos se conserva. Esta acción no se puede deshacer."
+          )}
+        </p>
+
+        {deleteError && (
+          <div
+            className="text-[12.5px] font-semibold text-center mt-3"
+            style={{ color: "#ef4444" }}
+          >
+            {deleteError}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 mt-5">
+          <button
+            className="cf-btn cf-btn-block"
+            disabled={deleting}
+            onClick={confirmDeletePlan}
+            style={{ background: "#ef4444", color: "#fff", gap: 8 }}
+          >
+            {deleting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {t("plans.delete.deleting", "Eliminando…")}
+              </>
+            ) : (
+              <>
+                <Trash2 size={16} />
+                {t("plans.delete.confirm_cta", "Sí, eliminar plan")}
+              </>
+            )}
+          </button>
+          <button
+            className="cf-btn cf-btn-ghost cf-btn-block"
+            disabled={deleting}
+            onClick={() => setPlanToDelete(null)}
+          >
+            {t("common.cancel", "Cancelar")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   // ---------- Loading (skeleton que replica la rejilla de planes) ----------
   if (loading) {
@@ -565,6 +828,17 @@ export default function PlansPage() {
           >
             {editMode ? <Check size={18} /> : <Edit size={18} />}
           </button>
+          <button
+            onClick={() => {
+              setDeleteError(null);
+              setPlanToDelete(selectedPlan);
+            }}
+            className="cf-icon-tile bg-surface-2 border border-border"
+            style={{ width: 40, height: 40, color: "#ef4444" }}
+            aria-label={t("plans.delete.action", "Eliminar plan")}
+          >
+            <Trash2 size={18} />
+          </button>
         </div>
 
         {editMode && (
@@ -661,7 +935,7 @@ export default function PlansPage() {
           ))}
         </div>
 
-        <div className="mt-5 pb-2">
+        <div className="mt-5 pb-2 flex flex-col gap-2.5">
           <button
             className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg"
             onClick={() => router.push(`/session?planId=${selectedPlan.id}`)}
@@ -669,7 +943,47 @@ export default function PlansPage() {
             <Play size={17} fill="currentColor" />
             {t("plans.plan_details.start_session")}
           </button>
+
+          {/* "Mejorar plan": solo si hay ≥1 entrenamiento terminado con datos. */}
+          {improveEligible && (
+            <>
+              <button
+                className="cf-btn cf-btn-ghost cf-btn-block"
+                onClick={handleImprovePlan}
+                disabled={improving}
+                style={{ gap: 8 }}
+              >
+                {improving ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    {t("plans.improve.improving", "Mejorando tu plan…")}
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp size={16} />
+                    {t("plans.improve.cta", "Mejorar plan con mi progreso")}
+                  </>
+                )}
+              </button>
+              <p className="cf-muted text-[11.5px] text-center px-2">
+                {t(
+                  "plans.improve.hint",
+                  "Genera una versión progresada de este plan según tus entrenamientos."
+                )}
+              </p>
+              {improveError && (
+                <p
+                  className="text-[12.5px] font-semibold text-center"
+                  style={{ color: "#ef4444" }}
+                >
+                  {improveError}
+                </p>
+              )}
+            </>
+          )}
         </div>
+
+        {deleteModal}
       </div>
     );
   }
@@ -719,57 +1033,73 @@ export default function PlansPage() {
             const focus = plan.payload?.days?.[0]?.focus;
             const grad = GRADS[idx % GRADS.length];
             return (
-              <button
-                key={plan.id}
-                onClick={() => {
-                  // Usamos el plan ya cargado y avanzamos con push (jerarquía).
-                  setSelectedPlan(plan);
-                  router.push(`/plans?id=${plan.id}`);
-                }}
-                className="cf-card relative overflow-hidden text-left"
-                style={{ padding: 18, borderRadius: 22 }}
-              >
-                <div className="flex justify-between items-start mb-3.5">
-                  <div className="flex gap-1.5">
-                    <span className={`cf-chip cf-chip-${grad}`}>
-                      {plan.weeks} {t("plan.weeks")}
-                    </span>
-                    <span className="cf-chip">
-                      {plan.payload?.days?.length || 0} {t("plan.day")}s
-                    </span>
+              // Envoltorio relativo: el botón de borrar es HERMANO del botón de la
+              // tarjeta (no anidado, que sería HTML inválido).
+              <div key={plan.id} className="relative">
+                <button
+                  onClick={() => {
+                    // Usamos el plan ya cargado y avanzamos con push (jerarquía).
+                    setSelectedPlan(plan);
+                    router.push(`/plans?id=${plan.id}`);
+                  }}
+                  className="cf-card relative overflow-hidden text-left w-full"
+                  style={{ padding: 18, borderRadius: 22 }}
+                >
+                  <div className="flex justify-between items-start mb-3.5">
+                    <div className="flex gap-1.5">
+                      <span className={`cf-chip cf-chip-${grad}`}>
+                        {plan.weeks} {t("plan.weeks")}
+                      </span>
+                      <span className="cf-chip">
+                        {plan.payload?.days?.length || 0} {t("plan.day")}s
+                      </span>
+                    </div>
+                    {idx === 0 && (
+                      <span className="cf-chip cf-chip-mint" style={{ marginRight: 34 }}>
+                        <span
+                          className="rounded-full"
+                          style={{ width: 6, height: 6, background: "var(--mint)" }}
+                        />
+                        {t("plans.active", "Activo")}
+                      </span>
+                    )}
                   </div>
-                  {idx === 0 && (
-                    <span className="cf-chip cf-chip-mint">
-                      <span
-                        className="rounded-full"
-                        style={{ width: 6, height: 6, background: "var(--mint)" }}
-                      />
-                      {t("plans.active", "Activo")}
+                  <div className="cf-h2 text-[18px]">{planTitle(plan, t)}</div>
+                  <div className="cf-muted text-[12.5px] font-semibold mt-1.5">
+                    {focus
+                      ? t("plans.plan_details.focus", { focus })
+                      : t("plans.plan_details.plan_duration", { weeks: plan.weeks })}
+                  </div>
+                  <div className="flex items-center gap-2 mt-3.5 cf-muted text-[12px] font-semibold">
+                    <Dumbbell size={14} />
+                    <span>
+                      {plan.payload?.days?.reduce(
+                        (a, d) => a + (d.blocks?.length || 0),
+                        0
+                      )}{" "}
+                      {t("nav.exercises")}
                     </span>
-                  )}
-                </div>
-                <div className="cf-h2 text-[18px]">{planTitle(plan, t)}</div>
-                <div className="cf-muted text-[12.5px] font-semibold mt-1.5">
-                  {focus
-                    ? t("plans.plan_details.focus", { focus })
-                    : t("plans.plan_details.plan_duration", { weeks: plan.weeks })}
-                </div>
-                <div className="flex items-center gap-2 mt-3.5 cf-muted text-[12px] font-semibold">
-                  <Dumbbell size={14} />
-                  <span>
-                    {plan.payload?.days?.reduce(
-                      (a, d) => a + (d.blocks?.length || 0),
-                      0
-                    )}{" "}
-                    {t("nav.exercises")}
-                  </span>
-                  <ChevronRight size={16} className="ml-auto text-faint" />
-                </div>
-              </button>
+                    <ChevronRight size={16} className="ml-auto text-faint" />
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setDeleteError(null);
+                    setPlanToDelete(plan);
+                  }}
+                  className="cf-icon-tile bg-surface-2 border border-border absolute top-3 right-3"
+                  style={{ width: 30, height: 30, color: "#ef4444" }}
+                  aria-label={t("plans.delete.action", "Eliminar plan")}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             );
           })}
         </div>
       )}
+
+      {deleteModal}
     </div>
   );
 }

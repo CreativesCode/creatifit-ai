@@ -373,6 +373,22 @@
     "subtitle": "Manage and review all your AI-generated plans",
     "create_new_plan": "Create New Plan",
     "active": "Active",
+    "delete": {
+      "action": "Delete plan",
+      "confirm_title": "Delete this plan?",
+      "confirm_desc": "This plan and its training days will be removed. Your workout history is kept. This action cannot be undone.",
+      "confirm_cta": "Yes, delete plan",
+      "deleting": "Deleting…",
+      "error": "Couldn't delete the plan. Please try again."
+    },
+    "improve": {
+      "cta": "Improve plan with my progress",
+      "hint": "Generate a progressed version of this plan based on your workouts.",
+      "improving": "Improving your plan…",
+      "improved_name": "Improved plan",
+      "not_enough_data": "Not enough data yet. Complete at least one workout to improve the plan.",
+      "error": "Couldn't improve the plan. Please try again."
+    },
     "objective_name": "{{objective}} Plan",
     "no_plans": {
       "title": "You don't have plans yet",
@@ -420,7 +436,11 @@
     "categories": {
       "Chest": "Chest",
       "Back": "Back",
+      "Back / Wing": "Back",
       "Legs": "Legs",
+      "Leg": "Legs",
+      "Hips": "Hips & Glutes",
+      "Abs / Core": "Abs & Core",
       "Shoulders": "Shoulders",
       "Arms": "Arms",
       "Core": "Core",

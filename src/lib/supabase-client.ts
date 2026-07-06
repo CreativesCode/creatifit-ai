@@ -155,6 +155,15 @@ export const supabaseClient = {
     }
   },
 
+  // Elimina un plan del usuario. RLS ("Users can delete own plans") garantiza
+  // que solo el dueño pueda borrarlo; las tablas hijas (plan_days ->
+  // plan_exercises) caen por ON DELETE CASCADE. El historial de entrenamientos
+  // (workout_logs) NO referencia el plan por FK, así que se conserva.
+  async deletePlan(id: string) {
+    const { error } = await supabase.from("plans").delete().eq("id", id);
+    if (error) throw error;
+  },
+
   async getPlanExercises(planId: string) {
     try {
       // Usar la función RPC get_plan_exercises_with_details

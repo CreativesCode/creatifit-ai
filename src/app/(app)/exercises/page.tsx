@@ -213,12 +213,19 @@ export default function ExercisesPage() {
     return () => observer.disconnect();
   }, [loadMore]);
 
+  // Los chips filtran por la columna `category` (grupo muscular), que es lo que
+  // realmente varía en la tabla `exercises` (el `kind` es casi siempre
+  // "strength"). Los valores deben coincidir EXACTAMENTE con los de la BD, ya
+  // que el filtro usa `.eq("category", value)` (sensible a mayúsculas).
   const CATS: [string, string][] = [
     ["", t("exercises.filters.all_types")],
-    ["strength", t("exercises.filters.strength")],
-    ["cardio", t("exercises.filters.cardio")],
-    ["flexibility", t("exercises.filters.flexibility")],
-    ["balance", t("exercises.filters.balance")],
+    ["Chest", t("exercises.categories.Chest", "Pecho")],
+    ["Back / Wing", t("exercises.categories.Back / Wing", "Espalda")],
+    ["Leg", t("exercises.categories.Leg", "Piernas")],
+    ["Hips", t("exercises.categories.Hips", "Glúteos")],
+    ["Abs / Core", t("exercises.categories.Abs / Core", "Core")],
+    ["Cardio", t("exercises.categories.Cardio", "Cardio")],
+    ["General", t("exercises.categories.General", "General")],
   ];
 
   // Etiqueta traducida de una categoría (grupo muscular); cae al valor crudo si

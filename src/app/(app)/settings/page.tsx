@@ -119,6 +119,29 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Acciones asíncronas con feedback de carga.
+  const [signingOut, setSigningOut] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setSigningOut(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (restoring) return;
+    setRestoring(true);
+    try {
+      await restorePurchases();
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     setDeleting(true);
@@ -165,12 +188,13 @@ export default function SettingsPage() {
           </div>
         </div>
         <button
-          onClick={signOut}
-          className="cf-icon-tile bg-surface-2 border border-border"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="cf-icon-tile bg-surface-2 border border-border disabled:opacity-60"
           style={{ width: 36, height: 36 }}
           aria-label={t("settings.account.sign_out")}
         >
-          <LogOut size={17} />
+          {signingOut ? <Loader2 size={17} className="animate-spin" /> : <LogOut size={17} />}
         </button>
       </div>
 
@@ -221,11 +245,18 @@ export default function SettingsPage() {
                 </button>
                 <button
                   className="cf-btn cf-btn-ghost cf-btn-sm cf-btn-block"
-                  onClick={restorePurchases}
+                  onClick={handleRestore}
+                  disabled={restoring}
                   style={{ gap: 6 }}
                 >
-                  <RefreshCw size={14} />
-                  {t("subscription.restore", "Restaurar compras")}
+                  {restoring ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <RefreshCw size={14} />
+                  )}
+                  {restoring
+                    ? t("subscription.restoring", "Restaurando…")
+                    : t("subscription.restore", "Restaurar compras")}
                 </button>
               </div>
             ) : (
@@ -328,7 +359,7 @@ export default function SettingsPage() {
         <Row
           icon={Heart}
           label={t("settings.about.developed_by", "Acerca de")}
-          sub={`CreatiFit AI · v1.0.0`}
+          sub={`CreatiFit AI · v1.0.3`}
           right={<FileText size={16} className="text-faint" />}
           last
         />

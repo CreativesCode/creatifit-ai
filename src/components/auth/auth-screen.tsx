@@ -8,6 +8,7 @@ import {
   Check,
   Eye,
   EyeOff,
+  Loader2,
   Lock,
   Mail,
   Sparkles,
@@ -87,6 +88,7 @@ export function AuthScreen() {
   const [showPw, setShowPw] = useState(false);
   const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [forgotBusy, setForgotBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmSent, setConfirmSent] = useState(false);
@@ -143,12 +145,12 @@ export function AuthScreen() {
       setError(t("auth.errors.required"));
       return;
     }
-    setBusy(true);
+    setForgotBusy(true);
     setError(null);
     const { error } = await resetPassword(email);
     if (error) setError(translateAuthError(error, t));
     else setNotice(t("auth.reset_sent", "Te enviamos un enlace para restablecer tu contraseña."));
-    setBusy(false);
+    setForgotBusy(false);
   };
 
   // ---------- Confirmación de correo ----------
@@ -170,8 +172,15 @@ export function AuthScreen() {
           <p className="cf-muted text-xs">{t("auth.confirm.then_signin")}</p>
           {error && <p className="text-danger text-sm">{error}</p>}
           <div className="flex flex-col gap-2.5 w-full pt-2">
-            <button onClick={handleResend} disabled={busy} className="cf-btn cf-btn-ghost cf-btn-block">
-              {busy ? t("auth.sending") : t("auth.confirm.resend")}
+            <button onClick={handleResend} disabled={busy} className="cf-btn cf-btn-ghost cf-btn-block" style={{ gap: 8 }}>
+              {busy ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {t("auth.sending")}
+                </>
+              ) : (
+                t("auth.confirm.resend")
+              )}
             </button>
             <button
               type="button"
@@ -280,8 +289,17 @@ export function AuthScreen() {
 
           <div className="flex-1 min-h-[16px]" />
           <button type="submit" disabled={busy} className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg" style={{ opacity: busy ? 0.7 : 1 }}>
-            {busy ? t("auth.processing") : t("auth.signup_cta", "Crear cuenta")}
-            <ArrowRight size={18} />
+            {busy ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                {t("auth.processing")}
+              </>
+            ) : (
+              <>
+                {t("auth.signup_cta", "Crear cuenta")}
+                <ArrowRight size={18} />
+              </>
+            )}
           </button>
           <div className="text-center py-4 text-[13.5px] cf-muted font-semibold">
             {t("auth.have_account", "¿Ya tienes cuenta?")}{" "}
@@ -320,7 +338,8 @@ export function AuthScreen() {
             onReveal={() => setShowPw((s) => !s)}
           />
           <div className="flex justify-end">
-            <button type="button" onClick={handleForgot} className="text-[12.5px] font-semibold text-primary">
+            <button type="button" onClick={handleForgot} disabled={forgotBusy || busy} className="text-[12.5px] font-semibold text-primary inline-flex items-center gap-1.5">
+              {forgotBusy && <Loader2 size={12} className="animate-spin" />}
               {t("auth.forgot", "¿Olvidaste tu contraseña?")}
             </button>
           </div>
@@ -329,8 +348,17 @@ export function AuthScreen() {
           {notice && <p className="text-[13px]" style={{ color: "var(--mint)" }}>{notice}</p>}
 
           <button type="submit" disabled={busy} className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-1" style={{ opacity: busy ? 0.7 : 1 }}>
-            {busy ? t("auth.processing") : t("auth.signin")}
-            <ArrowRight size={18} />
+            {busy ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                {t("auth.processing")}
+              </>
+            ) : (
+              <>
+                {t("auth.signin")}
+                <ArrowRight size={18} />
+              </>
+            )}
           </button>
         </div>
 

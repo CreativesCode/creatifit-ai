@@ -199,7 +199,7 @@
     "recover": "recover",
     "up_next": "Up next",
     "skip_rest": "Skip rest",
-    "series_x_reps": "{{sets}} sets × {{min}}–{{max}}",
+    "series_x_reps": "{{sets}} sets × {{reps}}",
     "session_completed": "Session completed!",
     "summary_subtitle": "Your workout summary",
     "series": "Sets",

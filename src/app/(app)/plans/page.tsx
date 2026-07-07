@@ -1,6 +1,6 @@
 "use client";
 import { supabaseClient } from "@/lib/supabase-client";
-import { planTitle } from "@/lib/plan-display";
+import { planTitle, formatReps } from "@/lib/plan-display";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { canGenerate } from "@/lib/config/plans-config";
@@ -8,6 +8,7 @@ import {
   computeImproveEligibility,
   buildProgressionNotes,
   buildImproveIntake,
+  logsForPlan,
 } from "@/lib/ai/improve-plan";
 
 import {
@@ -78,6 +79,7 @@ export default function PlansPage() {
   const [alternatives, setAlternatives] = useState<any[]>([]);
   const [altLoading, setAltLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
+  const [swappingId, setSwappingId] = useState<string | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
   // Borrado de plan (modal de confirmación).
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
@@ -154,10 +156,11 @@ export default function PlansPage() {
   }, [planId, dayView]);
 
   // Al abrir el detalle de un plan, evaluamos si hay datos suficientes para
-  // "Mejorar plan" (≥1 entrenamiento terminado con series registradas). El botón
-  // solo aparece si el usuario ya entrenó, evitando ofrecer una mejora sin datos.
+  // "Mejorar plan": ≥1 entrenamiento INICIADO DESDE ESTE PLAN con series
+  // registradas. Filtramos los logs por `plan_id` (ver logsForPlan) para que el
+  // botón NO aparezca en un plan recién generado ni por entrenar otro plan.
   useEffect(() => {
-    if (!planId) {
+    if (!planId || !selectedPlan) {
       setImproveEligible(false);
       return;
     }
@@ -165,7 +168,9 @@ export default function PlansPage() {
     supabaseClient
       .getLogs()
       .then((logs) => {
-        if (!cancelled) setImproveEligible(computeImproveEligibility(logs).eligible);
+        if (cancelled) return;
+        const scoped = logsForPlan(logs, selectedPlan.id);
+        setImproveEligible(computeImproveEligibility(scoped).eligible);
       })
       .catch(() => {
         if (!cancelled) setImproveEligible(false);
@@ -173,7 +178,7 @@ export default function PlansPage() {
     return () => {
       cancelled = true;
     };
-  }, [planId]);
+  }, [planId, selectedPlan]);
 
   const fetchPlans = async () => {
     try {
@@ -259,6 +264,7 @@ export default function PlansPage() {
     if (!selectedPlan || !dayView || !swapTarget) return;
     try {
       setSwapping(true);
+      setSwappingId(alt.id);
       setSwapError(null);
       const payload = await supabaseClient.swapPlanExercise({
         planId: selectedPlan.id,
@@ -279,6 +285,7 @@ export default function PlansPage() {
       );
     } finally {
       setSwapping(false);
+      setSwappingId(null);
     }
   };
 
@@ -320,8 +327,9 @@ export default function PlansPage() {
     try {
       setImproving(true);
 
-      // 1) Datos reales de entrenamiento + comprobación de elegibilidad.
-      const logs = (await supabaseClient.getLogs()) || [];
+      // 1) Datos reales de entrenamiento DE ESTE PLAN + comprobación de elegibilidad.
+      const allLogs = (await supabaseClient.getLogs()) || [];
+      const logs = logsForPlan(allLogs, selectedPlan.id);
       const eligibility = computeImproveEligibility(logs);
       if (!eligibility.eligible) {
         setImproveError(
@@ -637,7 +645,7 @@ export default function PlansPage() {
                         {block.sets} {t("plan_display.series")}
                       </span>
                       <span className="cf-chip" style={{ fontSize: 11.5 }}>
-                        {block.reps[0]}–{block.reps[1]} {t("plan_display.reps")}
+                        {formatReps(block.reps)} {t("plan_display.reps")}
                       </span>
                       <span className="cf-chip" style={{ fontSize: 11.5 }}>
                         {block.rest_sec}s {t("plan_display.rest")}
@@ -776,7 +784,11 @@ export default function PlansPage() {
                           </div>
                         )}
                       </div>
-                      <ChevronRight size={16} className="text-faint shrink-0" />
+                      {swappingId === alt.id ? (
+                        <Loader2 size={16} className="animate-spin text-primary shrink-0" />
+                      ) : (
+                        <ChevronRight size={16} className="text-faint shrink-0" />
+                      )}
                     </button>
                   ))}
                 </div>

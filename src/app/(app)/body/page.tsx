@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Camera,
   Images,
+  Loader2,
   Lock,
   Plus,
   Ruler,
@@ -55,6 +56,7 @@ export default function BodyPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Estado del formulario (strings; se parsean al guardar).
   const [form, setForm] = useState<Record<string, string>>({});
@@ -116,11 +118,14 @@ export default function BodyPage() {
   };
 
   const handleDelete = async (m: Measurement) => {
+    setDeletingId(m.id);
     try {
       await supabaseClient.deleteMeasurement(m.id, m.photo_path);
       setEntries((prev) => prev.filter((e) => e.id !== m.id));
     } catch (e) {
       console.error("Error deleting measurement", e);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -240,8 +245,16 @@ export default function BodyPage() {
             className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-3"
             onClick={handleSave}
             disabled={saving}
+            style={{ gap: 8 }}
           >
-            {saving ? t("body.saving", "Guardando…") : t("body.save", "Guardar registro")}
+            {saving ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                {t("body.saving", "Guardando…")}
+              </>
+            ) : (
+              t("body.save", "Guardar registro")
+            )}
           </button>
         </div>
       )}
@@ -337,10 +350,15 @@ export default function BodyPage() {
                     <div className="font-bold text-[14.5px] capitalize">{fmtDate(m.date)}</div>
                     <button
                       onClick={() => handleDelete(m)}
-                      className="cf-muted hover:text-primary p-1"
+                      disabled={deletingId === m.id}
+                      className="cf-muted hover:text-primary p-1 disabled:opacity-60"
                       aria-label={t("body.delete", "Borrar")}
                     >
-                      <Trash2 size={15} />
+                      {deletingId === m.id ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={15} />
+                      )}
                     </button>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5">

@@ -3,7 +3,7 @@
 import { AppIcon } from "@/components/ui/brand";
 import { CFLoader } from "@/components/ui/loader";
 import { supabase } from "@/lib/supabase-config";
-import { Check, Eye, EyeOff, Lock } from "lucide-react";
+import { Check, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -195,11 +195,16 @@ export default function ResetPasswordPage() {
                 type="submit"
                 disabled={busy}
                 className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-1"
-                style={{ opacity: busy ? 0.7 : 1 }}
+                style={{ opacity: busy ? 0.7 : 1, gap: 8 }}
               >
-                {busy
-                  ? t("auth.processing")
-                  : t("auth.reset.cta", "Guardar contraseña")}
+                {busy ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    {t("auth.processing")}
+                  </>
+                ) : (
+                  t("auth.reset.cta", "Guardar contraseña")
+                )}
               </button>
             </div>
           </form>

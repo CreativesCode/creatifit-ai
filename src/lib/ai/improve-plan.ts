@@ -6,12 +6,27 @@
 // plan anterior y el historial se conservan.
 
 interface WorkoutLog {
-  exercise_name?: string;
+  exercise_name?: string | null;
   actual_reps?: number | null;
   weight?: number | null;
   rpe?: number | null;
   session_id?: string | null;
+  plan_id?: string | null;
   timestamp?: string | null;
+}
+
+// Filtra los logs a los ENTRENAMIENTOS INICIADOS DESDE ESTE plan. `workout_logs`
+// guarda `plan_id` (ver schemas/add-workout-log-plan-id.sql) con el id del plan
+// desde el que se inició la sesión, así que la atribución es exacta —no un cruce
+// por nombre—. Los logs anteriores a esa migración tienen plan_id NULL y no se
+// cuentan (no se pueden atribuir a ningún plan de forma fiable).
+export function logsForPlan<T extends { plan_id?: string | null }>(
+  logs: T[] | null | undefined,
+  planId: string | undefined
+): T[] {
+  if (!planId) return [];
+  const rows = Array.isArray(logs) ? logs : [];
+  return rows.filter((l) => l.plan_id === planId);
 }
 
 export interface ImproveEligibility {

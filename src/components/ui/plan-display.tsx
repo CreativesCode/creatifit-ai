@@ -4,6 +4,7 @@ import { type GeneratedPlan } from "@/lib/validators/schemas";
 import { useRouter as useNextRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatReps } from "@/lib/plan-display";
 import { Button } from "./button";
 
 interface PlanDisplayProps {
@@ -201,7 +202,7 @@ export function PlanDisplay({
                           <div className="flex items-center gap-2">
                             <div className="w-5 h-5 bg-accent/10 rounded-full flex items-center justify-center">
                               <span className="text-accent font-bold text-xs">
-                                {block.reps[0]}-{block.reps[1]}
+                                {formatReps(block.reps, "-")}
                               </span>
                             </div>
                             <span className="text-xs text-muted">{t("plan_display.reps")}</span>

@@ -29,3 +29,15 @@ export function planTitle(plan: PlanLike, t: TFn): string {
   // Planes antiguos sin objetivo: usa el nombre guardado o un genérico.
   return plan?.payload?.meta?.name || t("plan.title", { defaultValue: "Plan" });
 }
+
+/**
+ * Rango de repeticiones para mostrar. Si el mínimo y el máximo coinciden
+ * (p. ej. [12, 12]) se muestra un solo número ("12") en vez de "12–12".
+ * El separador (– por defecto) se puede ajustar para casos como "12-15".
+ */
+export function formatReps(reps: readonly number[], sep = "–"): string {
+  const lo = reps[0];
+  const hi = reps[1];
+  if (hi == null || lo === hi) return `${lo ?? ""}`;
+  return `${lo}${sep}${hi}`;
+}

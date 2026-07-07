@@ -9,6 +9,7 @@ import {
   type NewPR,
 } from "@/lib/progress/records";
 import { supabaseClient } from "@/lib/supabase-client";
+import { formatReps } from "@/lib/plan-display";
 import { playRestEndCue } from "@/lib/feedback";
 import {
   Activity,
@@ -390,7 +391,7 @@ function ExerciseStep({
   const img = gif ? buildImageUrl(gif) : null;
   const equipment = exerciseDetails?.equipment ?? exerciseDetails?.exercise_details?.equipment;
   const targets: [React.ElementType, string, string, string][] = [
-    [Repeat, `${currentExercise.reps[0]}–${currentExercise.reps[1]}`, t("session.reps", "Reps"), "var(--primary)"],
+    [Repeat, formatReps(currentExercise.reps), t("session.reps", "Reps"), "var(--primary)"],
     [Target, `${currentSetIndex + 1}/${currentExercise.sets}`, t("session.set", "Serie"), "var(--cyan)"],
     [Clock, `${currentExercise.rest_sec}s`, t("session.rest_label", "Descanso"), "var(--mint)"],
   ];
@@ -643,10 +644,9 @@ function RestStep({
               <div className="cf-eyebrow text-[10px]">{t("session.up_next", "A continuación")}</div>
               <div className="font-bold text-[15.5px] mt-0.5 truncate">{nextExercise.name}</div>
               <div className="cf-muted text-[12px] font-semibold mt-px">
-                {t("session.series_x_reps", "{{sets}} series × {{min}}–{{max}}", {
+                {t("session.series_x_reps", "{{sets}} series × {{reps}}", {
                   sets: nextExercise.sets,
-                  min: nextExercise.reps[0],
-                  max: nextExercise.reps[1],
+                  reps: formatReps(nextExercise.reps),
                 })}
               </div>
             </div>
@@ -1198,6 +1198,9 @@ export function WorkoutSession({
         rpe: newLog.rpe,
         notes: newLog.notes,
         plan_day_id: planDay.day,
+        // Plan desde el que se inició este entrenamiento. Permite atribuir el log
+        // al plan con precisión (ver "Mejorar plan" en plans/page.tsx).
+        plan_id: planId,
         session_id: sessionId,
         timestamp: new Date().toISOString(),
       });

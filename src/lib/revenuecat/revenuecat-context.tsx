@@ -29,6 +29,7 @@ import type {
   PurchasesPackage,
 } from "@revenuecat/purchases-capacitor";
 import { useAuth } from "@/lib/auth/auth-context";
+import { supabase } from "@/lib/supabase-config";
 import {
   PRO_ENTITLEMENT_ID,
   getRevenueCatApiKey,
@@ -81,6 +82,12 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
   const [ready, setReady] = useState(!isNative); // en web está "listo" de inmediato
   const [loading, setLoading] = useState(isNative);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+  // Tier persistido en `profiles.tier` (fuente de verdad del backend: lo escribe
+  // el webhook de RevenueCat en compras reales y el panel /admin en cambios
+  // manuales). Lo leemos también en el cliente para que un upgrade hecho por un
+  // admin (sin compra en RevenueCat) desbloquee la generación igual que en el
+  // servidor `generate-plan`, que ya se basa en esta columna.
+  const [dbTier, setDbTier] = useState<PlanTier | null>(null);
 
   // Evita reconfigurar el SDK más de una vez por ciclo de vida de la app.
   const configuredRef = useRef(false);
@@ -164,7 +171,35 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
     };
   }, [isNative, user?.id]);
 
+  // Relee `profiles.tier` del usuario actual. Best-effort: si falla, se mantiene
+  // el estado de RevenueCat como único indicador (no rompe el gating).
+  const refreshDbTier = useCallback(async () => {
+    const uid = user?.id;
+    if (!uid) {
+      setDbTier(null);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("tier")
+        .eq("id", uid)
+        .single();
+      setDbTier(((data?.tier as PlanTier) ?? "free"));
+    } catch (err) {
+      console.error("[RevenueCat] refreshDbTier error:", err);
+    }
+  }, [user?.id]);
+
+  // Sincroniza el tier del backend al montar y cada vez que cambia el usuario
+  // (p. ej. al iniciar sesión con otra cuenta). Cubre el caso de un upgrade
+  // hecho por un admin: al volver a entrar, el cliente ya ve el tier Pro.
+  useEffect(() => {
+    refreshDbTier();
+  }, [refreshDbTier]);
+
   const refresh = useCallback(async () => {
+    await refreshDbTier();
     if (!isNative) return;
     try {
       const { Purchases } = await import("@revenuecat/purchases-capacitor");
@@ -173,7 +208,7 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
     } catch (err) {
       console.error("[RevenueCat] refresh error:", err);
     }
-  }, [isNative]);
+  }, [isNative, refreshDbTier]);
 
   const presentPaywall = useCallback(async (): Promise<boolean> => {
     if (!isNative) {
@@ -273,7 +308,14 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
     [isNative]
   );
 
-  const { isPro, tier } = deriveStatus(customerInfo);
+  // Estado efectivo = combinación de RevenueCat (señal viva en el dispositivo,
+  // p. ej. justo tras comprar y antes de que llegue el webhook) y `profiles.tier`
+  // (fuente de verdad del backend; incluye upgrades manuales del admin). Es Pro
+  // si CUALQUIERA de las dos lo indica.
+  const rcStatus = deriveStatus(customerInfo);
+  const dbIsPro = dbTier === "pro_monthly" || dbTier === "pro_annual";
+  const isPro = rcStatus.isPro || dbIsPro;
+  const tier: PlanTier = rcStatus.isPro ? rcStatus.tier : dbTier ?? "free";
 
   return (
     <RevenueCatContext.Provider

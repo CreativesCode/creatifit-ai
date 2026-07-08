@@ -1,5 +1,10 @@
 "use client";
 import { supabaseClient } from "@/lib/supabase-client";
+import {
+  ExerciseDetailView,
+  type ExerciseDetailData,
+  type ExercisePlanSpec,
+} from "@/components/ui/exercise-detail-view";
 import { planTitle, formatReps } from "@/lib/plan-display";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
@@ -68,6 +73,13 @@ export default function PlansPage() {
   const [error, setError] = useState<string | null>(null);
   // Ejercicios del día seleccionado (con gif_url), indexados por exercise_id.
   const [dayGifs, setDayGifs] = useState<Record<string, string>>({});
+  // Detalle de un ejercicio del plan (abierto al tocar su tarjeta). Trae el
+  // ejercicio completo por exercise_id y muestra las specs de ESTE plan.
+  const [exDetail, setExDetail] = useState<ExerciseDetailData | null>(null);
+  const [exDetailSpec, setExDetailSpec] = useState<ExercisePlanSpec | null>(null);
+  const [exDetailLoading, setExDetailLoading] = useState(false);
+  const [exDetailError, setExDetailError] = useState<string | null>(null);
+  const [exDetailOpen, setExDetailOpen] = useState(false);
   // Modo edición (entrada desde el botón "Editar" del plan).
   const [editMode, setEditMode] = useState(false);
   // Estado de la hoja de cambio de ejercicio.
@@ -253,6 +265,42 @@ export default function PlansPage() {
     setSwapTarget(null);
     setAlternatives([]);
     setSwapError(null);
+  };
+
+  // Abre el detalle del ejercicio de un bloque del día. Trae el ejercicio
+  // completo por exercise_id y conserva las specs del plan (series/reps/…) para
+  // mostrarlas dentro del detalle. Si el bloque no tiene exercise_id (planes
+  // antiguos) no hay a qué enlazar, así que no se abre.
+  const openExerciseDetail = async (block: ExerciseBlock) => {
+    if (!block.exercise_id) return;
+    setExDetailOpen(true);
+    setExDetailSpec({
+      sets: block.sets,
+      reps: block.reps,
+      rest_sec: block.rest_sec,
+      cues: block.cues,
+    });
+    setExDetail(null);
+    setExDetailError(null);
+    setExDetailLoading(true);
+    try {
+      const data = await supabaseClient.getExerciseById(block.exercise_id);
+      setExDetail(data);
+    } catch (err) {
+      console.error("Error fetching exercise detail:", err);
+      setExDetailError(
+        t("plans.exercise_detail.error", "No se pudo cargar el ejercicio.")
+      );
+    } finally {
+      setExDetailLoading(false);
+    }
+  };
+
+  const closeExerciseDetail = () => {
+    setExDetailOpen(false);
+    setExDetail(null);
+    setExDetailSpec(null);
+    setExDetailError(null);
   };
 
   // Ejecuta el cambio: persiste y refresca el estado local sin recargar.
@@ -556,6 +604,43 @@ export default function PlansPage() {
     );
   }
 
+  // ---------- Exercise detail (abierto al tocar un ejercicio del día) ----------
+  if (exDetailOpen) {
+    // Ya cargado: el propio componente trae su layout (media a sangre + hoja).
+    if (exDetail) {
+      return (
+        <ExerciseDetailView
+          exercise={exDetail}
+          onBack={closeExerciseDetail}
+          planSpec={exDetailSpec}
+        />
+      );
+    }
+    // Cargando / error: cabecera con back para no dejar al usuario atrapado.
+    return (
+      <div className="container mx-auto max-w-xl lg:max-w-3xl px-4 lg:px-6 pt-4 lg:pt-8">
+        <div className="flex items-center gap-3 pt-1 mb-4">
+          <button
+            onClick={closeExerciseDetail}
+            className="cf-icon-tile bg-surface-2 border border-border"
+            style={{ width: 40, height: 40 }}
+            aria-label={t("exercises.exercise_details.back_to_exercises")}
+          >
+            <ArrowLeft size={20} />
+          </button>
+        </div>
+        {exDetailLoading && (
+          <div className="pt-16 flex justify-center">
+            <Loader2 size={30} className="animate-spin text-primary" />
+          </div>
+        )}
+        {exDetailError && !exDetailLoading && (
+          <p className="text-danger text-center pt-16">{exDetailError}</p>
+        )}
+      </div>
+    );
+  }
+
   // ---------- Day detail (ejercicios del día seleccionado) ----------
   if (selectedPlan && dayView) {
     const day = (selectedPlan.payload?.days || []).find(
@@ -621,7 +706,11 @@ export default function PlansPage() {
                 className="cf-card"
                 style={{ padding: 14, borderRadius: 18 }}
               >
-                <div className="flex items-start gap-3.5">
+                <button
+                  type="button"
+                  onClick={() => openExerciseDetail(block)}
+                  className="flex items-start gap-3.5 text-left w-full"
+                >
                   <img
                     src={buildImageUrl(
                       block.exercise_id ? dayGifs[block.exercise_id] : null
@@ -665,7 +754,13 @@ export default function PlansPage() {
                       </ul>
                     )}
                   </div>
-                </div>
+                  {block.exercise_id && (
+                    <ChevronRight
+                      size={16}
+                      className="text-faint shrink-0 self-center"
+                    />
+                  )}
+                </button>
                 {dayEditing && (
                   <button
                     onClick={() => openSwap(i, block)}

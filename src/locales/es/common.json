@@ -406,7 +406,11 @@
       "training_days": "{{count}} días de entrenamiento",
       "duration": "Duración: {{weeks}} semanas",
       "focus": "Enfoque: {{focus}}",
-      "view_details": "Ver Detalles"
+      "view_details": "Ver Detalles",
+      "in_this_plan": "En este plan"
+    },
+    "exercise_detail": {
+      "error": "No se pudo cargar el ejercicio."
     },
     "swap": {
       "title": "Cambiar ejercicio",

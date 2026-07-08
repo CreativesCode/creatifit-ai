@@ -406,7 +406,11 @@
       "training_days": "{{count}} training days",
       "duration": "Duration: {{weeks}} weeks",
       "focus": "Focus: {{focus}}",
-      "view_details": "View Details"
+      "view_details": "View Details",
+      "in_this_plan": "In this plan"
+    },
+    "exercise_detail": {
+      "error": "Couldn't load the exercise."
     },
     "swap": {
       "title": "Swap exercise",

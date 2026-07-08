@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -25,9 +25,15 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "CreatiFit AI - AI-Powered Fitness Plans",
   description: "Generate personalized workout plans with AI and track your fitness journey",
-  // B8 — sin `user-scalable=no` para permitir zoom (accesibilidad). El zoom
-  // al enfocar inputs ya se mitiga con font-size 16px en globals.css.
-  viewport: "width=device-width, initial-scale=1.0, viewport-fit=cover",
+};
+
+// Next 15 exige el viewport en su propio export (no dentro de `metadata`).
+// B8 — sin `user-scalable=no` para permitir zoom (accesibilidad). El zoom al
+// enfocar inputs ya se mitiga con font-size 16px en globals.css.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

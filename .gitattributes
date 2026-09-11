@@ -1,0 +1,2 @@
+# Preserve exact packaged bytes: the lifecycle manifest verifies SHA-256 hashes.
+/.agents/skills/titan-factory-codex/** -text

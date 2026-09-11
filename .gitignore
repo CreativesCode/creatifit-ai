@@ -47,3 +47,12 @@ next-env.d.ts
 
 docs
 supabase/.temp/
+
+# Titan: preserve packaged docs despite the general docs rule above.
+!/.agents/skills/titan-factory-codex/docs/
+!/.agents/skills/titan-factory-codex/docs/**
+!/.agents/skills/titan-factory-codex/templates/nextjs-supabase/next-env.d.ts
+!/.agents/skills/titan-factory-codex/templates/nextjs-supabase/package-lock.json
+/.titan-toolkit-backups/
+/.titan/logs/
+/.titan/**/__pycache__/

@@ -2,6 +2,8 @@
 
 Read `instructions.md` for product requirements and project conventions. Verify its architectural examples against the current code: this app uses Next.js 15, React 19, Tailwind 4, Supabase and Capacitor, with static export in `next.config.ts`. Do not scaffold the toolkit starter over this application or assume its dependency versions apply here.
 
+Start from `.titan/memory/MEMORY.md` for the reconstructed project context and source status. Older README/brief examples describing Prisma or Next API routes are superseded by the current static frontend and Supabase Edge Functions. `MOBILE-ENV-SETUP.md` contains obsolete secret-handling instructions: never expose OpenAI or service-role keys through `NEXT_PUBLIC_`. Historical deployment/test claims retain their original dates until reverified. Read only the memory entries relevant to the task.
+
 The complete local toolkit is in `.agents/skills/titan-factory-codex/`; its 29 skills are under the nested `skills/` directory. Resolve shared scripts and references relative to each skill file. Native role profiles live in `.codex/agents/`. Consult `.titan/INSTALLATION.md` for maintenance and verification.
 
 <!-- titan-factory-codex:start -->

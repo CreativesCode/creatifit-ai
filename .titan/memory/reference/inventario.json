@@ -1,0 +1,735 @@
+{
+  "review_date": "2026-09-10",
+  "code_baseline": "2cb14df",
+  "scope": "Project documents, public product pages and design inventory; selective code cross-check; no live verification",
+  "sources": [
+    {
+      "path": ".titan/INSTALLATION.md",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 3729,
+      "sha256": "dc7808bcb17069671ccfd07875722ce613965f48bc2d5b09cd4f87a3e48f4abe"
+    },
+    {
+      "path": "AGENTS.md",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 2118,
+      "sha256": "713768c90e8c8d582b676ba0df5b23f3ef551f22100a0a65052d48452ed0cba7"
+    },
+    {
+      "path": "EXERCISES-README.md",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 3850,
+      "sha256": "9d06ebc17d5de244b47fc36a5777cc995aca0dd0302c6fe1aa22206fdffb76cf"
+    },
+    {
+      "path": "MOBILE-ENV-SETUP.md",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 4270,
+      "sha256": "08a71d988180d0d7ae2bf60f3d89a5e24b812455741b36482135812883481142"
+    },
+    {
+      "path": "README.md",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 5234,
+      "sha256": "c1086f81f7ff5b69f266e48d4b1cca3f2f7e5a05f5d5209fce268d0ee0d07254"
+    },
+    {
+      "path": "REVISION-MEJORAS.md",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 35728,
+      "sha256": "27ce4c08bd888230c9d44f59b77d84cb483f3171fb6fb558b1accb7b553ffa4d"
+    },
+    {
+      "path": "docs/PLAN-ENGAGEMENT-FEATURES.md",
+      "review": "complete_text_review",
+      "tracked": false,
+      "bytes": 7362,
+      "sha256": "c0c9307d2dc74c5569e1743f1393193721d8f74bad1dc56e53e44603e78bd31f"
+    },
+    {
+      "path": "docs/design/REDESIGN-PLAN.md",
+      "review": "complete_text_review",
+      "tracked": false,
+      "bytes": 15289,
+      "sha256": "7ff542d86b59c5fb96eb39651c76a7e88e286505398556ea61b5169dc3bd8eaf"
+    },
+    {
+      "path": "docs/design/Redesign.html",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 7255,
+      "sha256": "78ea0a8cd1b58d8ef8e7902471638b419167bf1cbfe66c6250398caf571a5a89"
+    },
+    {
+      "path": "docs/design/_deverr.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 5916,
+      "sha256": "ac3149500b78d7f053999ac70e8fc370de57b83917c4f6699d6887dc823042df"
+    },
+    {
+      "path": "docs/design/_deverr2.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 6368,
+      "sha256": "7acb3f181446da6ddddd0e1d4ada6f9216eefe8699d6e3072c1ee0ffa1505326"
+    },
+    {
+      "path": "docs/design/_deverr3.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 39452,
+      "sha256": "a2e1ea9c8b5a7ed675957c052a7cf82e89b038f2178787fadcf1abbe756ff334"
+    },
+    {
+      "path": "docs/design/_deverr4.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 287,
+      "sha256": "8dc253204572cff2e55c2d97fcf8cde8ecfa8a33ffde03d1225646933f85b368"
+    },
+    {
+      "path": "docs/design/_deverr5.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 11697,
+      "sha256": "9dd9ad914f58fd12402446ffd7031baf85571ecaead0ee042638565adaf9a0a5"
+    },
+    {
+      "path": "docs/design/_deverr6.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 3358,
+      "sha256": "1cd44d339d27f5588ff61af591ff4f935418139ba7e673f99e4a017c8de4ffc7"
+    },
+    {
+      "path": "docs/design/_devout.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 3482,
+      "sha256": "683f1e44280cd64a15ed5183d4465beeb45f5258368201649175cb8a6fb2258f"
+    },
+    {
+      "path": "docs/design/_devout2.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 5404,
+      "sha256": "0cf3c679fef30bad666c49339de476f750a16330ad6413a2c29ed4f467a4ddac"
+    },
+    {
+      "path": "docs/design/_devout3.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 9145,
+      "sha256": "869d53539cfdf9f0155e2e39f08c4b250039d58c83f69b21cc34de28a4697982"
+    },
+    {
+      "path": "docs/design/_devout4.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 7,
+      "sha256": "c52b48874de32a440259904bb25f07d4279762beda729823ef8399006f6b258c"
+    },
+    {
+      "path": "docs/design/_devout5.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 2577,
+      "sha256": "6adbc39157f9bef5c41a1401746da4f6788b3feddfa3ae5ffd0339b689a0ecd0"
+    },
+    {
+      "path": "docs/design/_devout6.log",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 4202,
+      "sha256": "9976f4b633bc980f0f7a38bd3949c6b58992a2d074bfdc0ad5223bb575c8c65b"
+    },
+    {
+      "path": "docs/design/_ref/logo.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 122906,
+      "sha256": "ea69f40aa7aea5e08e54c63d2e36f63f6e2bbfab95e62e9bdc96cc2888e601c8"
+    },
+    {
+      "path": "docs/design/_shots/mdark.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 11055,
+      "sha256": "48649a3cb9159ef47146a595e40a8e59d2607b6bab9afae23ca97b2b0349c188"
+    },
+    {
+      "path": "docs/design/app.css",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 11904,
+      "sha256": "f91770a2f313d674bb45789f9758798f5d4555498814c7f89d294aeeb3d9ffe9"
+    },
+    {
+      "path": "docs/design/design-canvas.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 50083,
+      "sha256": "bd8746af6e5828b5f434a892fd313472d91418b12919cb8997891c2b7c696b37"
+    },
+    {
+      "path": "docs/design/feature-graphic.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 100256,
+      "sha256": "0f9d3d2259fb38ef31c6d4e5a0ecff1ed4698cb40144051c8aef5a559c3a0ad1"
+    },
+    {
+      "path": "docs/design/feature-graphic.svg",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 1986,
+      "sha256": "c06d04d96718b6f31795b245a5ec860d3aebecf8ad89a1100d647f9d8ad1327b"
+    },
+    {
+      "path": "docs/design/kit.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 8079,
+      "sha256": "1d940414d2bc4b7f5f549f081a2ddf766d39e4e6e01885cf653da283c9955a20"
+    },
+    {
+      "path": "docs/design/loader.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 5571,
+      "sha256": "3484e599e635d905059c8552a079be4b016b7bb3f27028c73ea2df4dd6c7301b"
+    },
+    {
+      "path": "docs/design/logos.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 8570,
+      "sha256": "3ebd450b197eae2cf3785558155afb4b0f06e97b47b62ccebcb0111482d36598"
+    },
+    {
+      "path": "docs/design/screens1.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 15837,
+      "sha256": "62880cb483f10288c8a8ea4c15544f0e2a474832e2dddb6aa2efbe7e354a4358"
+    },
+    {
+      "path": "docs/design/screens2.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 16708,
+      "sha256": "fa38d40b626e48a8e5102726d3e39717293943bd0360b2a982ca0ae9cc28912f"
+    },
+    {
+      "path": "docs/design/screens3.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 29651,
+      "sha256": "32ec8f90022b274a578e96aad97ab54ef632fc714771a8c8530eddd6e0476b00"
+    },
+    {
+      "path": "docs/design/screens4.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 6576,
+      "sha256": "67f0b743abcbb2e7f5d1ff4eb5dda84d5c9750b27aa67cb121ef637b8325d88c"
+    },
+    {
+      "path": "docs/design/screens5.jsx",
+      "review": "structural_review",
+      "tracked": false,
+      "bytes": 20370,
+      "sha256": "d2e749fe680099ffbd2f3ffcb050bbd1f9aa6703e1d4f96774b9e7003cdbaa21"
+    },
+    {
+      "path": "docs/design/screens/00-welcome.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 501436,
+      "sha256": "58b57e407745b32b4142634306110312ed1ed41318b1ed1685221d8ea2300ccc"
+    },
+    {
+      "path": "docs/design/screens/01-login.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 403705,
+      "sha256": "9e2f2d224b126f17544dea0e38a02ad846a0dc13ad6c12b26c4dbb7158999235"
+    },
+    {
+      "path": "docs/design/screens/01-signup.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 410643,
+      "sha256": "9482ab39e8c8e1db6410b935287f43c3a450776f687b01d2d89e7949162ca67a"
+    },
+    {
+      "path": "docs/design/screens/02-after-login.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 504160,
+      "sha256": "e1537b6ba6f9b86f97e079c9501b03fe5046aee85c4780a5180666996a179ba7"
+    },
+    {
+      "path": "docs/design/screens/02-login.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 403705,
+      "sha256": "9e2f2d224b126f17544dea0e38a02ad846a0dc13ad6c12b26c4dbb7158999235"
+    },
+    {
+      "path": "docs/design/screens/03-ob1-goal.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 443915,
+      "sha256": "b4507be122b0ab9cfec7451268483d519946eae862e09b7f7ebf42dd8e07c8e3"
+    },
+    {
+      "path": "docs/design/screens/04-ob2-level.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 475813,
+      "sha256": "662375dac59c642098aa6d01931a36a00ec268b3ff88936871f3e4621d645ecc"
+    },
+    {
+      "path": "docs/design/screens/05-ob3-measures.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 373484,
+      "sha256": "157b8d1f76d1432b76d1cd9b720f0722f3d78cfd3535286cc01d6d45179f8c4e"
+    },
+    {
+      "path": "docs/design/screens/06-ob4-equipment.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 523034,
+      "sha256": "b56c5d4a57a287b5954165b21476737253f20ba5db439ca425168411873e480f"
+    },
+    {
+      "path": "docs/design/screens/07-ob5-constraints.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 456821,
+      "sha256": "4774173012ceaa6c0e37e9100524f54bb59a8673040541fcd0590ecf5389cb8c"
+    },
+    {
+      "path": "docs/design/screens/08-ob6-duration.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 424217,
+      "sha256": "d557f3ef8ca5e191b4dd997fdc5dd03230850d202ac2998074b0b58c64fea3bb"
+    },
+    {
+      "path": "docs/design/screens/09-plan-detail.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 555497,
+      "sha256": "a5b8da7a53ef03bc484a46c704a8ee45115d856b831174861ad50996d1f635cf"
+    },
+    {
+      "path": "docs/design/screens/10-onboarding-final.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 424217,
+      "sha256": "d557f3ef8ca5e191b4dd997fdc5dd03230850d202ac2998074b0b58c64fea3bb"
+    },
+    {
+      "path": "docs/design/screens/10-plan-days.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 351393,
+      "sha256": "10d6fdda2de897b63e35e110049b365b446bcca4d4ad2d378d5e1e5349490e27"
+    },
+    {
+      "path": "docs/design/screens/11-dashboard.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 494717,
+      "sha256": "b7c550c6ed9b83024edca40e167cc20df99d6a2ba81464b2245ce7f1b67bad9c"
+    },
+    {
+      "path": "docs/design/screens/11-plan-detail.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 555497,
+      "sha256": "a5b8da7a53ef03bc484a46c704a8ee45115d856b831174861ad50996d1f635cf"
+    },
+    {
+      "path": "docs/design/screens/12-plan-detail-2.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 351393,
+      "sha256": "10d6fdda2de897b63e35e110049b365b446bcca4d4ad2d378d5e1e5349490e27"
+    },
+    {
+      "path": "docs/design/screens/12-select-day.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 371650,
+      "sha256": "6fde0a73d41f9b8d34008c75ed87627d5fecd8eddf8cf1ff02de96f67f39ca1d"
+    },
+    {
+      "path": "docs/design/screens/13-dashboard-full.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 494717,
+      "sha256": "b7c550c6ed9b83024edca40e167cc20df99d6a2ba81464b2245ce7f1b67bad9c"
+    },
+    {
+      "path": "docs/design/screens/13-warmup.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 391677,
+      "sha256": "52aca45fd401c9419b49f16fca463b2f9637aa59dbc6bd0fce7f2d8e1f6b5c1c"
+    },
+    {
+      "path": "docs/design/screens/14-exercise-logging.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 532476,
+      "sha256": "08a8b3284d6381ef1795e1dd5eb4bbd88e1793528eb4f4d3ef53b0f35a3a4f5b"
+    },
+    {
+      "path": "docs/design/screens/14-plans-list.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 319665,
+      "sha256": "9e308028f27d01cbf1de22f8810bd057f854f14b6a43a70f5e6c74bf80a6be35"
+    },
+    {
+      "path": "docs/design/screens/15-rest.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 412975,
+      "sha256": "d4e81030d49a18f6295f0f7e682c559be89aa976c7b2dbbf1786e8fa80278f00"
+    },
+    {
+      "path": "docs/design/screens/15-session.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 371650,
+      "sha256": "6fde0a73d41f9b8d34008c75ed87627d5fecd8eddf8cf1ff02de96f67f39ca1d"
+    },
+    {
+      "path": "docs/design/screens/16-completed.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 406418,
+      "sha256": "2cb5f9806980694996b82bccd696e02a720b7d25ac621a3f3726d031dbd06148"
+    },
+    {
+      "path": "docs/design/screens/16-session-2.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 365867,
+      "sha256": "b90cf766ec86f3569e8c6e044bcd46ad329b6ea73d479b3bfeca31acd84e03a6"
+    },
+    {
+      "path": "docs/design/screens/17-history.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 441531,
+      "sha256": "97d047361da1818bd0cae4ceacbc2ba5cf7076d54a21da0924408b38d41ecd20"
+    },
+    {
+      "path": "docs/design/screens/17-session-logging.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 391678,
+      "sha256": "262d6299433bbf3343ce425af1c2085dbc8ddc0a3e0769d4be7b491c035fe2f9"
+    },
+    {
+      "path": "docs/design/screens/18-exercises.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 423033,
+      "sha256": "5084fae16275054fc67b7f53cec54766434ca02f9992875a59f356a71fd1588d"
+    },
+    {
+      "path": "docs/design/screens/18-session-logging-2.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 380408,
+      "sha256": "2933fa3bfc4d9c202da03d154393c43151374039b330605db5fd00ffc16803d1"
+    },
+    {
+      "path": "docs/design/screens/19-exercise-detail.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 501191,
+      "sha256": "d72362a6257c131aef3b5998f00c88cbbc99bed69e005b773dde9d3e3e1486ca"
+    },
+    {
+      "path": "docs/design/screens/20-settings.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 559771,
+      "sha256": "85c505f0d6d47c08d32ad09f9fa0480f5201fe5ecfc5513d27256faab57c0ef7"
+    },
+    {
+      "path": "docs/design/screens/route-dashboard.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 504160,
+      "sha256": "e1537b6ba6f9b86f97e079c9501b03fe5046aee85c4780a5180666996a179ba7"
+    },
+    {
+      "path": "docs/design/screens/route-exercises.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 422267,
+      "sha256": "5b8fa00c87988ac39c5e0011cacf7ad8b895433b6cd8c167f3f546564b05244e"
+    },
+    {
+      "path": "docs/design/screens/route-onboarding.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 443915,
+      "sha256": "b4507be122b0ab9cfec7451268483d519946eae862e09b7f7ebf42dd8e07c8e3"
+    },
+    {
+      "path": "docs/design/screens/route-plans.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 387610,
+      "sha256": "7d4abe5328d034ddac7f5940fefaee4536db4e244ac51cd13942573bcde1b8f7"
+    },
+    {
+      "path": "docs/design/screens/route-session.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 387610,
+      "sha256": "7d4abe5328d034ddac7f5940fefaee4536db4e244ac51cd13942573bcde1b8f7"
+    },
+    {
+      "path": "docs/design/screens/route-settings.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 559771,
+      "sha256": "85c505f0d6d47c08d32ad09f9fa0480f5201fe5ecfc5513d27256faab57c0ef7"
+    },
+    {
+      "path": "docs/design/screens/route-workout-history.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 304453,
+      "sha256": "2f7540a5430a2c3a4646ac827d2ca9e938f4aebc787114c4e6cafb85042a2063"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-10/1-bienvenida.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 797727,
+      "sha256": "cca718941b941b91e2709d5a446f7de3a47e02ea4ea37017b8f86ffda5cee796"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-10/2-tu-objetivo.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 597771,
+      "sha256": "8a71c40ec54eb205d169bc649eb773f08d058bcce3b8a6536d70a1134d23c0f1"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-10/3-plan-con-ia.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 714917,
+      "sha256": "d199369887f5c69633cff075557aca290b3dab504ad7b03a8dce3afe1882cf04"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-10/4-tu-inicio.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 646233,
+      "sha256": "5796aa19cea986562c4a559502c21e420bbc3409a7b88d31fcadc926dab4b11f"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-10/5-entrena-guiado.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 799311,
+      "sha256": "1bb3759515c974d02d0dbedbb3e5c6de9c20335f71aa9e211e4f6f649932c8ea"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-10/6-resumen-records.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 544964,
+      "sha256": "3997aad8ed31dd8c4754d5c104fe040cfaa23e77aaab6ce5a3e60c244643d18f"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-10/7-tu-progreso.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 636348,
+      "sha256": "afab5c3a087aa1b22e17ddd7aa60a97e370410679f3969051d67f7cbcd93bd75"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-10/8-biblioteca-ejercicios.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 739205,
+      "sha256": "5aad080435212376a5834f698c04c0d76378b7470c1f23028cbbfa85a94512b8"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-7/1-bienvenida.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 471291,
+      "sha256": "f79f2a66807a84732a1d9c3aa51b9db70cbdb373a7a36cc67d4694300a78486a"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-7/2-tu-objetivo.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 413878,
+      "sha256": "1cbf43869af50b2c7744ac5304a2d3f2200951ebcb5e3a17b4f9fbf7b4b8c393"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-7/3-plan-con-ia.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 569917,
+      "sha256": "aa91d219efaacc5954ed4cf8e33c9ce033a16051c1a298db5bf30fc65f5a4a44"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-7/4-tu-inicio.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 470523,
+      "sha256": "dde5e122649c2f57e2fdc91531abbc3866411f464a730b43e2279c8c7f2e470c"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-7/5-entrena-guiado.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 627491,
+      "sha256": "3a0a2021682477618be05f2bafb899f798f52b79f4d5b9bcd234494bc941f38d"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-7/6-resumen-records.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 342973,
+      "sha256": "17649ca87a67f0e0a7533d4c7d8f1fb5f928e40715f844b1ea58e0a53b3eb44b"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-7/7-tu-progreso.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 434011,
+      "sha256": "afe22d8f1b5459aa07707aa4a7b6f1f550512801b0736d178e893dfb6e2910b1"
+    },
+    {
+      "path": "docs/design/screens/store-tablet-7/8-biblioteca-ejercicios.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 395936,
+      "sha256": "b415c7ef64a9def8e8eb0acf09320c6a270a04e69970dd055c311399c7fef825"
+    },
+    {
+      "path": "docs/design/screens/store/1-bienvenida.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 501436,
+      "sha256": "58b57e407745b32b4142634306110312ed1ed41318b1ed1685221d8ea2300ccc"
+    },
+    {
+      "path": "docs/design/screens/store/2-tu-objetivo.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 443915,
+      "sha256": "b4507be122b0ab9cfec7451268483d519946eae862e09b7f7ebf42dd8e07c8e3"
+    },
+    {
+      "path": "docs/design/screens/store/3-plan-con-ia.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 555497,
+      "sha256": "a5b8da7a53ef03bc484a46c704a8ee45115d856b831174861ad50996d1f635cf"
+    },
+    {
+      "path": "docs/design/screens/store/4-tu-inicio.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 502809,
+      "sha256": "c9c3350d6fbce302a277ff6225f16ae77c52a23d95d9a4d15161f570f2a02eb6"
+    },
+    {
+      "path": "docs/design/screens/store/5-entrena-guiado.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 532476,
+      "sha256": "08a8b3284d6381ef1795e1dd5eb4bbd88e1793528eb4f4d3ef53b0f35a3a4f5b"
+    },
+    {
+      "path": "docs/design/screens/store/6-resumen-records.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 406418,
+      "sha256": "2cb5f9806980694996b82bccd696e02a720b7d25ac621a3f3726d031dbd06148"
+    },
+    {
+      "path": "docs/design/screens/store/7-tu-progreso.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 441531,
+      "sha256": "97d047361da1818bd0cae4ceacbc2ba5cf7076d54a21da0924408b38d41ecd20"
+    },
+    {
+      "path": "docs/design/screens/store/8-biblioteca-ejercicios.png",
+      "review": "inventory_only",
+      "tracked": false,
+      "bytes": 423033,
+      "sha256": "5084fae16275054fc67b7f53cec54766434ca02f9992875a59f356a71fd1588d"
+    },
+    {
+      "path": "instructions.md",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 20687,
+      "sha256": "08eab2d1ecb41a9ee20c745129bbd3d542b499758779c8f58e919346c4ae8e68"
+    },
+    {
+      "path": "src/app/account-deletion/page.tsx",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 2734,
+      "sha256": "b514d153e88b032865dbfad373058bca3a3901547f0d1d8e7d4e4ccffb3994dd"
+    },
+    {
+      "path": "src/app/privacy/page.tsx",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 5316,
+      "sha256": "0f93c6225ac82b4b171fecf4b4790d7f6b2e30e4d048f2949a635a55adf41a52"
+    },
+    {
+      "path": "src/app/support/page.tsx",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 2946,
+      "sha256": "37c03a489087ddeae005373d999ecdbdb2199eb3246caf6098fb8a7453363fb1"
+    },
+    {
+      "path": "src/app/terms/page.tsx",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 4382,
+      "sha256": "7acc7270f9e3c51dd64b16d89ff5d66957c18863aceb5fd676fc565d2a47b18a"
+    },
+    {
+      "path": "supabase/functions/generate-plan/DEPLOY.md",
+      "review": "complete_text_review",
+      "tracked": true,
+      "bytes": 3136,
+      "sha256": "2efd24984651f804f07de03fe7710def574e292060fb1a4b9849d02e7b9e40e5"
+    }
+  ]
+}

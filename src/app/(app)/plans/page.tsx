@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { canGenerate } from "@/lib/config/plans-config";
 import { countAiGenerations } from "@/lib/plans/ai-quota";
+import { PlanEditor } from "@/components/plans/plan-editor";
 import {
   computeImproveEligibility,
   buildProgressionNotes,
@@ -83,8 +84,8 @@ export default function PlansPage() {
   const [exDetailLoading, setExDetailLoading] = useState(false);
   const [exDetailError, setExDetailError] = useState<string | null>(null);
   const [exDetailOpen, setExDetailOpen] = useState(false);
-  // Modo edición (entrada desde el botón "Editar" del plan).
-  const [editMode, setEditMode] = useState(false);
+  // Editor de plan abierto: sobre un plan existente o, con `plan: null`, uno nuevo.
+  const [editor, setEditor] = useState<{ plan: Plan | null } | null>(null);
   // Estado de la hoja de cambio de ejercicio.
   const [swapTarget, setSwapTarget] = useState<{
     blockIndex: number;
@@ -455,7 +456,6 @@ export default function PlansPage() {
       clearGenerationRequest();
 
       // 5) Navegar al plan nuevo.
-      setEditMode(false);
       setDayView(null);
       const improved: Plan = {
         ...savedPlan,
@@ -606,6 +606,30 @@ export default function PlansPage() {
       <div className="container mx-auto max-w-xl px-5 py-10">
         <LoadError onRetry={planId ? () => fetchPlan(planId!) : fetchPlans} />
       </div>
+    );
+  }
+
+  // ---------- Editor de plan (nuevo o existente) ----------
+  if (editor && user?.id) {
+    return (
+      <PlanEditor
+        uid={user.id}
+        plan={editor.plan}
+        onClose={() => setEditor(null)}
+        onSaved={(saved) => {
+          const next = saved as Plan;
+          const isNew = !editor.plan;
+          setEditor(null);
+          setDayView(null);
+          setPlans((prev) =>
+            prev.some((p) => p.id === next.id)
+              ? prev.map((p) => (p.id === next.id ? next : p))
+              : [next, ...prev]
+          );
+          // Un plan nuevo aparece el primero de la lista; uno editado, en su detalle.
+          if (!isNew) setSelectedPlan(next);
+        }}
+      />
     );
   }
 
@@ -915,16 +939,12 @@ export default function PlansPage() {
             {t("plans.plan_details.title")}
           </span>
           <button
-            onClick={() => setEditMode((v) => !v)}
-            className={
-              editMode
-                ? "cf-icon-tile bg-grad-brand text-white shadow-glow-brand"
-                : "cf-icon-tile bg-surface-2 border border-border"
-            }
+            onClick={() => setEditor({ plan: selectedPlan })}
+            className="cf-icon-tile bg-surface-2 border border-border"
             style={{ width: 40, height: 40 }}
             aria-label={t("plans.plan_details.edit")}
           >
-            {editMode ? <Check size={18} /> : <Edit size={18} />}
+            <Edit size={18} />
           </button>
           <button
             onClick={() => {
@@ -938,15 +958,6 @@ export default function PlansPage() {
             <Trash2 size={18} />
           </button>
         </div>
-
-        {editMode && (
-          <p className="cf-muted text-[12.5px] mb-3 -mt-1">
-            {t(
-              "plans.swap.edit_hint",
-              "Modo edición: abre un día para cambiar sus ejercicios."
-            )}
-          </p>
-        )}
 
         {/* plan hero */}
         <div
@@ -1000,13 +1011,9 @@ export default function PlansPage() {
               onClick={() => {
                 // Estado primero (ver dayView); push best-effort para el historial.
                 setDayView(d.day);
-                setDayEditing(editMode);
+                setDayEditing(false);
                 try {
-                  router.push(
-                    `/plans?id=${selectedPlan.id}&day=${d.day}${
-                      editMode ? "&edit=1" : ""
-                    }`
-                  );
+                  router.push(`/plans?id=${selectedPlan.id}&day=${d.day}`);
                 } catch {
                   /* no-op */
                 }

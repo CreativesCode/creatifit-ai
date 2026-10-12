@@ -13,7 +13,7 @@ import {
   Target,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface Exercise {
@@ -61,6 +61,10 @@ export default function ExercisesPage() {
   const exerciseId = searchParams.get("id");
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // Posición de la lista al abrir un ejercicio, para volver al mismo sitio, y si
+  // el detalle se abrió desde la lista (hay una entrada del historial que consumir).
+  const listScrollRef = useRef<number | null>(null);
+  const openedByPushRef = useRef(false);
 
   // Carga inicial de favoritos (best-effort: si la tabla aún no existe o falla
   // la red, el listado funciona igual sin favoritos).
@@ -105,8 +109,12 @@ export default function ExercisesPage() {
       }
       fetchExercise(exerciseId);
     } else {
-      fetchExercises();
+      openedByPushRef.current = false;
       setSelectedExercise(null);
+      // Al volver del detalle la lista ya está en memoria: no se vuelve a pedir
+      // ni se pierde lo que el usuario había bajado.
+      if (exercises.length > 0) setLoading(false);
+      else fetchExercises();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseId]);
@@ -164,11 +172,30 @@ export default function ExercisesPage() {
     setSelectedExercise(null);
     setError(null);
     try {
-      router.replace("/exercises");
+      // Desde la lista: retroceder consume la entrada del detalle, así el
+      // siguiente Atrás no lo vuelve a abrir.
+      if (openedByPushRef.current && exerciseId) {
+        openedByPushRef.current = false;
+        router.back();
+      } else {
+        router.replace("/exercises");
+      }
     } catch {
       /* no-op: el estado ya se limpió, así que volvemos al listado igualmente */
     }
   };
+
+  // Devuelve la lista a la altura donde estaba al abrir el detalle.
+  const showingList = !selectedExercise && !exerciseId;
+  useLayoutEffect(() => {
+    if (!showingList || listScrollRef.current === null || exercises.length === 0) return;
+    const y = listScrollRef.current;
+    listScrollRef.current = null;
+    window.scrollTo(0, y);
+    // El router puede recolocar el scroll justo después de navegar.
+    const id = requestAnimationFrame(() => window.scrollTo(0, y));
+    return () => cancelAnimationFrame(id);
+  }, [showingList, exercises.length]);
 
   const handleSearch = useCallback(() => {
     setCurrentPage(1);
@@ -235,7 +262,10 @@ export default function ExercisesPage() {
 
   // Agrupa el listado cargado por categoría preservando el orden (el server ya
   // ordena por categoría, así que las secciones salen completas y estables).
-  const groupedExercises = exercises.reduce<{ cat: string; items: Exercise[] }[]>(
+  const visibleExercises = onlyFavs
+    ? exercises.filter((ex) => favorites.has(ex.id))
+    : exercises;
+  const groupedExercises = visibleExercises.reduce<{ cat: string; items: Exercise[] }[]>(
     (acc, ex) => {
       const cat = ex.category?.trim() || t("exercises.uncategorized", "Otros");
       let group = acc.find((g) => g.cat === cat);
@@ -255,6 +285,8 @@ export default function ExercisesPage() {
       key={`${exercise.id}-${index}`}
       onClick={() => {
         // Usamos el objeto ya cargado y avanzamos con push (jerarquía).
+        listScrollRef.current = window.scrollY;
+        openedByPushRef.current = true;
         setSelectedExercise(exercise as ExerciseDetail);
         router.push(`/exercises?id=${exercise.id}`);
       }}

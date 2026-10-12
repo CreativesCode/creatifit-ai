@@ -11,6 +11,16 @@ Revisado: 2026-09-10. Código local; secretos/modelo desplegado no consultados.
 7. Respuesta `{plan, meta:{matched,total}}`; wrapper cliente valida plan con Zod, pero devuelve solo plan y pierde diagnóstico matched/total.
 8. `savePlan` inserta plans y después llama `insert_plan_exercises`; comunica `exercisesInserted`/`exercisesError`. No hay transacción global.
 
+## Actualización 2026-10-12 (desplegado y probado con una generación real)
+
+Sustituye los puntos 5, 7 y 8 de arriba y la advertencia sobre `FREE_LIMIT_REACHED`.
+
+- **Idempotencia:** el cliente genera el id del plan antes de llamar y lo envía como `requestId`. La función reserva una fila `pending` en `plan_generations`, llama a OpenAI y guarda el plan como `ok` antes de responder. Mismo `requestId` otra vez: devuelve el plan guardado (`reused`) sin llamar a OpenAI. Mismo id aún en curso: 409 `GENERATION_IN_PROGRESS` y el cliente espera y reintenta.
+- **Cliente (`src/lib/ai/openai.ts`):** guarda el id pendiente en el dispositivo ligado a la huella del cuestionario, lo reutiliza si el usuario reintenta la misma petición y lo borra al guardar el plan. Ante red caída reintenta con el mismo id hasta ~2 min. `savePlan` trata un plan ya existente (23505) como guardado.
+- **Límites:** Free 1 generación (cuenta también los planes anteriores a la tabla); Pro 30 cada 30 días (`PRO_LIMIT_REACHED`, 429). Las `pending` de menos de 3 min cuentan, para que dos peticiones simultáneas no pasen a la vez.
+- **Coste:** modelo desplegado `gpt-4o-mini`; `max_tokens` 4096; timeout 75 s sin reintento (solo se reintenta si OpenAI rechaza con 429/5xx). Prueba real: 12 s, 2.401 tokens de entrada y 1.056 de salida, 16/16 ejercicios resueltos.
+- **Sigue pendiente:** validar en servidor los 4 días y las restricciones, ordenar el catálogo que se envía al modelo, reducir los cues y mejorar la espera en pantalla.
+
 ## Contratos y advertencias
 
 - Días A/B/C/D, bloques con ID/nombre, sets, reps[min,max], rest_sec, cues. `savePlan` deriva letra por índice; UI lee `day.day`. Unificar o validar orden sigue pendiente.

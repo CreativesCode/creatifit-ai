@@ -28,6 +28,16 @@ Revisado: 2026-09-10. Evidencia local, sin consultar ni modificar Supabase.
 - `create-execute-sql-function.sql` contiene SQL dinámico SECURITY DEFINER filtrado por cadenas. `scripts/extract-public.mjs` lo excluye explícitamente como inseguro. No instalarlo/reutilizarlo; su existencia local no prueba exposición en producción.
 - `verify-plan-exercise-functions.sql` redefine funciones; `test-plan-exercise-functions.sql` contiene pruebas SQL. El nombre verify/test no implica solo lectura.
 
+## Actualización 2026-10-12 (verificado contra la BD live)
+
+- **`profiles`:** `authenticated` y `anon` ya no tienen INSERT, UPDATE, DELETE ni TRUNCATE; solo queda la política de SELECT propio. Antes cualquier usuario podía ponerse `tier` o `is_admin` (el REVOKE por columna no surtía efecto). Lo escriben solo el webhook y `admin-api` con service role. SQL: `schemas/harden-profiles-privileges.sql`.
+- **Tabla nueva `plan_generations`:** una fila por generación de plan (usuario, `request_id`, estado, modelo, tokens, plan y meta). Escribe solo `generate-plan`; el usuario puede leer id, estado y fechas de las suyas. SQL: `schemas/add-plan-generations.sql`.
+- **Función nueva `admin_user_activity()`:** SECURITY DEFINER, ejecutable solo por `service_role`; agrega actividad por usuario para el panel. SQL: `schemas/add-admin-user-activity.sql`.
+- **`workout_logs`:** confirmado en live que existen `plan_id` (text), `user_id DEFAULT auth.uid()`, `rpe` INTEGER con CHECK 1-10 y políticas SELECT/INSERT/UPDATE/DELETE propias. El cliente inserta con id propio mediante upsert que ignora duplicados.
+- **`execute_sql`:** no existe en la BD live; el archivo sigue en `schemas/` y no debe aplicarse.
+- **Datos en el dispositivo:** `localStorage` guarda la cola de series (`cf-workout-outbox`), copias de lectura por usuario (`cf-cache:<uid>:...`), la sesión a medias y el id de generación pendiente. No se limpian al cerrar sesión; las copias van separadas por usuario.
+- **Credenciales:** las notas con credenciales van en `.titan/memory/**/*.local.md`, ignoradas por git.
+
 ## Storage y eliminación
 
 - Fotos: bucket privado `progress-photos`, carpeta por UUID de usuario; URLs firmadas de duración predeterminada 3600 s. No guardar URLs firmadas ni imágenes personales en memorias.

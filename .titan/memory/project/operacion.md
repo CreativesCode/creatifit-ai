@@ -28,6 +28,16 @@ Supabase-config tiene placeholders para permitir prerender sin env; un build que
 
 Las instrucciones Prisma db:generate/db:push/db:seed del README no existen en los scripts actuales. No ejecutarlas ni instalar Prisma para “arreglar” esa discrepancia.
 
+## Actualización 2026-10-12 (operaciones hechas contra el proyecto live)
+
+- **SQL:** `scripts/run-sql.ps1 -SqlFile <archivo>` funciona con el token de Credential Manager. Los `.sql` deben ser ASCII (sin acentos ni guiones largos). Aplicados ese día: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`.
+- **Funciones:** el comando `supabase` puede estar logueado con otra cuenta sin permisos sobre CreatiFit. Funciona pasando el token de Credential Manager (`Supabase CLI:supabase`) en `SUPABASE_ACCESS_TOKEN` y desplegando con `supabase functions deploy <fn> --project-ref oacjsudvmgkrtcesxjsr --use-api` (sin Docker). `generate-plan` con `verify_jwt`; `admin-api`, `delete-account` y `revenuecat-webhook` con `--no-verify-jwt`. Desplegadas ese día: `generate-plan` y `admin-api`.
+- **Secrets presentes:** `OPENAI_API_KEY`, `MODEL_NAME`, `REVENUECAT_WEBHOOK_AUTH` y los `SUPABASE_*` de plataforma. No existe `ADMIN_BOOTSTRAP_SECRET`.
+- **Proyecto pausado:** el 2026-10-12 el host no resolvía en DNS porque el proyecto estaba pausado; lo restauró el usuario desde el dashboard. El workflow keep-alive no lo evitó: revisar si se está ejecutando.
+- **Desarrollo local:** el puerto 3000 puede estar ocupado por otro proyecto; `npx next dev -p 3100` funciona. `next dev` escribe en `out`, la carpeta que empaqueta Capacitor: hacer build limpio antes de `cap sync`.
+- **Pruebas en navegador:** Playwright con `channel: "chrome"` y perfil `devices["Pixel 5"]`, instalado fuera del repo. No hay suite automatizada en el proyecto; las comprobaciones de ese día fueron scripts sueltos.
+- **Cuentas de prueba:** `robert.cabrer92@gmail.com` (usuario, `pro_annual`) y `admin@creatifitai.com`. Evitar generar planes en las pruebas: cada generación cuesta.
+
 ## Infraestructura y QA
 
 - Solo workflow de aplicación encontrado: keep-supabase-alive; cron 06:00 UTC y manual, llama RPC ping con secrets de GitHub. Archivo local no acredita ejecuciones exitosas ni estado del proveedor.

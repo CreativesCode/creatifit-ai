@@ -20,6 +20,14 @@ Comentario “pasarela futura” de `plans-config.ts` está obsoleto: RevenueCat
 - Admin normal exige JWT y `profiles.is_admin`; acciones list, setTier, deleteUser. Bloquea borrarse a sí mismo en deleteUser.
 - Bootstrap depende de `ADMIN_BOOTSTRAP_SECRET`: retirarlo después, no se consume automáticamente. Nunca reutilizar contraseña del ejemplo ni ejecutarlo como lectura.
 
-Pendiente: contador de filas no representa generaciones consumidas: borrar plan, generar sin guardar o concurrencia pueden eludirlo. La política Pro y rate limit requieren decisión/implementación servidor. No migrar a Polar/Stripe porque el toolkit incluya una receta distinta.
+## Actualización 2026-10-12
+
+- El enforcement de la tabla de arriba cambió: Free cuenta generaciones reales (borrar un plan ya no devuelve cupo) y **Pro sí tiene tope en servidor: 30 cada 30 días**. El párrafo "Pendiente" de abajo quedó resuelto.
+- Un usuario ya no puede cambiar su propio `tier` ni `is_admin` desde el cliente (ver datos-seguridad).
+- Admin: la lista incluye actividad por usuario; se llega desde Ajustes en móvil. La cuenta admin cambió de contraseña y el secret de bootstrap no existe en el proyecto.
+- Decisión del usuario: durante el piloto los testers conservan su tier; no se toca la compra. Google Play no cobra en Cuba, así que Pro solo llegaría por asignación manual desde admin.
+- Sigue pendiente: el build local usa la key de Test Store de RevenueCat si falta la de Android; el tier no se relee al volver a primer plano; RevenueCat puede quedarse con usuario anónimo.
+
+Pendiente (resuelto el 2026-10-12, se conserva como contexto): contador de filas no representa generaciones consumidas: borrar plan, generar sin guardar o concurrencia pueden eludirlo. La política Pro y rate limit requieren decisión/implementación servidor. No migrar a Polar/Stripe porque el toolkit incluya una receta distinta.
 
 Fuentes: `src/lib/config/plans-config.ts`, `src/lib/revenuecat/*`, `supabase/functions/{generate-plan,revenuecat-webhook,admin-api}/index.ts`, `schemas/add-subscription-tier.sql`, `schemas/add-admin-role.sql`, `/terms` y `/support`.

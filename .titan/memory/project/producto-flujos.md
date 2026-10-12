@@ -41,4 +41,16 @@ CreatiFit AI acompaña el ciclo cuestionario → rutina → entrenamiento → hi
 - Volumen = reps × peso; semanas sin datos se rellenan con cero. Tendencias usan fechas ISO/UTC y racha usa fecha local: revisar bordes de día/DST.
 - Comparación de fotos Pro es un gate de UI, no una política de Storage por tier.
 
+## Actualización 2026-10-12 (plan del piloto)
+
+Sustituye lo dicho arriba sobre la sesión donde choque.
+
+- **Entrada al entrenamiento:** el panel lleva en un toque al día que toca ("Entrenar · Día X" = siguiente al último entrenado de ese plan) o a la sesión a medias ("Continuar · Día X"). El selector de días queda como camino secundario. El calentamiento de 15 s sigue existiendo.
+- **Series:** cada serie se guarda primero en el teléfono (cola local) y se sincroniza en segundo plano; la sesión no espera a la red. El `session_id` se conserva al reanudar. Peso con decimales y coma; RPE entero 1-10.
+- **Sesión a medias:** se guarda en el dispositivo y caduca a las 12 h. Reanudar sigue siendo local a ese teléfono, no entre dispositivos.
+- **Durante la sesión** la navegación inferior está oculta; se sale con la X (también en el descanso) o con Atrás, ambos con confirmación si hay series hechas.
+- **Sin conexión:** planes, ejercicios del plan, historial, favoritos y medidas se ven desde la última copia guardada, con una banda que lo avisa. Generar o mejorar un plan, comprar y el panel admin exigen red.
+- **Fechas:** historial y Mi cuerpo usan el día local. Logros y volumen semanal siguen agrupando en UTC.
+- **Admin:** se entra desde Ajustes (solo admins) y el panel muestra actividad por usuario.
+
 Fuentes: `src/app/**/page.tsx`, `src/components/forms/intake-form.tsx`, `src/components/ui/workout-session.tsx`, `src/lib/ai/improve-plan.ts`, `src/lib/progress/*`, `src/lib/validators/schemas.ts`, `docs/PLAN-ENGAGEMENT-FEATURES.md`.

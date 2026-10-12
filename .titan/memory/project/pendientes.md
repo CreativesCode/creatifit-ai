@@ -1,24 +1,24 @@
 # Pendientes y puntos que requieren verificación
 
-Fecha: 2026-09-10. Priorización propuesta por esta revisión, no nueva autorización de implementación. “Local” indica código inspeccionado; “remoto” exige comprobar el entorno real.
+Tabla del 2026-09-10, con filas actualizadas el 2026-10-12 donde se indica. Priorización propuesta por esta revisión, no nueva autorización de implementación. “Local” indica código inspeccionado; “remoto” exige comprobar el entorno real.
 
 | ID | Hallazgo / estado | Siguiente comprobación útil |
 |---|---|---|
 | P01 | Guía móvil recomienda secretos públicos; contradice implementación actual | Corregir/retirar MOBILE-ENV-SETUP.md en una tarea documental; mientras, tratarla como obsoleta |
-| P02 | SQL tier/is_admin intenta impedir escritura por columna | Probar permisos efectivos SELECT/INSERT/UPDATE con dos usuarios y anon, incluyendo grants de tabla; no afirmar bloqueo solo por REVOKE |
+| P02 | **Resuelto 2026-10-12.** El REVOKE por columna no bloqueaba nada; se revocó la escritura de tabla sobre `profiles` | Nada pendiente. Si se añade un campo editable por el usuario, hace falta GRANT de columna o Edge Function |
 | P03 | No existe cadena supabase/migrations; SQL disperso y variantes antiguas | Inventariar schema remoto y ordenar migraciones; no ejecutar todos los SQL |
-| P04 | Free cuenta planes existentes; Pro ignora cupo 30/mes | Decidir contador de consumo real/rate limit y probar borrado, concurrencia y generación sin guardado |
+| P04 | **Resuelto 2026-10-12.** Los límites cuentan generaciones reales en `plan_generations`: Free 1, Pro 30 cada 30 días | Nada pendiente |
 | P05 | json_object y validación servidor parcial; fallback de catálogo general | Validar esquema, cuatro días, restricciones/equipo y fallback con pruebas reproducibles |
 | P06 | Guardado/sustitución de plan en varias escrituras | Definir transacción/recuperación; verificar consistency de payload y plan_exercises |
-| P07 | FREE_LIMIT_REACHED puede perderse en catch del wrapper | Probar respuesta 402 hasta la UI/paywall sin gasto de IA |
+| P07 | **Resuelto 2026-10-12.** El cliente propaga `FREE_LIMIT_REACHED`, `PRO_LIMIT_REACHED`, red y fallo por separado | Probar el 402 hasta el paywall en un APK |
 | P08 | Webhook sin control persistido de orden/idempotencia observado | Probar eventos fuera de orden, expiración, cambios de producto y perfiles inexistentes |
 | P09 | Borrado de cuenta sin limpieza explícita de fotos | Verificar Storage + cascadas + errores; alinear promesa pública con comportamiento |
 | P10 | React Query montado sin hooks; dependencias auth-ui/helpers heredadas | Decidir migración de fetching o retirada selectiva; no añadir más clientes Supabase |
 | P11 | any, lint omitido en build y sin suite general en package.json | Establecer baseline actual antes de afirmar calidad; audit de 18 vulnerabilidades era histórico, no se repitió |
 | P12 | Logros recalculados y rachas con semánticas distintas | Persistencia de desbloqueos/longest, fechas locales/UTC y DST |
-| P13 | “Sesión terminada” en mejora se infiere de logs, sin marca verificada | Definir completado real y tratamiento de sesiones parciales |
+| P13 | “Sesión terminada” en mejora se infiere de logs, sin marca verificada. Desde 2026-10-12 las sesiones a medias caducan a las 12 h, pero sigue sin haber marca de finalización | Definir completado real y tratamiento de sesiones parciales |
 | P14 | Rutina semanal repetida; mejora crea otra rutina | Separar en copy y roadmap mejora puntual de periodización semanal real |
-| P15 | Offline SQLite/sync, push y export avanzado del brief sin implementación encontrada | Mantener como propuestas, no features disponibles |
+| P15 | Offline SQLite/sync, push y export avanzado del brief sin implementación encontrada. Desde 2026-10-12 sí hay offline básico: cola local de series y copia local de lecturas (sin SQLite ni sync bidireccional) | Mantener SQLite, push y export como propuestas |
 | P16 | UI pública española y privacidad anterior a fotos/medidas | Revisar cobertura de textos y consistencia con datos enviados/almacenados |
 | P17 | Release/tiendas/hosting/secrets no verificados | Comprobar entorno elegido, keys de plataforma, redirects y QA de dispositivo cuando se pida release |
 | P18 | Catálogo Titan aparece directo y con namespace en esta interfaz | Revisar compatibilidad de carga entre host y CLI antes de universalizar instalador; no son 58 recetas distintas |
@@ -34,6 +34,8 @@ Auditoría de código por áreas más pruebas en navegador contra el Supabase re
 - **Despliegue de funciones:** el comando `supabase` de la máquina puede estar logueado con otra cuenta; funciona pasando en `SUPABASE_ACCESS_TOKEN` el token de Credential Manager (`Supabase CLI:supabase`) y `functions deploy <fn> --project-ref oacjsudvmgkrtcesxjsr --use-api` (sin Docker). `generate-plan` mantiene `verify_jwt` activo.
 - **Flujo de entrenamiento (2026-10-12):** `src/lib/session-resume.ts` concentra la clave de la sesión guardada, su caducidad (12 h), la sesión reanudable, el día sugerido y el indicador de sesión activa que oculta la navegación inferior. Con la navegación oculta, toda pantalla de la sesión necesita su propio botón de salir. Las salidas de la sesión pasan por `leaveSession`, que retira las entradas centinela del historial antes de navegar.
 - **P12 parcial:** historial y Mi cuerpo usan día local (`localDay`/`parseLocalDay` en `streak.ts`); `records.ts` y `trends.ts` siguen en UTC.
+- **Panel admin (2026-10-12):** la lista sale de la función SQL `admin_user_activity()` (solo `service_role`) vía `admin-api`; muestra último entreno, sesiones, accesos y generaciones. Ese día, de 11 usuarios solo la cuenta de pruebas había entrenado en la última semana.
+- **Decisiones del usuario (2026-10-12):** los testers conservan su tier (no se toca la compra); autorizado desplegar Edge Functions mientras la app esté en modo prueba; la contraseña del admin se cambió y vive en `reference/credenciales.local.md`, fuera de git. Sin decidir: alta con o sin confirmación de correo (0.2 del plan).
 - El proyecto Supabase estaba pausado ese día (el host no resolvía en DNS) y lo restauró el usuario; el keep-alive no lo evitó.
 - El piloto es principalmente móvil (APK Android); priorizar ese flujo.
 

@@ -1,42 +1,101 @@
 # Plan de correcciones para el piloto en Cuba (QA general)
 
-Fecha: 2026-10-12. Estado: **hallazgos anotados, nada corregido todavía.**
+Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está en la sección Progreso.
 
 ## Progreso
 
-**Siguiente por hacer, en este orden:** 3.1 y 3.2 (GIF), 3.3 (fotos), 2.6 (tier y refresco al volver a primer plano), 1.6 y 1.13 (deshacer serie, saltar ejercicio, terminar antes), resto de 2.8 (logros y volumen en día local), 3.5 (buscador), fase 6. Pendiente de decisión del usuario: 0.2 (alta con o sin confirmación de correo). 0.4 y 0.5 se hacen al preparar el APK. El usuario autorizó el 2026-10-12 desplegar las Edge Functions que hagan falta (la app está en modo prueba).
+Actualizado: 2026-10-12. **16 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
-Hecho el 2026-10-12 (un commit por tarea, sin push):
+### Estado por tarea
 
-- **0.1** Aplicado en la BD live con `schemas/harden-profiles-privileges.sql` (REVOKE de escritura sobre `profiles` y eliminación de la política de UPDATE). Verificado: un usuario normal recibe 403. De paso se comprobó que `execute_sql` no existe en la BD (5.6) y que hay un solo admin.
-- **1.1, 1.2** Cola local de series en `src/lib/workout-outbox.ts`: id generado en el teléfono, upsert que ignora duplicados, reintento al recuperar red, al volver a primer plano y al abrir la app; aviso de series pendientes en la sesión y en el resumen. "Completar serie" ya no espera a la red y un segundo toque no duplica.
+| Tarea | Estado | Nota |
+|---|---|---|
+| 0.1 Usuarios no pueden ponerse Pro/admin | Hecho, en producción | Verificado 403 |
+| 0.2 Alta y recuperación de contraseña | **Espera decisión del usuario** | A: quitar confirmación de correo. B: mantenerla con SMTP propio y URL pública |
+| 0.3 Key de RevenueCat y compra en Cuba | Decidido: no tocar | Los testers se quedan con su tier. La key de Test Store en el build sigue pendiente para cuando se prepare el APK |
+| 0.4 WebView mínimo | Pendiente | Al preparar el APK |
+| 0.5 Build limpio y `cap sync` | Pendiente | Al preparar el APK |
+| 0.6 Contraseña admin y bootstrap | Hecho | Secret de bootstrap inexistente |
+| 1.1, 1.2 Series sin pérdida ni duplicados | Hecho | Cola local |
+| 1.3 `session_id` estable | Hecho | |
+| 1.4, 1.5 Peso decimal, RPE válido | Hecho | Teclado real: dispositivo |
+| 1.6 Deshacer / corregir serie | Pendiente | |
+| 1.7 Entrenar sin red y continuar sesión | Hecho | |
+| 1.8 Caducidad de sesión guardada | Hecho (parcial) | Falta marca real de sesión terminada (P13) |
+| 1.9 Acción principal a la vista | Hecho | |
+| 1.10 Arrastre de peso y RPE | Hecho | |
+| 1.11 Descanso por reloj, wake lock, vibración | Hecho | Wake lock y vibración: dispositivo; el permiso exige recompilar |
+| 1.12 Empezar en un toque | Hecho | El calentamiento de 15 s se mantiene (decisión de producto) |
+| 1.13 Saltar ejercicio / terminar antes | Pendiente | |
+| 1.14 Botón Atrás | Hecho (parcial) | Falta en detalle del historial y cuestionario; probar en APK |
+| 1.15 Navegación oculta y teclado | Hecho (parcial) | Falta revisar menú de 6 pestañas a 360 px |
+| 2.1 No expulsar al login sin red | Hecho | |
+| 2.2 Límite de tiempo | Hecho | |
+| 2.3 Error distinto de vacío | Hecho (parcial) | Falta historial y Mi cuerpo |
+| 2.4 Reintentar funciona | Hecho | |
+| 2.5 Errores legibles y banda sin conexión | Hecho (parcial) | Falta traducir los errores del login |
+| 2.6 Tier y refresco al volver | Pendiente | |
+| 2.7 Descargas repetidas del historial | Parcial | Hay copia local, pero sigue siendo red primero en cada visita |
+| 2.8 Fechas en día local | Parcial | Falta `records.ts` y `trends.ts` |
+| 2.9 Cerrar sesión sin red, claves por usuario | Pendiente | |
+| 2.10 RevenueCat usuario anónimo | Pendiente | |
+| 3.1 a 3.7 Consumo de datos | Pendiente | 3.1 (GIF) es la más larga: exige reprocesar archivos |
+| 4.1 Generación que no se pierde | Hecho, en producción | Una generación real de prueba |
+| 4.2 Doble toque en generar/mejorar | Hecho | |
+| 4.3 Límites sobre generaciones reales | Hecho, en producción | Free 1, Pro 30 cada 30 días |
+| 4.4 Errores de límite y red distinguidos | Hecho | |
+| 4.5 Coste por llamada | Parcial | `max_tokens` y sin reintento tras timeout. Modelo desplegado: `gpt-4o-mini`. Falta reducir los cues |
+| 4.6 Validar el plan en servidor | Pendiente | |
+| 4.7 Espera y cuestionario | Pendiente | |
+| 5.1 Entrada a admin en móvil | Hecho | |
+| 5.2 Actividad por usuario | Hecho (parcial) | Falta ver plan y registros de un usuario, y crear cuentas |
+| 5.3 Pro en bloque | Pendiente | Sin prisa: los testers se quedan como están |
+| 5.4 Orden, errores, fila compacta | Hecho (parcial) | Falta paginación |
+| 5.5 Borrado limpio, último admin, nombre | Pendiente | |
+| 5.6 `execute_sql` | Comprobado | No existe en la BD; el archivo SQL sigue en `schemas/` |
+| Fase 6 | Pendiente | |
+
+### Siguiente por hacer, en este orden
+
+1. 3.1 y 3.2 (GIF) y 3.3 (fotos): el mayor consumo de datos.
+2. 2.6 (tier y refresco al volver a primer plano).
+3. 1.6 y 1.13 (deshacer serie, saltar ejercicio, terminar antes).
+4. Resto de 2.8 (logros y volumen en día local) y 3.5 (buscador de ejercicios).
+5. Fase 6.
+
+Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions que hagan falta (la app está en modo prueba); un commit por tarea y continuar sin esperar confirmación; mantener al día este plan y la memoria.
+
+### Qué se hizo en cada tarea
+
+- **0.1** `schemas/harden-profiles-privileges.sql`: REVOKE de escritura sobre `profiles` y eliminación de la política de UPDATE. Un usuario normal recibe 403. Hay un solo admin.
+- **0.6** Contraseña del admin cambiada (la antigua ya no entra). Está en `.titan/memory/reference/credenciales.local.md`, fuera de git.
+- **1.1, 1.2** `src/lib/workout-outbox.ts`: id generado en el teléfono, upsert que ignora duplicados, reintento al recuperar red, al volver a primer plano y al abrir la app; aviso de series pendientes en la sesión y en el resumen. "Completar serie" no espera a la red y un segundo toque no duplica.
 - **1.3** El `session_id` se conserva al reanudar.
 - **1.4, 1.5** Peso con teclado decimal y coma aceptada; RPE entero 1-10; topes de reps (200) y peso (500 kg).
+- **1.7** Copia local de lecturas en `src/lib/local-cache.ts`, aplicada en `supabase-client.ts` a planes, plan por id, ejercicios del plan, historial, favoritos y medidas: red primero y, si falla, lo último guardado. El panel deja en el teléfono los ejercicios del plan activo. Si hay una sesión a medias, el panel ofrece "Continuar · Día X (n series)".
+- **1.8** Una sesión guardada hace más de 12 h no se reanuda ni se ofrece, y se limpia.
+- **1.9** Barra de acción fija, GIF más pequeño, objetivo en una línea y pista de progresión bajo los campos. A 360×640, campos y "Completar serie" visibles sin desplazarse.
 - **1.10** Peso y RPE se arrastran entre series del mismo ejercicio; el campo se selecciona al enfocarlo.
-- **2.8 (parcial)** Historial y fecha por defecto de Mi cuerpo usan el día local. Falta `records.ts` y `trends.ts` (logros y volumen semanal siguen en UTC).
+- **1.11** Descanso y calentamiento cuentan contra la hora de fin; wake lock de pantalla durante la sesión; el manifest declara `VIBRATE`.
+- **1.12** El botón del panel dice "Entrenar · Día X" y lleva al día que toca (`src/lib/session-resume.ts`); "Elegir otro día" queda como enlace y el selector marca "Te toca hoy".
+- **1.14** El manejador de Atrás importa de verdad `@capacitor/app` (antes nunca se registraba) y reconoce las pestañas raíz con barra final. Al salir de una sesión se retiran del historial las entradas centinela.
+- **1.15** Navegación inferior oculta durante el entrenamiento, botón de salir propio en el descanso y `windowSoftInputMode="adjustResize"`.
+- **2.1** `auth-context.tsx` arranca con la sesión guardada en el dispositivo; solo se cierra sesión si auth-js borró el token.
+- **2.2** `src/lib/supabase-config.ts`: 15 s por petición, 120 s para Edge Functions y Storage.
+- **2.3, 2.4** Componente `LoadError` con "Reintentar" en inicio, planes, ejercicios y sesión; el reintento limpia el error.
+- **2.5** Banda "Sin conexión / conexión inestable · mostrando datos guardados" (`connection-banner.tsx`).
+- **2.8** Historial y fecha por defecto de Mi cuerpo usan el día local.
+- **4.1, 4.3, 4.4, 4.5** Tabla `plan_generations` (`schemas/add-plan-generations.sql`) y función `generate-plan`: el teléfono envía un `requestId` (que es el id del plan); un reintento con el mismo id devuelve el plan guardado sin llamar a OpenAI; un id en curso recibe 409 y el cliente espera. El cliente (`src/lib/ai/openai.ts`) guarda el id pendiente por cuestionario y `savePlan` tolera el reintento de un plan ya guardado. Prueba real: 12 s, 16/16 ejercicios; repetida, 0,8 s y `reused`; id en curso, 409; 2.401 + 1.056 tokens.
+- **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
+- **5.1** Entrada "Panel de administración" en Ajustes solo para admins y botón de volver en `/admin`.
+- **5.2, 5.4** Función SQL `admin_user_activity()` (`schemas/add-admin-user-activity.sql`, solo `service_role`) y `admin-api` desplegada: último entreno, sesiones, series, último acceso, planes y generaciones por usuario; tarjeta "Activos 7 días"; orden por alta, entreno reciente o inactividad; mensaje de red en español con límite de 20 s. Dato del 2026-10-12: de 11 usuarios solo 1 entrenó en los últimos 7 días (la cuenta de pruebas); los demás no entran desde junio.
 
-- **1.11** El descanso y el calentamiento cuentan contra la hora de fin (no se desincronizan con la pantalla apagada), se pide wake lock de pantalla durante la sesión y el manifest declara `VIBRATE`. Verificado en navegador (cuenta, pausa, reanudar, saltar); wake lock y vibración solo se confirman en un teléfono, y el permiso exige recompilar el APK.
-- **1.9** Pantalla de ejercicio reordenada: barra de acción fija sobre la navegación, GIF más pequeño, objetivo en una línea y pista de progresión bajo los campos. Medido a 360×640: campos y "Completar serie" visibles sin desplazarse. Falta ocultar la navegación durante la sesión (1.15).
-- **1.12** El botón del panel dice "Entrenar · Día X" y lleva en un toque al día que toca (el siguiente al último entrenado de ese plan, en `src/lib/session-resume.ts`); "Elegir otro día" queda como enlace y el selector marca "Te toca hoy". El calentamiento de 15 s se mantiene tal cual (se salta con un toque): quitarlo es decisión de producto.
-- **1.7 (resto) y 1.8** Si hay una sesión a medias en el teléfono, el panel ofrece "Continuar · Día X (n series)". Una sesión guardada hace más de 12 h ya no se reanuda ni se ofrece, y se limpia. Falta la marca real de "sesión terminada" (P13): una sesión abandonada sigue contando como sesión en el contador.
-- **1.14** El manejador del botón Atrás de Android importa de verdad `@capacitor/app` (antes nunca se registraba) y reconoce las pestañas raíz con barra final. Al salir de una sesión se retiran del historial las entradas centinela: Atrás ya no vuelve a meter al usuario en una sesión nueva. Falta el Atrás en el detalle del historial y en el cuestionario, y probarlo en el APK.
-- **1.15** La navegación inferior se oculta durante el entrenamiento (la barra de acción queda pegada abajo), el descanso tiene su propio botón de salir y el manifest fija `windowSoftInputMode="adjustResize"`. Queda revisar el menú de 6 pestañas a 360 px.
-- **5.2 (parcial) y 5.4 (parcial)** El panel muestra por usuario el último entreno, sesiones, series, último acceso, planes y generaciones, con tarjeta "Activos 7 días" y orden por alta, por entreno reciente o por inactividad. Los datos salen de la función SQL `admin_user_activity()` (`schemas/add-admin-user-activity.sql`, solo `service_role`), que sustituye a traer toda la tabla `plans`; `admin-api` desplegada. La fila ya no repite el tier y los fallos de red dan un mensaje en español con límite de 20 s. Verificado a 390 px; un usuario normal sigue recibiendo 403. Falta ver el plan y los registros de un usuario, crear cuentas, Pro en bloque (5.3) y paginación. Dato del día: de 11 usuarios solo 1 entrenó en los últimos 7 días (la cuenta de pruebas); los demás no entran desde junio.
-- **0.6** Contraseña del admin cambiada (la antigua ya no entra; verificado con login). El secret `ADMIN_BOOTSTRAP_SECRET` no existe en el proyecto, así que el bootstrap está inactivo. La contraseña está en `.titan/memory/reference/credenciales.local.md`, que queda fuera de git.
-- **0.3** Decisión del usuario (2026-10-12): los testers se quedan con el tier que tienen; no se toca la compra.
-- **4.1, 4.3, 4.4 y 4.5 (parcial)** Generación idempotente y con registro de consumo. Tabla `plan_generations` (`schemas/add-plan-generations.sql`, aplicada en live) y función `generate-plan` desplegada: el teléfono envía un `requestId` (que es el id del plan); si la respuesta se pierde, el reintento devuelve el plan guardado sin llamar a OpenAI; una petición con el mismo id en curso recibe 409 y el cliente espera. El cupo Free cuenta generaciones reales (borrar un plan ya no devuelve cupo), Pro tiene tope de 30 cada 30 días, hay `max_tokens` y ya no se reintenta tras un timeout. El cliente (`src/lib/ai/openai.ts`) guarda el id pendiente por cuestionario, distingue límite, red y fallo, y `savePlan` tolera el reintento de un plan ya guardado. Verificado contra producción con una sola generación real: 12 s, 16/16 ejercicios; repetida con el mismo id, 0,8 s y `reused`; id en curso, 409. Modelo desplegado: `gpt-4o-mini` (2.401 + 1.056 tokens). Falta de 4.5 reducir los cues; 4.6 y 4.7 siguen pendientes.
-- **4.2** Bloqueo inmediato contra el doble toque en "Generar plan" (`intake-form.tsx`) y en "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes; la guarda de servidor llega con 4.1.
-- **5.1** Entrada "Panel de administración" en Ajustes, visible solo para admins, y botón de volver en `/admin`. Verificado en navegador con ambos usuarios.
-- **2.2** Límite de tiempo global en el cliente Supabase (`src/lib/supabase-config.ts`): 15 s, y 120 s para Edge Functions y Storage.
-- **2.1** Arranque con la sesión guardada en el dispositivo (`auth-context.tsx`): sin red y con el token caducado ya no se manda al login; solo se cierra sesión si auth-js borró el token.
-- **1.7 (parcial) y 2.7 (parcial)** Copia local de lecturas en `src/lib/local-cache.ts`, aplicada en `supabase-client.ts` a planes, plan por id, ejercicios del plan, historial, favoritos y medidas: red primero y, si falla, lo último guardado. El panel deja en el teléfono los ejercicios del plan activo, así que la sesión arranca sin conexión. Falta la tarjeta "Continuar entrenamiento" de 1.7 y reducir las descargas repetidas de 2.7 (sigue siendo red primero en cada visita).
-- **2.3** Fallo de carga distinto de cuenta vacía: componente `LoadError` con "Reintentar" en inicio, planes, ejercicios y sesión. Falta historial y Mi cuerpo, que sin copia local siguen mostrando "sin datos".
-- **2.4** "Reintentar" limpia el error en Planes y Ejercicios.
-- **2.5 (parcial)** Banda "Sin conexión / conexión inestable · mostrando datos guardados" (`connection-banner.tsx`). Falta traducir los errores de red del login y de admin.
+### Cambios hechos en producción (Supabase `oacjsudvmgkrtcesxjsr`)
 
-Verificado en navegador con Supabase bloqueado: sin copia local aparece "No pudimos cargar tus datos" en vez de "Crea tu primer plan" y Reintentar recupera; con copia local se ven panel y plan y la sesión arranca; con el token caducado el panel aparece en ~5 s desde la copia y 40 s después el usuario sigue dentro; al volver la red se quita la banda.
-
-Verificado en navegador con perfil de teléfono: doble toque = 1 fila; serie registrada con Supabase bloqueado, sincronizada al volver; mismo `session_id` tras recargar; "62,5" guardado como 62.50. Falta probarlo en un teléfono real.
+- SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`.
+- Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` (sin `verify_jwt`, valida ella).
+- Contraseña del admin cambiada.
+- Datos de prueba: 11 series del 2026-10-12 en la cuenta de pruebas (ver al final) y un registro en `plan_generations` (`qa-idempotency-check-1`).
 
 ## Cómo se probó
 

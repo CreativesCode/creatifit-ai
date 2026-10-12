@@ -1,0 +1,240 @@
+BLOCKER SES-01   M conf | Una serie cuyo insert falla nunca se reintenta y se pierde al terminar la sesion (el resumen la cuenta como registrada) | src/components/ui/workout-session.tsx:1207
+BLOCKER SES-02   M conf | El insert se espera antes de avanzar, sin timeout ni bloqueo del boton: UI congelada con red lenta y series duplicadas por doble toque | src/components/ui/workout-session.tsx:1192
+BLOCKER DAT-01   M conf | Las series cuyo guardado falla se pierden: el toast promete un reintento que no existe | src/components/ui/workout-session.tsx:1207
+BLOCKER DAT-03   M conf | No se puede empezar ni reanudar un entrenamiento sin red: el plan no se guarda en el dispositivo | src/app/(app)/session/page.tsx:57
+BLOCKER DAT-10   M conf | El plan generado solo vive en memoria hasta que termina el guardado: un corte de red tira una generación ya pagada | src/components/forms/intake-form.tsx:244
+BLOCKER OFF-01   M conf | Las series cuyo guardado falla nunca se reintentan y se pierden al terminar la sesión | src/components/ui/workout-session.tsx:1207
+BLOCKER OFF-03   M conf | Un plan ya generado (y pagado a OpenAI) se descarta si falla la respuesta o el guardado; reintentar vuelve a generar | src/components/forms/intake-form.tsx:244
+BLOCKER REF-01   M conf | Una serie que falla al guardar nunca se reintenta y se pierde al terminar la sesión | src/components/ui/workout-session.tsx:1207
+BLOCKER GEN-01   M conf | El plan generado solo viaja en la respuesta HTTP: si la conexión se corta, la generación pagada se pierde y reintentar vuelve a facturar | supabase/functions/generate-plan/index.ts:461
+BLOCKER ADM-01   S conf LIVE? | El REVOKE por columna no impide que un usuario se ponga tier Pro o is_admin a sí mismo | schemas/add-admin-role.sql:16
+BLOCKER USR-01   M part LIVE? | El alta de usuarios depende de correos no verificados: SMTP, APP_URL y enlaces que nunca abren el APK | src/lib/auth/auth-context.tsx:59
+BLOCKER PERF-01  M conf | Completar serie espera a la red, no reintenta y permite doble toque: series perdidas o duplicadas | src/components/ui/workout-session.tsx:1192
+BLOCKER PERF-02  M conf | Doble toque en 'Generar plan' lanza dos generaciones de OpenAI en usuarios Free | src/components/forms/intake-form.tsx:180
+BLOCKER SES-01   M unve | Las series registradas sin conexión se pierden: el aviso promete reintento pero no existe | src/components/ui/workout-session.tsx:1207
+BLOCKER SES-02   S unve | Un segundo toque en "Completar serie" duplica la serie en la base de datos | src/components/ui/workout-session.tsx:1175
+BLOCKER SES-03   S unve | Cada reanudación de sesión genera un session_id nuevo y parte el entrenamiento en varias sesiones | src/components/ui/workout-session.tsx:1117
+HIGH    SES-03   S conf | Al restaurar una sesion se sobrescribe el session_id guardado con uno nuevo: el entrenamiento queda partido en dos sesiones | src/components/ui/workout-session.tsx:1117
+HIGH    SES-04   M conf | La sesion no puede arrancar sin red: plan, detalles e historial se piden siempre al servidor y nada se cachea | src/app/(app)/session/page.tsx:57
+HIGH    SES-05   S conf | El temporizador de descanso cuenta ticks de setTimeout: se congela con la pantalla apagada o la app en segundo plano y no hay wake lock | src/components/ui/workout-session.tsx:1143
+HIGH    SES-06   M conf | No se puede saltar un ejercicio/serie ni terminar la sesion antes: el flujo es estrictamente lineal y la unica salida descarta el estado | src/components/ui/workout-session.tsx:1219
+HIGH    SES-07   S part | El peso no se arrastra de una serie a la siguiente y el RPE nunca se prerrellena: hay que teclear en casi todas las series | src/components/ui/workout-session.tsx:1128
+HIGH    SES-14   S part LIVE? | El guardado depende de columnas y defaults anadidos por SQL sueltos (plan_id, user_id DEFAULT): si faltan en el proyecto restaurado fallan todas las series | src/components/ui/workout-session.tsx:1203
+HIGH    WOR-M1   M adde | Una serie mal registrada no se puede corregir ni borrar: no existe update/delete de workout_logs ni 'deshacer' en la sesion | src/lib/supabase-client.ts:319
+HIGH    DAT-02   S conf | Completar una serie espera a la red antes de avanzar, sin timeout ni protección contra doble toque | src/components/ui/workout-session.tsx:1192
+HIGH    DAT-04   M conf LIVE? | getLogs descarga todo el historial con select('*') y sin límite; a partir de ~1000 series el resultado se trunca en silencio | src/lib/supabase-client.ts:303
+HIGH    DAT-05   M conf | El mismo historial completo se descarga hasta 5 veces en una navegación normal | src/app/(app)/plans/page.tsx:181
+HIGH    DAT-07   S conf | Los fallos de red se pintan como estados vacíos ('crea tu primer plan', 'aún no hay entrenamientos') | src/app/(app)/dashboard/page.tsx:103
+HIGH    DAT-08   S conf | Un usuario Pro asignado por el admin pasa a verse como Free si falla la lectura del tier, y los cambios del admin no se reflejan hasta reiniciar | src/lib/revenuecat/revenuecat-context.tsx:188
+HIGH    DAT-09   M conf LIVE? | Abrir la app sin red con el token caducado puede mandar al usuario al login | src/components/auth/auth-gate.tsx:14
+HIGH    DAT-11   S conf | Ventana de doble envío en la generación: el bloqueo se activa después de una petición de red | src/components/forms/intake-form.tsx:180
+HIGH    DAT-12   M conf | Las fotos de progreso se suben sin comprimir y se vuelven a descargar enteras en cada visita | src/app/(app)/body/page.tsx:72
+HIGH    DAT-18   S conf | El cliente Supabase no tiene timeout: una conexión colgada deja loaders infinitos | src/lib/supabase-config.ts:27
+HIGH    DAT-23   M conf LIVE? | Decisión de caché: plan activo con sus detalles e imágenes -> SÍ, es el dato más importante a tener offline | src/app/(app)/session/page.tsx:57
+HIGH    DAT-24   M conf | Decisión de caché: historial de series -> SÍ, copia local con sincronización incremental | src/lib/supabase-client.ts:303
+HIGH    DAT-M1   S adde | Un RPE con decimales o mayor que 10 hace fallar el guardado de la serie (la columna es INTEGER con CHECK 1-10) | src/components/ui/workout-session.tsx:540
+HIGH    DAT-M2   S adde | El historial muestra los entrenamientos con un día de menos en Cuba (fecha UTC recortada y vuelta a interpretar como UTC) | src/components/ui/workout-history.tsx:134
+HIGH    OFF-02   S conf | "Completar serie" espera a la red antes de avanzar y permite doble toque (series duplicadas) | src/components/ui/workout-session.tsx:1192
+HIGH    OFF-04   M conf | No se puede iniciar ni reanudar un entrenamiento sin red: /session depende de un fetch del plan sin caché | src/app/(app)/session/page.tsx:57
+HIGH    OFF-05   M conf | Arrancar sin red con el token caducado deja hasta ~30 s de loader mudo y luego manda a /login | src/lib/auth/auth-context.tsx:36
+HIGH    OFF-06   S conf | Ninguna petición tiene timeout ni abort: skeletons y spinners pueden quedarse para siempre | src/lib/supabase-config.ts:27
+HIGH    OFF-07   S conf | Los fallos de red se tragan y se muestran como estados vacíos falsos ("crea tu primer plan", historial vacío) | src/app/(app)/dashboard/page.tsx:103
+HIGH    OFF-13   M conf | Sin caché de datos: cada visita repite las mismas consultas pesadas (workout_logs completo con select *) | src/lib/supabase-client.ts:303
+HIGH    BAD-M1   S adde | Doble toque en "Generar plan" lanza dos generaciones de OpenAI mientras se espera countPlans | src/components/forms/intake-form.tsx:180
+HIGH    BAD-M2   M adde | Con el token caducado y sin red, cada petición espera ~25 s de reintentos de refresh y luego sale como anónima | src/lib/supabase-config.ts:27
+HIGH    REF-02   S part LIVE? | El campo RPE acepta decimales y valores fuera de 1-10 que la tabla rechaza: la serie entera no se guarda | src/components/ui/workout-session.tsx:540
+HIGH    REF-03   S conf | "Completar serie" espera a la red sin bloquear el botón: UI congelada y series duplicadas con doble toque | src/components/ui/workout-session.tsx:1175
+HIGH    REF-04   S conf | Una sesión reanudada recibe un session_id nuevo y queda partida en dos en el historial | src/components/ui/workout-session.tsx:1117
+HIGH    REF-05   S conf | El temporizador de descanso cuenta ticks y se congela con la pantalla bloqueada o la app en segundo plano | src/components/ui/workout-session.tsx:1143
+HIGH    REF-06   S conf | El peso se resetea en cada serie a la sugerencia de la sesión anterior, no al que el usuario acaba de usar | src/components/ui/workout-session.tsx:1131
+HIGH    REF-07   S conf | El historial fecha las sesiones en UTC y las pinta en local: en Cuba los entrenos de día aparecen el día anterior | src/components/ui/workout-history.tsx:134
+HIGH    REF-09   M part LIVE? | getLogs() descarga todo workout_logs con select("*") en cinco pantallas y se trunca en el límite de filas de PostgREST | src/lib/supabase-client.ts:303
+HIGH    REF-10   S conf | profiles.tier solo se lee al arrancar la app y un error de red lo deja en "free": el cambio del admin no llega y un Pro puede verse como Free | src/lib/revenuecat/revenuecat-context.tsx:183
+HIGH    REF-11   S conf LIVE? | RevenueCat puede quedarse con usuario anónimo: el logIn no se ejecuta si configure() termina después de resolverse la sesión | src/lib/revenuecat/revenuecat-context.tsx:147
+HIGH    REF-12   S conf LIVE? | Tras comprar en el paywall se genera de inmediato, pero el servidor decide por profiles.tier y el 402 se convierte en un error genérico | src/lib/ai/openai.ts:48
+HIGH    REF-13   S conf | Un fallo de red en el dashboard se muestra como cuenta vacía con el CTA "Crea tu primer plan" | src/app/(app)/dashboard/page.tsx:103
+HIGH    REF-18   M conf | Las fotos de progreso se re-firman y se vuelven a descargar enteras en cada visita a /body, y se suben sin comprimir | src/app/(app)/body/page.tsx:72
+HIGH    STA-M1   S adde | El botón "Reintentar" de Planes y Ejercicios nunca recupera: el estado de error no se limpia | src/app/(app)/plans/page.tsx:593
+HIGH    STA-M2   M adde | Iniciar o reanudar un entrenamiento exige red: el plan no se cachea y la sesión guardada en localStorage es inalcanzable sin conexión | src/app/(app)/session/page.tsx:54
+HIGH    GEN-02   S conf | Si el guardado falla tras una generación correcta, el plan se descarta y el reintento vuelve a pagar | src/components/forms/intake-form.tsx:244
+HIGH    GEN-03   S conf | Ventana de doble envío: el botón no se bloquea hasta después de un await de red, y el servidor no tiene guarda | src/components/forms/intake-form.tsx:180
+HIGH    GEN-04   M conf | El límite Free se cuenta sobre los planes existentes y el servidor nunca registra consumo: borrar y regenerar, o no guardar, da generaciones ilimitadas | supabase/functions/generate-plan/index.ts:394
+HIGH    GEN-06   S part | FREE_LIMIT_REACHED (402) se convierte en error genérico y todos los fallos del servidor se muestran como "error de conexión" | src/lib/ai/openai.ts:48
+HIGH    GEN-16   S part | En /plans el estado de error nunca se limpia: "Reintentar" vuelve a mostrar el error aunque la carga funcione | src/app/(app)/plans/page.tsx:593
+HIGH    ADM-M1   S adde | Un fallo de red al leer profiles.tier deja como Free durante toda la sesión a un usuario Pro concedido por admin | src/lib/revenuecat/revenuecat-context.tsx:188
+HIGH    USR-02   S conf | El panel muestra 'Crea tu primer plan' cuando falla la red, aunque el usuario ya tenga plan | src/app/(app)/dashboard/page.tsx:103
+HIGH    USR-04   S conf | El historial muestra las sesiones un dia antes (fechas UTC parseadas como hora local) en Cuba | src/components/ui/workout-history.tsx:134
+HIGH    USR-05   S conf | Abrir una sesion del historial lanza 3 peticiones y dos esqueletos para datos que ya estan en memoria | src/app/(app)/workout-history/page.tsx:99
+HIGH    USR-06   S conf | Historial y Mi cuerpo muestran 'aun no hay datos' cuando en realidad fallo la carga | src/components/ui/workout-history.tsx:155
+HIGH    USR-07   S conf | El buscador de ejercicios pierde el foco y cierra el teclado en cada busqueda | src/app/(app)/exercises/page.tsx:305
+HIGH    USR-08   S conf | En la biblioteca, 'Reintentar' nunca sale de la pantalla de error | src/app/(app)/exercises/page.tsx:344
+HIGH    USR-09   M conf LIVE? | La lista de ejercicios carga el GIF animado completo para cada miniatura de 58 px | src/app/(app)/exercises/page.tsx:268
+HIGH    USR-12   M conf | La foto de progreso se sube tal cual sale de la camara, sin comprimir ni limitar tamano | src/app/(app)/body/page.tsx:240
+HIGH    USR-13   M conf | Mi cuerpo descarga todas las fotos a tamano original en cada visita (URL firmada nueva = sin cache) | src/app/(app)/body/page.tsx:72
+HIGH    USR-17   M conf LIVE? | Arrancar la app sin red con el token caducado manda al usuario a la pantalla de login | src/lib/auth/auth-context.tsx:36
+HIGH    PERF-03  M conf LIVE? | getLogs() descarga el historial completo con select * desde 5 sitios y sin cache | src/lib/supabase-client.ts:303
+HIGH    PERF-04  L conf LIVE? | GIF animados originales con cache de 1 hora, usados tambien para miniaturas de 46-64 px | scripts/upload-storage.mjs:78
+HIGH    PERF-05  L conf | Sin cache local: la sesion no arranca sin red y un fallo de red se muestra como 'no tienes planes' | src/app/(app)/dashboard/page.tsx:103
+HIGH    PERF-06  M conf LIVE? | Arranque bloqueado por el refresco del token y expulsion a /login con mala conexion | src/lib/auth/auth-context.tsx:36
+HIGH    PERF-09  M conf | El temporizador de descanso cuenta por decrementos y se congela con la pantalla apagada; ademas escribe en localStorage cada segundo | src/components/ui/workout-session.tsx:1143
+HIGH    WEI-M1   S adde | Al restaurar una sesion se sobrescribe su session_id: el entrenamiento reanudado queda partido en dos sesiones | src/components/ui/workout-session.tsx:1117
+HIGH    SES-04   M unve | La pantalla se queda congelada sin indicación mientras espera la red al completar una serie | src/components/ui/workout-session.tsx:1192
+HIGH    SES-05   S unve | Tras recargar o cerrar la app no se vuelve a la sesión ni se ofrece reanudarla | src/app/(app)/session/page.tsx:78
+HIGH    SES-06   S unve | El historial muestra todas las sesiones con la fecha del día anterior en la zona horaria de Cuba | src/components/ui/workout-history.tsx:163
+HIGH    SES-07   M unve | Una sesión abandonada con una serie cuenta como "Sesión completada" y el diálogo de salida dice lo contrario | src/app/(app)/dashboard/page.tsx:88
+HIGH    DATA-01  L unve | Los GIF animados dominan el consumo de datos: 1,4 MB por sesión y 2,9 MB en la primera pantalla de Ejercicios | src/app/(app)/exercises/page.tsx:267
+HIGH    ADM-01   S unve | Con el backend inalcanzable, el dashboard de un usuario con 6 planes muestra "¡Bienvenido! Crear Mi Primer Plan" | src/app/(app)/dashboard/page.tsx:103
+HIGH    ADM-02   S unve | En móvil no hay ninguna entrada visible a /admin (solo existe en la barra lateral de escritorio) | src/components/ui/side-nav.tsx:33
+HIGH    ADM-07   L unve | El panel no da visibilidad del piloto: sin actividad, sin generaciones reales, sin soporte al usuario | supabase/functions/admin-api/index.ts:145
+HIGH    ANON-01  S unve | Login sin timeout: con la red colgada el botón queda en "Procesando..." indefinidamente | src/lib/auth/auth-context.tsx:49
+MEDIUM  SES-08   S conf | "Completar serie" no es sticky: queda bajo el GIF, objetivos, progresion, inputs y puntos clave, y encima de la barra de navegacion | src/components/ui/workout-session.tsx:559
+MEDIUM  SES-09   M conf LIVE? | Cada inicio de sesion descarga todo workout_logs con select("*") sin limite ni cache | src/lib/supabase-client.ts:303
+MEDIUM  SES-10   S part | Una sesion abandonada se restaura sin caducidad ni pregunta, incluso dias despues, y sus series nuevas se mezclan con la antigua | src/components/ui/workout-session.tsx:957
+MEDIUM  SES-11   S part LIVE? | RPE acepta decimales y valores fuera de 1-10 que la columna INTEGER CHECK rechaza: la serie entera falla al guardarse | src/components/ui/workout-session.tsx:540
+MEDIUM  SES-13   S conf | Llegar a la primera serie requiere 3 toques y 2 esperas: selector de dia sin sugerencia y calentamiento decorativo de 15 s | src/app/(app)/dashboard/page.tsx:222
+MEDIUM  SES-15   S conf LIVE? | crypto.randomUUID sin fallback y sin error boundary: en WebViews antiguos la sesion rompe al montar | src/components/ui/workout-session.tsx:1119
+MEDIUM  WOR-M2   S adde | El prerrelleno contradice la recomendacion: siempre pone el maximo de reps junto al peso ya incrementado, y un toque lo registra como hecho | src/components/ui/workout-session.tsx:1130
+MEDIUM  WOR-M3   M adde | Cada ejercicio descarga un GIF completo, y otro mas en el descanso para una miniatura de 52 px, sin opcion de ahorro de datos | src/components/ui/workout-session.tsx:638
+MEDIUM  DAT-06   M conf | Empezar la sesión desde el día del plan repite tres peticiones que la pantalla anterior acaba de hacer | src/components/ui/workout-session.tsx:1083
+MEDIUM  DAT-15   S conf | Abrir el detalle de una sesión del historial provoca tres peticiones, dos de ellas de datos que ya estaban en pantalla | src/app/(app)/workout-history/page.tsx:50
+MEDIUM  DAT-16   M conf | Biblioteca de ejercicios: cada página baja filas completas con conteo exacto, las respuestas pueden llegar desordenadas y buscar desmonta el campo de texto | src/app/(app)/exercises/page.tsx:120
+MEDIUM  DAT-21   L conf | TanStack Query está montado pero no se usa; veredicto: adoptarlo con caché persistida para lecturas y una outbox propia para las series | src/components/providers.tsx:15
+MEDIUM  DAT-22   M conf LIVE? | Decisión de caché: catálogo de ejercicios -> SÍ, copia local completa de larga duración | src/lib/supabase-client.ts:8
+MEDIUM  DAT-25   M conf | Decisión de caché: perfil/tier, favoritos y medidas corporales -> SÍ con matices (último valor conocido y escritura optimista) | src/app/(app)/exercises/page.tsx:68
+MEDIUM  DAT-26   S conf | Decisión de caché: qué NO debe cachearse (cuota de generación, estado de compra, URLs firmadas, panel admin, sesión de auth) | src/components/forms/intake-form.tsx:180
+MEDIUM  DAT-M3   S adde | La sesión guardada en el dispositivo no caduca: días después se 'restaura' y mezcla series nuevas en el session_id antiguo | src/components/ui/workout-session.tsx:957
+MEDIUM  DAT-M4   S adde | Volver de la ficha de un ejercicio recarga la biblioteca desde la página 1 y pierde la posición de scroll | src/app/(app)/exercises/page.tsx:109
+MEDIUM  OFF-08   S conf | El botón "Reintentar" de Planes y Ejercicios no limpia el error: la pantalla de error no desaparece | src/app/(app)/plans/page.tsx:599
+MEDIUM  OFF-09   S conf | Errores de red mostrados en inglés crudo ("Failed to fetch", "Error: Unknown error", "Error 500") | src/components/auth/auth-screen.tsx:462
+MEDIUM  OFF-10   S conf | Un fallo de red al leer profiles.tier deja al usuario Pro como Free hasta reiniciar la app | src/lib/revenuecat/revenuecat-context.tsx:188
+MEDIUM  OFF-11   S conf | El panel admin muestra "Acceso denegado" a un admin real si falla la lectura de is_admin | src/app/admin/page.tsx:76
+MEDIUM  OFF-12   S conf | No hay detección de online/offline ni aviso al usuario en toda la app | src/app/(app)/layout.tsx:91
+MEDIUM  OFF-14   M part LIVE? | Los GIF de ejercicios se descargan a tamaño completo incluso para miniaturas y sin estrategia de caché | src/app/(app)/exercises/page.tsx:268
+MEDIUM  OFF-15   S conf | Cerrar sesión sin red no hace nada y no avisa | src/lib/auth/auth-context.tsx:70
+MEDIUM  OFF-16   M conf | Progreso corporal: la foto se sube sin comprimir y los fallos de guardado son silenciosos | src/app/(app)/body/page.tsx:96
+MEDIUM  OFF-18   M conf LIVE? | Versión web sin service worker ni manifest: el shell y los chunks de ruta no se cachean de forma fiable | next.config.ts:4
+MEDIUM  BAD-M3   M adde | getLogs sin paginación queda sujeto al tope de filas de PostgREST: historial, récords y racha se truncan en silencio | src/lib/supabase-client.ts:303
+MEDIUM  BAD-M4   S adde | La app no refresca nada al volver a primer plano: tier, planes e historial quedan congelados hasta reiniciar | src/lib/revenuecat/revenuecat-context.tsx:197
+MEDIUM  REF-08   S part | Logros de racha y volumen semanal agrupan por día UTC y contradicen la racha del dashboard | src/lib/progress/records.ts:120
+MEDIUM  REF-14   S conf | Abrir el detalle de una sesión desmonta el historial y vuelve a descargar todo; la pestaña Progreso no saca del detalle | src/app/(app)/workout-history/page.tsx:99
+MEDIUM  REF-16   M conf | "Mejorar plan" no tiene protección contra generaciones repetidas del mismo plan | src/app/(app)/plans/page.tsx:373
+MEDIUM  REF-17   M conf LIVE? | La sustitución de ejercicio da por buena una actualización que puede no haber tocado filas, y la imagen de la sesión depende de plan_exercises | src/lib/supabase-client.ts:400
+MEDIUM  REF-19   S conf | Guardar o borrar una medida falla en silencio, y el borrado es inmediato y sin confirmación | src/app/(app)/body/page.tsx:113
+MEDIUM  REF-20   S conf | La fecha por defecto de una medida se calcula en UTC: de noche se guarda con la fecha de mañana | src/app/(app)/body/page.tsx:99
+MEDIUM  REF-21   S conf | Cerrar sesión sin conexión no hace nada y no avisa | src/lib/auth/auth-context.tsx:70
+MEDIUM  REF-22   S conf | Biblioteca de ejercicios: respuestas solapadas sin control de orden y recarga completa al volver del detalle | src/app/(app)/exercises/page.tsx:115
+MEDIUM  REF-23   S conf | /admin muestra "Acceso denegado" cuando la comprobación de is_admin falla por red | src/app/admin/page.tsx:71
+MEDIUM  REF-24   M part | La sesión reanudable no caduca ni se ve en ninguna pantalla, y "Salir" descarta el progreso local aunque las series ya están en el historial | src/components/ui/workout-session.tsx:957
+MEDIUM  STA-M3   S adde | Un fallo de red en Progreso se muestra como "Sin entrenamientos" | src/components/ui/workout-history.tsx:155
+MEDIUM  GEN-05   M conf | Sin rate limit, sin cupo Pro y sin validar el payload: `notes` de tamaño libre va directo al prompt | supabase/functions/generate-plan/index.ts:352
+MEDIUM  GEN-07   S conf | Llamada a OpenAI sin max_tokens ni control de finish_reason, y reintento tras timeout que factura dos veces | supabase/functions/generate-plan/index.ts:242
+MEDIUM  GEN-08   S conf LIVE? | Modelo por defecto gpt-4o para una tarea de selección por número: ~20x más caro y más lento que gpt-4o-mini | supabase/functions/generate-plan/index.ts:347
+MEDIUM  GEN-09   M conf LIVE? | El catálogo enviado al modelo son 150 filas sin ORDER BY, y el respaldo ignora el equipamiento del usuario | supabase/functions/generate-plan/index.ts:125
+MEDIUM  GEN-10   S conf | Se aceptan y se guardan planes con menos de 4 días, días vacíos o valores no enteros | supabase/functions/generate-plan/index.ts:453
+MEDIUM  GEN-11   S conf | La letra del día sale del modelo en el payload pero se recalcula por índice en plan_exercises | src/lib/supabase-client.ts:250
+MEDIUM  GEN-12   M conf | Las restricciones por lesión solo son una línea de texto en el prompt; nada las aplica ni verifica | supabase/functions/generate-plan/index.ts:160
+MEDIUM  GEN-13   M conf LIVE? | Guardado en dos escrituras con plan_exercises redundante: si la RPC falla nadie la reintenta, y "Mejorar plan" ni mira el resultado | src/lib/supabase-client.ts:270
+MEDIUM  GEN-14   M conf | "Mejorar plan" paga una generación que no ve el plan anterior ni puede expresar progresión de carga | src/lib/ai/improve-plan.ts:117
+MEDIUM  GEN-15   S conf | La elegibilidad de "Mejorar plan" descarga todo el historial de entrenamientos cada vez que se abre un plan | src/app/(app)/plans/page.tsx:180
+MEDIUM  GEN-17   M part | Durante la generación solo hay un spinner con "unos segundos": sin tiempo, sin timeout de cliente y con la navegación inferior activa | src/components/forms/intake-form.tsx:643
+MEDIUM  GEN-18   M conf | Intake de 6 pantallas con datos que no influyen en el plan y sin guardar el borrador | src/components/forms/intake-form.tsx:66
+MEDIUM  GEN-19   M conf LIVE? | Cambio de ejercicio: el UPDATE no comprueba filas afectadas, las alternativas ignoran el equipo del usuario y cargan hasta 60 GIF | src/lib/supabase-client.ts:400
+MEDIUM  GEN-20   S part | El gate de tier del cliente corta antes de preguntar al servidor, con un tier que puede estar desactualizado | src/components/forms/intake-form.tsx:179
+MEDIUM  PLA-M1   S adde | Tras generar y guardar, el plan recién pagado se vuelve a descargar por red; si falla, el usuario ve un error en vez de su plan | src/app/(app)/onboarding/page.tsx:12
+MEDIUM  PLA-M2   S adde | El modelo redacta 2-3 indicaciones por ejercicio en cada plan: la mayor parte de los tokens de salida, que son los caros y los que alargan la espera | supabase/functions/generate-plan/index.ts:205
+MEDIUM  ADM-02   S part LIVE? | La función execute_sql (SECURITY DEFINER, SQL dinámico) sigue en schemas/ sin REVOKE ni DROP | schemas/create-execute-sql-function.sql:5
+MEDIUM  ADM-03   S conf | El admin no puede llegar a /admin desde el móvil ni volver a la app desde el panel | src/components/ui/bottom-navigation.tsx:17
+MEDIUM  ADM-04   M conf | El panel no muestra nada de actividad: sin último entrenamiento, último acceso ni generaciones reales | supabase/functions/admin-api/index.ts:145
+MEDIUM  ADM-05   M conf | No se puede conceder Pro en bloque ni por defecto a los usuarios del piloto | src/app/admin/page.tsx:298
+MEDIUM  ADM-06   S conf | Un fallo de red al comprobar is_admin se muestra como "Acceso denegado" y oculta la entrada de admin | src/app/admin/page.tsx:71
+MEDIUM  ADM-08   M conf | El panel no permite ordenar ni filtrar, y las llamadas no tienen timeout ni conservan la lista al recargar | src/app/admin/page.tsx:134
+MEDIUM  ADM-09   S conf | El Pro concedido por admin tarda en reflejarse: el cliente solo relee profiles.tier al arrancar | src/lib/revenuecat/revenuecat-context.tsx:197
+MEDIUM  ADM-11   S conf LIVE? | bootstrapAdmin sigue activo mientras exista el secret, resetea contraseñas y el ejemplo versionado usa una contraseña trivial | supabase/functions/admin-api/index.ts:82
+MEDIUM  ADM-12   S conf LIVE? | Borrar un usuario (desde admin o desde Ajustes) deja sus fotos de progreso en Storage | supabase/functions/admin-api/index.ts:193
+MEDIUM  ADM-14   S conf | Cerrar sesión y eliminar cuenta fallan en silencio con mala conexión | src/app/(app)/settings/page.tsx:126
+MEDIUM  ADM-15   L conf | Faltan funciones básicas de soporte para el piloto: ver el plan y los registros de un usuario, y crear cuentas | supabase/functions/admin-api/index.ts:142
+MEDIUM  USR-03   M part | Cada visita al panel descarga el historial completo de series y todos los planes con su payload | src/app/(app)/dashboard/page.tsx:80
+MEDIUM  USR-10   S conf | Volver del detalle de un ejercicio recarga la pagina 1 y pierde el scroll y las paginas ya cargadas | src/app/(app)/exercises/page.tsx:109
+MEDIUM  USR-14   S part | Guardar un registro corporal falla en silencio y deja fotos huerfanas; el reintento vuelve a subir la foto | src/app/(app)/body/page.tsx:113
+MEDIUM  USR-15   S conf | El formulario corporal acepta registros vacios y fecha por defecto en UTC; el borrado no pide confirmacion | src/app/(app)/body/page.tsx:99
+MEDIUM  USR-16   S conf | Cerrar sesion sin conexion no hace nada y no avisa | src/lib/auth/auth-context.tsx:70
+MEDIUM  USR-18   S conf LIVE? | Registrarse con un correo ya existente muestra 'revisa tu correo' aunque no se envia nada | src/lib/auth/auth-context.tsx:65
+MEDIUM  USR-19   S part | Errores de auth en ingles crudo (incluido 'Failed to fetch') y correo sin recortar espacios | src/components/auth/auth-screen.tsx:456
+MEDIUM  USR-20   S conf | En el registro, los Terminos y la Privacidad no son enlaces y el error por no aceptarlos dice 'Ingresa correo y contrasena' | src/components/auth/auth-screen.tsx:116
+MEDIUM  USR-21   S conf LIVE? | Ajustes no refresca el plan Pro concedido por el admin hasta reiniciar la app; el desbloqueo de comparacion es un boton muerto fuera del nativo | src/app/(app)/settings/page.tsx:112
+MEDIUM  USR-23   S conf | El panel de administracion no tiene entrada en movil | src/components/ui/bottom-navigation.tsx:17
+MEDIUM  USR-24   M conf LIVE? | getLogs no pagina: al superar el tope de filas de la API las estadisticas se truncan en silencio | src/lib/supabase-client.ts:303
+MEDIUM  USR-25   S conf | Los logros de racha usan la ultima racha (en dias UTC), no la mejor: se vuelven a bloquear | src/lib/progress/records.ts:130
+MEDIUM  REM-M1   S adde | El Atras de Android en el detalle de una sesion del historial cambia la URL pero deja el detalle en pantalla | src/app/(app)/workout-history/page.tsx:41
+MEDIUM  PERF-07  S conf | Abrir el detalle de una sesion del historial provoca tres descargas, dos de ellas de datos ya en memoria | src/app/(app)/workout-history/page.tsx:99
+MEDIUM  PERF-08  M conf | El inicio hace tres descargas completas para pintar tres numeros, en cada visita | src/app/(app)/dashboard/page.tsx:80
+MEDIUM  PERF-10  M conf | Fotos corporales: se suben sin comprimir, se muestran a tamano original y se vuelven a descargar en cada visita | src/app/(app)/body/page.tsx:72
+MEDIUM  PERF-11  M conf | Volver de un detalle reinicia y vuelve a descargar el listado (ejercicios pierde pagina y scroll; planes recarga) | src/app/(app)/exercises/page.tsx:109
+MEDIUM  PERF-12  S conf LIVE? | La URL del GIF se construye de dos formas distintas (doble barra) segun la pantalla | src/app/(app)/exercises/page.tsx:62
+MEDIUM  PERF-13  S conf | next dev escribe en 'out', el mismo directorio que Capacitor empaqueta | next.config.ts:5
+MEDIUM  PERF-14  S conf | Listas sin limite renderizadas con tarjetas de desenfoque de fondo (historial, planes, admin) | src/components/ui/workout-history.tsx:555
+MEDIUM  PERF-15  S conf | Un administrador no puede llegar a /admin desde el movil | src/components/ui/bottom-navigation.tsx:17
+MEDIUM  WEI-M2   S adde | La sesion persistida no caduca: se reanuda un entrenamiento a medias de dias o semanas atras | src/components/ui/workout-session.tsx:957
+MEDIUM  DATA-02  S unve | La misma imagen se pide con dos URL distintas (doble barra) y se descarga dos veces | src/app/(app)/exercises/page.tsx:61
+MEDIUM  SES-08   S unve | Peso y RPE no se conservan entre series: hay que teclearlos en cada serie | src/components/ui/workout-session.tsx:1217
+MEDIUM  SES-09   S unve | El botón "Completar serie" queda fuera de pantalla cuando el ejercicio tiene puntos clave o pista de progresión | src/components/ui/workout-session.tsx:446
+MEDIUM  SES-10   M unve LIVE? | El temporizador de descanso cuenta ticks en vez de reloj real y el descanso por defecto es de 108 s | src/components/ui/workout-session.tsx:1143
+MEDIUM  DATA-03  M unve LIVE? | getLogs descarga todo el historial con select(*) y sin límite en cuatro pantallas; se truncará en silencio | src/lib/supabase-client.ts:303
+MEDIUM  DATA-04  M unve | No hay caché de datos: cada cambio de pestaña vuelve a descargar planes completos, logs y catálogo | src/app/(app)/dashboard/page.tsx:80
+MEDIUM  DATA-05  M unve | Las fotos de progreso se suben sin comprimir y se descargan enteras para una miniatura de 56 px en cada visita | src/app/(app)/body/page.tsx:72
+MEDIUM  SES-11   S unve | El resumen final se calcula del estado local y puede mostrar más del 100% y volumen que no se guardó | src/components/ui/workout-session.tsx:693
+MEDIUM  SES-12   S unve | Empezar a entrenar exige tres toques y el selector de día no indica cuál toca ni cuál se hizo | src/app/(app)/session/page.tsx:147
+MEDIUM  BODY-01  S unve | Borrar una medida corporal es inmediato y sin confirmación, y los fallos al guardar son silenciosos | src/app/(app)/body/page.tsx:352
+MEDIUM  ADM-03   S unve | El usuario no ve el cambio de tier hasta recargar la app completa | src/lib/revenuecat/revenuecat-context.tsx:197
+MEDIUM  ADM-04   S unve | Un usuario Pro ve "Mejora a Pro" en cada carga, y de forma permanente si falla la lectura del tier | src/lib/revenuecat/revenuecat-context.tsx:188
+MEDIUM  ADM-05   S unve | Si falla la red al comprobar is_admin, el admin real ve "Acceso denegado" sin opción de reintentar | src/app/admin/page.tsx:76
+MEDIUM  ADM-06   S unve | Los errores del panel salen arriba y fuera de pantalla, con el texto crudo "Failed to fetch"; el selector vuelve atrás sin aviso | src/app/admin/page.tsx:217
+MEDIUM  ADM-12   S unve LIVE? | El bootstrap de admin documenta la contraseña "admin123" y permite resetear la contraseña de cualquier cuenta mientras exista el secret | supabase/functions/admin-api/index.ts:112
+MEDIUM  ANON-02  S unve | Sin conexión el login muestra el error crudo "Failed to fetch" | src/components/auth/auth-screen.tsx:462
+MEDIUM  ANON-03  M unve LIVE? | /login/ no muestra nada útil hasta descargar y ejecutar todo el JS (HTML prerenderizado vacío) | src/app/login/page.tsx:18
+MEDIUM  ANON-04  S unve | Alta: no aceptar términos muestra "Ingresa correo y contraseña" y los Términos/Privacidad no son enlaces | src/components/auth/auth-screen.tsx:116
+MEDIUM  ANON-05  S unve | Todos los CTA de registro del landing abren el formulario de "iniciar sesión" | src/app/welcome/page.tsx:161
+MEDIUM  ANON-06  M unve LIVE? | Sin service worker: recargar o navegar sin conexión en la web lleva a la página de error del navegador | src/app/layout.tsx:25
+MEDIUM  ANON-07  M unve LIVE? | Confirmación de correo con PKCE vuelve a `/` sin mensaje y depende del mismo navegador | src/lib/auth/auth-context.tsx:59
+LOW     SES-12   S part | Celebracion calculada con historial fallido o tardio: falso "primera sesion" sin red y overlay que no aparece si el historial llega tarde | src/components/ui/workout-session.tsx:1109
+LOW     SES-16   S conf LIVE? | Tras salir, el boton atras vuelve a /session?day= y arranca otra sesion automaticamente | src/app/(app)/session/page.tsx:65
+LOW     DAT-13   S part | Tras cambiar un ejercicio, la lista de planes conserva el payload antiguo y el plan reaparece sin el cambio | src/app/(app)/plans/page.tsx:325
+LOW     DAT-14   S conf | Dashboard y listado de planes descargan el payload completo de todos los planes para pintar títulos y contadores | src/lib/supabase-client.ts:93
+LOW     DAT-17   S conf | 'Cambiar ejercicio' hace dos peticiones en cascada para algo resoluble en el dispositivo | src/lib/supabase-client.ts:335
+LOW     DAT-19   S conf | Las escrituras piden de vuelta la fila completa sin usarla | src/lib/supabase-client.ts:320
+LOW     DAT-20   S conf LIVE? | Panel admin: un fallo de red se muestra como 'Acceso denegado' y el conteo de planes se trunca a 1000 filas | src/app/admin/page.tsx:76
+LOW     OFF-17   S part | Restablecer contraseña marca el enlace como inválido si la red tarda más de 4 s | src/app/reset-password/page.tsx:61
+LOW     OFF-19   S conf LIVE? | public/index.html es un stub antiguo que enlaza a creatifit-ai.vercel.app y choca con la ruta raíz | public/index.html:248
+LOW     REF-15   S part | Tras borrar o mejorar un plan entrando por deep-link, la lista de planes parte de un estado parcial | src/app/(app)/plans/page.tsx:349
+LOW     REF-25   S conf | Las claves de localStorage no llevan user id ni se limpian al cerrar sesión, borrar un plan o eliminar la cuenta | src/components/ui/workout-session.tsx:215
+LOW     GEN-21   S conf | Copia cliente de rpn-config sin usar y ya divergente de la del servidor | src/lib/config/rpn-config.ts:241
+LOW     ADM-07   M conf LIVE? | La lista carga todos los perfiles y todas las filas de plans en cada apertura, y se trunca en silencio a 1000 filas | supabase/functions/admin-api/index.ts:152
+LOW     ADM-10   M conf LIVE? | El webhook de RevenueCat y el admin escriben el mismo tier sin origen ni orden: se pisan entre sí | supabase/functions/revenuecat-webhook/index.ts:103
+LOW     ADM-13   S conf | No hay protección del último admin: puede borrarse a sí mismo desde Ajustes o ser borrado por otro admin | supabase/functions/delete-account/index.ts:49
+LOW     ADM-M2   S adde | El nombre del usuario nunca llega a profiles.name: la búsqueda por nombre del panel no encuentra nada | scripts/auth-rls.sql:13
+LOW     USR-11   S part | Las respuestas de busqueda pueden llegar desordenadas y dejar resultados que no corresponden al filtro | src/app/(app)/exercises/page.tsx:115
+LOW     USR-22   S part LIVE? | El boton Atras de Android no reconoce las raices de pestana por la barra final de las rutas | src/app/(app)/layout.tsx:48
+LOW     USR-26   S conf | Calculos y etiquetas incorrectas en el historial (RPE medio, cabecera de volumen, titulos reutilizados) | src/components/ui/workout-history.tsx:145
+LOW     USR-27   S conf LIVE? | Favoritos fallan en silencio: el corazon se marca y se desmarca solo | src/app/(app)/exercises/page.tsx:87
+LOW     USR-28   S conf | Las paginas legales abiertas desde Ajustes solo ofrecen volver a la landing de marketing | src/components/legal/legal-shell.tsx:30
+LOW     USR-29   S conf | Textos legales y de borrado no mencionan fotos ni medidas; la version en Ajustes esta fija y desfasada | src/app/privacy/page.tsx:29
+LOW     USR-30   M conf | i18n: 46 claves usadas en codigo no existen en ningun JSON y textos fijos en espanol | src/components/auth/auth-screen.tsx:219
+LOW     REM-M2   S adde | Reenviar el correo de confirmacion no da ninguna senal de exito | src/components/auth/auth-screen.tsx:135
+LOW     REM-M3   S adde | La grafica de volumen semanal usa el minimo como base: la semana mas floja sale sin barra | src/components/ui/trend-chart.tsx:56
+LOW     PERF-16  S conf | El perfil se consulta dos veces al arrancar y de nuevo en cada evento de autenticacion | src/lib/admin/use-is-admin.ts:32
+LOW     PERF-17  S conf | flags.tsx (2.555 lineas, 99,8 KB) convierte Ajustes en el chunk mas pesado de la app | src/components/ui/flags.tsx:6
+LOW     PERF-18  S conf | Peso muerto en el bundle raiz y en dependencias: React Query sin uso, ambos idiomas, paquetes sin importar | src/components/providers.tsx:3
+LOW     PERF-19  S part LIVE? | public/index.html es una portada antigua que compite con la pagina raiz del export y enlaza a creatifit-ai.vercel.app | public/index.html:248
+LOW     PERF-20  S conf LIVE? | Los assets web del proyecto Android son de septiembre de 2025 y de otra configuracion | android/app/src/main/assets/capacitor.config.json:2
+LOW     WEI-M3   S adde | Abrir cada dia de un plan vuelve a pedir los ejercicios de todo el plan | src/app/(app)/plans/page.tsx:152
+LOW     UI-01    S unve | Textos sin traducir en inglés y rótulos equivocados en el historial | src/components/ui/workout-history.tsx:548
+LOW     ADM-08   S unve | /admin no tiene ningún enlace de vuelta a la app | src/app/admin/page.tsx:180
+LOW     ADM-09   S unve | A 390 px cada usuario ocupa 194 px de alto, con el tier duplicado y la papelera pegada al selector | src/app/admin/page.tsx:245
+LOW     ADM-10   S unve | Recargar vacía la lista mientras espera, y la carga inicial hace dos viajes en cascada | src/app/admin/page.tsx:232
+LOW     ADM-11   S unve LIVE? | list descarga todas las filas de plans para contar y no pagina: se truncará en silencio | supabase/functions/admin-api/index.ts:152
+LOW     ADM-13   S unve | Cada carga de página hace dos lecturas separadas de la misma fila de profiles (is_admin y tier) para todos los usuarios | src/lib/admin/use-is-admin.ts:22
+LOW     ANON-08  S unve | Pantallas de acceso en idioma mezclado y sin selector de idioma fuera de Ajustes | src/components/auth/auth-screen.tsx:321
+LOW     ANON-09  S unve | /reset-password/ falla la hidratación en navegadores en español | src/lib/i18n.ts:7
+LOW     ANON-10  S unve | Reenviar correo de confirmación no da ninguna señal de éxito | src/components/auth/auth-screen.tsx:135
+
+--- REFUTED ---

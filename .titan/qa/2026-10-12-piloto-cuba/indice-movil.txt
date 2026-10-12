@@ -1,0 +1,42 @@
+HIGH    MOB-01   M conf LIVE? | Tailwind 4 exige WebView >= 111 y no hay versión mínima ni pantalla de aviso: en teléfonos con Android System WebView sin actualizar la app sale sin estilos | capacitor.config.ts:26
+HIGH    MOB-02   S conf LIVE? | El build local compila con la key de Test Store de RevenueCat para Android (key de producción vacía) | src/lib/revenuecat/config.ts:20
+HIGH    MOB-03   M part LIVE? | Los enlaces de confirmación de correo y de recuperar contraseña apuntan a http://localhost:3000 y no existe deep link hacia la app | src/lib/auth/auth-context.tsx:59
+HIGH    MOB-04   M conf LIVE? | Durante el entrenamiento la pantalla se apaga y el descanso se desincroniza: no hay wake lock y el temporizador cuenta ticks, no tiempo real | src/components/ui/workout-session.tsx:1143
+HIGH    MOB-07   S conf LIVE? | El teclado del campo Peso no permite decimales de forma fiable (inputMode numeric) y la coma decimal borra el valor | src/components/ui/workout-session.tsx:329
+HIGH    TCH-01   S unve | Doble toque en «Completar serie» guarda la serie dos veces | src/components/ui/workout-session.tsx:1175
+HIGH    TCH-02   M unve | «Completar serie» queda fuera de pantalla en cada serie y el scroll vuelve arriba tras cada descanso | src/components/ui/workout-session.tsx:446
+HIGH    TCH-03   S unve | El peso no se conserva entre series y al tocar reps el número se añade en vez de reemplazarse | src/components/ui/workout-session.tsx:1217
+HIGH    TCH-04   S unve LIVE? | El campo de peso pide teclado sin decimales y «62,5» se convierte en 625 | src/components/ui/workout-session.tsx:329
+HIGH    TCH-05   M unve | Tras salir de una sesión, el botón Atrás vuelve a meter al usuario en una sesión nueva | src/app/(app)/session/page.tsx:76
+HIGH    TCH-06   M unve | Si Android cierra la app a mitad de entrenamiento, nada indica que hay una sesión por reanudar | src/app/(app)/session/page.tsx:146
+HIGH    TCH-07   M unve LIVE? | El descanso cuenta por ticks y nada mantiene la pantalla encendida | src/components/ui/workout-session.tsx:1143
+HIGH    TCH-10   M unve | La biblioteca descarga 3,2 MB de GIFs animados en la primera pantalla para miniaturas de 58 px | src/app/(app)/exercises/page.tsx:268
+MEDIUM  MOB-05   S part LIVE? | El proyecto android/ versionado no incluye ningún plugin nativo (App, StatusBar, RevenueCat) y los assets locales son de septiembre de 2025 | android/app/capacitor.build.gradle:11
+MEDIUM  MOB-06   M part LIVE? | Safe-area sin respaldo nativo: configuración contradictoria entre MainActivity, temas y Capacitor; riesgo de cabecera bajo la barra de estado y menú inferior bajo la barra de navegación | android/app/src/main/java/com/creatifit/ai/app/MainActivity.java:20
+MEDIUM  MOB-08   S conf LIVE? | La vibración de fin de descanso no puede funcionar en el APK: falta el permiso VIBRATE | android/app/src/main/AndroidManifest.xml:40
+MEDIUM  MOB-09   M conf LIVE? | Registrar una serie con teclado obliga a cerrarlo y desplazarse: sin acción 'Hecho', sin selección al enfocar y sin windowSoftInputMode | src/components/ui/workout-session.tsx:327
+MEDIUM  MOB-10   S conf LIVE? | El handler del botón Atrás de Android es código muerto: nadie importa @capacitor/app, así que Capacitor.Plugins.App no existe | src/app/(app)/layout.tsx:40
+MEDIUM  MOB-11   S conf | Menú inferior con 6 pestañas: en pantallas de 360 px quedan solo iconos con zona táctil de 30 px de alto, y sigue visible durante la sesión | src/app/globals.css:301
+MEDIUM  MOB-12   S part LIVE? | Efectos caros para GPU de gama baja en todas las pantallas: dos capas fijas con blur de 48-56 px más backdrop-filter en cada tarjeta y en el menú | src/app/globals.css:333
+MEDIUM  MOB-13   S conf LIVE? | El paywall depende de Google Play Billing, que no opera para compras en Cuba: tocar 'Pro' puede no hacer nada | src/lib/revenuecat/revenuecat-context.tsx:221
+MEDIUM  MOB-19   L part LIVE? | targetSdk 35 con Capacitor 7: comprobar el nivel de API que Google Play exige hoy para subir actualizaciones | android/variables.gradle:4
+MEDIUM  TCH-08   S unve LIVE? | La vibración de fin de descanso no funcionará en la app: falta el permiso VIBRATE | android/app/src/main/AndroidManifest.xml:41
+MEDIUM  TCH-09   M unve LIVE? | Con el teclado abierto, la navegación fija tapa el botón de confirmar y los campos | src/app/(app)/layout.tsx:114
+MEDIUM  TCH-11   S unve | En el detalle de una sesión del historial, Atrás cambia la URL pero la pantalla no cambia | src/app/(app)/workout-history/page.tsx:41
+MEDIUM  TCH-12   S unve | Atrás dentro del cuestionario sale del asistente y se pierden las respuestas | src/components/forms/intake-form.tsx:137
+MEDIUM  TCH-13   S unve | Al volver del detalle de un ejercicio se pierde la posición y la lista vuelve a la primera página | src/app/(app)/exercises/page.tsx:109
+MEDIUM  TCH-14   S unve LIVE? | El manejo del Atrás de Android nunca reconoce las pestañas raíz y no puede cerrar la app | src/app/(app)/layout.tsx:48
+MEDIUM  TCH-15   S unve | El popover de ayuda de RPE sale en una columna de 95 px que tapa «Completar serie» | src/components/ui/workout-session.tsx:344
+MEDIUM  TCH-16   M unve | Áreas táctiles pequeñas: papelera de plan de 30 px, salir de sesión de 36 px y navegación solo con iconos a 360 px | src/app/(app)/plans/page.tsx:1198
+MEDIUM  TCH-17   S unve | Texto e iconos tenues con contraste insuficiente para leer con luz fuerte | src/app/globals.css:272
+MEDIUM  TCH-18   M unve | Empezar a entrenar pide siempre elegir día y pasar por un calentamiento de 15 s, bajo un botón que dice «Iniciar Sesión» | src/app/(app)/dashboard/page.tsx:222
+MEDIUM  TCH-19   M unve LIVE? | Las áreas seguras dependen solo de env(safe-area-inset-*): riesgo de cabecera bajo la barra de estado en WebView antiguos | capacitor.config.ts:23
+LOW     MOB-14   S part | `distDir: "out"` hace que `next dev` escriba en la misma carpeta que Capacitor empaqueta (webDir) | next.config.ts:5
+LOW     MOB-15   S conf | Orientación sin bloquear: girar el teléfono durante la sesión pasa a horizontal | android/app/src/main/AndroidManifest.xml:13
+LOW     MOB-16   S conf | Versión inconsistente: Ajustes muestra v1.0.3 fija, el APK es 1.0.4 (code 4) y package.json 0.1.0 | src/app/(app)/settings/page.tsx:362
+LOW     MOB-17   S conf | Objetivos táctiles pequeños en la sesión: botón de info de RPE de 15 px y botón Salir de 36 px | src/components/ui/workout-session.tsx:321
+LOW     MOB-18   S conf | `allowBackup="true"` incluye el localStorage del WebView (token de sesión y sesión en curso) en la copia de seguridad de Android | android/app/src/main/AndroidManifest.xml:5
+LOW     TCH-20   S unve | El contenido salta al llegar los datos en inicio, biblioteca e historial | src/app/(app)/dashboard/page.tsx:222
+LOW     TCH-21   S unve LIVE? | El historial pinta 31 tarjetas con backdrop-filter, costoso en GPU de gama baja | src/app/globals.css:389
+
+--- REFUTED ---

@@ -23,6 +23,16 @@ Fecha: 2026-09-10. Priorización propuesta por esta revisión, no nueva autoriza
 | P17 | Release/tiendas/hosting/secrets no verificados | Comprobar entorno elegido, keys de plataforma, redirects y QA de dispositivo cuando se pida release |
 | P18 | Catálogo Titan aparece directo y con namespace en esta interfaz | Revisar compatibilidad de carga entre host y CLI antes de universalizar instalador; no son 58 recetas distintas |
 
+## QA general para el piloto en Cuba — 2026-10-12
+
+Auditoría de código por áreas más pruebas en navegador contra el Supabase real (sin APK ni teléfono físico). Plan priorizado en `.titan/plans/2026-10-12-piloto-cuba-qa.md`; evidencia en `.titan/qa/2026-10-12-piloto-cuba/`. **El avance tarea por tarea se lleva en la sección "Progreso" de ese plan**; aquí solo queda el resumen.
+
+- **P02 resuelto (2026-10-12):** la BD aceptaba que un usuario normal hiciera UPDATE de `tier` e `is_admin` en su propio perfil. Aplicado en live `schemas/harden-profiles-privileges.sql`; verificado 403. El cliente no debe volver a escribir en `profiles`: cualquier campo editable por el usuario necesita un GRANT de columna explícito o pasar por una Edge Function.
+- **Sesión de entrenamiento (2026-10-12):** las series pasan por una cola local (`src/lib/workout-outbox.ts`) con id de cliente y upsert idempotente; ya no se pierden sin red ni se duplican por doble toque, y el `session_id` se conserva al reanudar. `workout_logs` no debe volver a escribirse con un insert directo esperando a la red. Verificado en navegador, no en teléfono.
+- **P12 parcial:** historial y Mi cuerpo usan día local (`localDay`/`parseLocalDay` en `streak.ts`); `records.ts` y `trends.ts` siguen en UTC.
+- El proyecto Supabase estaba pausado ese día (el host no resolvía en DNS) y lo restauró el usuario; el keep-alive no lo evitó.
+- El piloto es principalmente móvil (APK Android); priorizar ese flujo.
+
 ## No volver a abrir como si estuviera ausente
 
 Prisma eliminado; cliente Supabase consolidado; JWT de generate-plan presente; constraints en onboarding; marca/sidebar/ring implementados; PRs, rachas, tendencias, fotos, favoritos, mejora/borrado de plan y detalle de ejercicio existentes. Las secciones antiguas que los dicen ausentes quedaron superadas por código/commits posteriores.

@@ -8,4 +8,6 @@ Fuente: conversación de instalación/adaptación, 2026-09-10. Aplican al trabaj
 - En Creatifit desea comenzar nuevos chats con tf-primer para recuperar contexto y decidir siguiente trabajo.
 - Pidió reconstruir la memoria desde documentación e historia: conservar continuidad sin inventar hechos ni uso anterior de Titan.
 - Autorizó commit de la instalación anterior, realizado en 2cb14df solo en Creatifit. No equivale a autorización permanente para commits, push, despliegues o cambios en otros proyectos.
+- Al ejecutar un plan por fases (dicho el 2026-10-12, plan del piloto en Cuba): dejar claro en el plan y en la memoria lo que se va haciendo, hacer un commit por cada tarea de las fases y continuar sin esperar confirmación entre tareas. No mencionó push: se pidió aparte la única vez que se hizo.
+- La app es principalmente móvil (APK Android): priorizar ese flujo al probar y al corregir.
 - No migrar el stack existente automáticamente por aplicar preferencias para proyectos nuevos. RevenueCat y Capacitor forman parte de Creatifit.

@@ -29,7 +29,7 @@ import type {
   PurchasesPackage,
 } from "@revenuecat/purchases-capacitor";
 import { useAuth } from "@/lib/auth/auth-context";
-import { supabase } from "@/lib/supabase-config";
+import { refreshProfileFlags, useProfileFlags } from "@/lib/profile-flags";
 import {
   PRO_ENTITLEMENT_ID,
   getRevenueCatApiKey,
@@ -87,7 +87,10 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
   // manuales). Lo leemos también en el cliente para que un upgrade hecho por un
   // admin (sin compra en RevenueCat) desbloquee la generación igual que en el
   // servidor `generate-plan`, que ya se basa en esta columna.
-  const [dbTier, setDbTier] = useState<PlanTier | null>(null);
+  // Viene del almacén compartido de `profile-flags`: parte del último valor
+  // conocido, no se degrada a "free" por un fallo de red y se relee al volver a
+  // primer plano.
+  const dbTier: PlanTier | null = useProfileFlags().flags?.tier ?? null;
 
   // Evita reconfigurar el SDK más de una vez por ciclo de vida de la app.
   const configuredRef = useRef(false);
@@ -171,32 +174,7 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
     };
   }, [isNative, user?.id]);
 
-  // Relee `profiles.tier` del usuario actual. Best-effort: si falla, se mantiene
-  // el estado de RevenueCat como único indicador (no rompe el gating).
-  const refreshDbTier = useCallback(async () => {
-    const uid = user?.id;
-    if (!uid) {
-      setDbTier(null);
-      return;
-    }
-    try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("tier")
-        .eq("id", uid)
-        .single();
-      setDbTier(((data?.tier as PlanTier) ?? "free"));
-    } catch (err) {
-      console.error("[RevenueCat] refreshDbTier error:", err);
-    }
-  }, [user?.id]);
-
-  // Sincroniza el tier del backend al montar y cada vez que cambia el usuario
-  // (p. ej. al iniciar sesión con otra cuenta). Cubre el caso de un upgrade
-  // hecho por un admin: al volver a entrar, el cliente ya ve el tier Pro.
-  useEffect(() => {
-    refreshDbTier();
-  }, [refreshDbTier]);
+  const refreshDbTier = useCallback(() => refreshProfileFlags(true), []);
 
   const refresh = useCallback(async () => {
     await refreshDbTier();

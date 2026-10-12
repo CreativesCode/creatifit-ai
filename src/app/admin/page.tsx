@@ -20,7 +20,8 @@ import {
   Users,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
-import { supabase } from "@/lib/supabase-config";
+import { LoadError } from "@/components/ui/load-error";
+import { refreshProfileFlags, useProfileFlags } from "@/lib/profile-flags";
 import { adminApi, type AdminUser, type Tier } from "@/lib/admin/admin-api";
 
 const TIER_LABEL: Record<Tier, string> = {
@@ -61,8 +62,10 @@ export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  // null = comprobando, false = no admin, true = admin
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  // null = comprobando, false = no admin, true = admin. Si el perfil no se pudo
+  // leer (sin red) NO es "denegado": se ofrece reintentar.
+  const { flags, failed: flagsFailed } = useProfileFlags();
+  const isAdmin: boolean | null = flags ? flags.isAdmin : null;
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,23 +77,6 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
   }, [authLoading, user, router]);
-
-  // Comprueba is_admin leyendo el propio perfil (RLS permite leer el propio).
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .single();
-      if (!cancelled) setIsAdmin(Boolean(data?.is_admin));
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -174,6 +160,14 @@ export default function AdminPage() {
   }, [users]);
 
   // ── Estados de carga / acceso ──────────────────────────────────────────────
+  if (!authLoading && user && isAdmin === null && flagsFailed) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-bg px-6">
+        <LoadError onRetry={() => void refreshProfileFlags(true)} />
+      </div>
+    );
+  }
+
   if (authLoading || isAdmin === null) {
     return (
       <div className="min-h-screen grid place-items-center bg-bg">

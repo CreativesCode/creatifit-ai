@@ -88,7 +88,7 @@ export function WorkoutHistory({
   // ---- Series de tendencias (memoizadas y recortadas al rango elegido) ----
   const cutoff = useMemo(() => {
     const d = new Date(Date.now() - rangeWeeks * 7 * 86400000);
-    return d.toISOString().split("T")[0];
+    return localDay(d);
   }, [rangeWeeks]);
 
   const volumePoints = useMemo<ChartPoint[]>(

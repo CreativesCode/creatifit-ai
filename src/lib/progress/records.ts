@@ -13,7 +13,9 @@ export interface LogEntry {
   created_at?: string; // fallback
 }
 
-export type RecordType = "weight" | "e1rm" | "reps";
+import { localDay } from "./streak";
+
+export type RecordType ="weight" | "e1rm" | "reps";
 
 export interface ExerciseRecord {
   exerciseName: string;
@@ -117,7 +119,9 @@ interface SessionAgg {
 function aggregateSessions(logs: LogEntry[]): SessionAgg[] {
   const m = new Map<string, SessionAgg>();
   for (const l of logs) {
-    const date = logTime(l).split("T")[0] || "";
+    // Día local, igual que la racha: el día UTC contradecía a `streak.ts`.
+    const at = new Date(logTime(l));
+    const date = Number.isNaN(at.getTime()) ? "" : localDay(at);
     const cur = m.get(l.session_id) ?? { sessionId: l.session_id, date, volume: 0 };
     cur.volume += l.actual_reps * (logWeight(l) ?? 0);
     if (!cur.date && date) cur.date = date;

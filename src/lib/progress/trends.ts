@@ -3,6 +3,7 @@
 // de peso corporal (`body_measurements`).
 
 import { estimate1RM, type LogEntry } from "./records";
+import { localDay } from "./streak";
 
 const DAY_MS = 86400000;
 
@@ -21,11 +22,17 @@ export interface ExerciseTrendPoint {
   e1rm: number; // 1RM estimado (Epley) máximo de ese día
 }
 
+// Día LOCAL de la serie: cortar el ISO por la "T" daría el día UTC y movería
+// los entrenos de la tarde-noche al día (y a veces a la semana) siguiente.
 const logDay = (l: LogEntry): string => {
   const iso = l.timestamp ?? l.created_at;
-  return iso ? iso.split("T")[0] : "";
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : localDay(d);
 };
 
+// Aritmética de calendario sobre un YYYY-MM-DD ya local (se trata como UTC solo
+// para sumar/restar días sin saltos por cambio de hora).
 const toDay = (ms: number): string => new Date(ms).toISOString().split("T")[0];
 
 // Lunes (YYYY-MM-DD) de la semana que contiene `day`.

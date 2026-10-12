@@ -557,6 +557,16 @@ export const supabaseClient = {
     return path;
   },
 
+  // Borra una foto (y su miniatura). Para deshacer una subida cuyo registro no
+  // llegó a guardarse; nunca lanza.
+  async deleteProgressPhoto(path: string): Promise<void> {
+    const thumb = photoThumbPath(path);
+    await supabase.storage
+      .from("progress-photos")
+      .remove(thumb ? [path, thumb] : [path])
+      .catch(() => undefined);
+  },
+
   // URLs firmadas para mostrar fotos privadas (bucket no público), en una sola
   // petición. Se reutilizan mientras sigan vigentes: una URL firmada nueva en
   // cada visita es otra dirección y obliga a descargar la foto otra vez.

@@ -65,6 +65,9 @@ export default function BodyPage() {
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // Registro pendiente de confirmar su borrado (dos toques: es irreversible).
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const load = async () => {
     setLoadError(false);
@@ -112,9 +115,19 @@ export default function BodyPage() {
   const setField = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
+    setSaveError(null);
+    // Un registro sin ningún dato no aporta nada y ensucia la lista y la gráfica.
+    const hasValue =
+      !!photoFile ||
+      !!form.notes?.trim() ||
+      ["weight", "body_fat", ...MEASURE_FIELDS].some((k) => num(form[k] ?? "") != null);
+    if (!hasValue) {
+      setSaveError(t("body.empty_error", "Escribe al menos un dato o añade una foto."));
+      return;
+    }
     setSaving(true);
+    let photo_path: string | null = null;
     try {
-      let photo_path: string | null = null;
       if (photoFile) photo_path = await supabaseClient.uploadProgressPhoto(photoFile);
 
       const entry: Record<string, unknown> = {
@@ -134,12 +147,18 @@ export default function BodyPage() {
       await load();
     } catch (e) {
       console.error("Error saving measurement", e);
+      // La foto ya subida se quedaría huérfana si el registro no se guardó.
+      if (photo_path) void supabaseClient.deleteProgressPhoto(photo_path);
+      setSaveError(
+        t("body.save_error", "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.")
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (m: Measurement) => {
+    setConfirmDeleteId(null);
     setDeletingId(m.id);
     try {
       await supabaseClient.deleteMeasurement(m.id, m.photo_path);
@@ -263,6 +282,7 @@ export default function BodyPage() {
             />
           </label>
 
+          {saveError && <p className="text-danger text-[13px] mt-3">{saveError}</p>}
           <button
             className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-3"
             onClick={handleSave}
@@ -383,18 +403,36 @@ export default function BodyPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <div className="font-bold text-[14.5px] capitalize">{fmtDate(m.date)}</div>
-                    <button
-                      onClick={() => handleDelete(m)}
-                      disabled={deletingId === m.id}
-                      className="cf-muted hover:text-primary p-1 disabled:opacity-60"
-                      aria-label={t("body.delete", "Borrar")}
-                    >
-                      {deletingId === m.id ? (
-                        <Loader2 size={15} className="animate-spin" />
-                      ) : (
-                        <Trash2 size={15} />
-                      )}
-                    </button>
+                    {confirmDeleteId === m.id ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          className="cf-btn cf-btn-ghost cf-btn-sm"
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          {t("body.delete_cancel", "No")}
+                        </button>
+                        <button
+                          className="cf-btn cf-btn-primary cf-btn-sm"
+                          onClick={() => handleDelete(m)}
+                        >
+                          {t("body.delete_confirm", "Borrar")}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(m.id)}
+                        disabled={deletingId === m.id}
+                        className="cf-muted hover:text-primary flex items-center justify-center shrink-0 disabled:opacity-60"
+                        style={{ width: 40, height: 40, margin: "-8px -8px -8px 0" }}
+                        aria-label={t("body.delete", "Borrar")}
+                      >
+                        {deletingId === m.id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </button>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5">
                     {m.weight != null && (

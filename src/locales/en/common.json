@@ -587,6 +587,11 @@
     }
   },
   "workout_history": {
+    "delete_set": {
+      "label": "Delete set",
+      "confirm": "Delete",
+      "cancel": "No"
+    },
     "title": "Workout History",
     "subtitle": "Track your progress and completed sessions",
     "back": "Back",

@@ -2,7 +2,8 @@
 import { WorkoutHistory } from "@/components/ui/workout-history";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { supabaseClient } from "@/lib/supabase-client";
+import { deleteWorkoutLog, supabaseClient } from "@/lib/supabase-client";
+import { useAuth } from "@/lib/auth/auth-context";
 import { localDay } from "@/lib/progress/streak";
 
 interface WorkoutLog {
@@ -32,6 +33,7 @@ interface WorkoutSession {
 export default function WorkoutHistoryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const sessionId = searchParams.get("id");
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [loading, setLoading] = useState(false);
@@ -87,6 +89,27 @@ export default function WorkoutHistoryPage() {
     }
   };
 
+  // Borra una serie del detalle. Si era la última, la sesión deja de existir.
+  const handleDeleteLog = (log: WorkoutLog) => {
+    if (!user) return;
+    deleteWorkoutLog(user.id, log.id);
+    const logs = (selectedSession?.logs ?? []).filter((l) => l.id !== log.id);
+    if (!selectedSession || logs.length === 0) {
+      handleBack();
+      return;
+    }
+    const withRpe = logs.filter((l) => l.rpe);
+    setSelectedSession({
+      ...selectedSession,
+      logs,
+      totalSets: logs.length,
+      totalVolume: logs.reduce((sum, l) => sum + l.actual_reps * (l.weight || 0), 0),
+      avgRPE: withRpe.length
+        ? withRpe.reduce((sum, l) => sum + (l.rpe || 0), 0) / withRpe.length
+        : 0,
+    });
+  };
+
   const handleSessionClick = (id: string) => {
     // Estado primero; push (jerarquía) best-effort para historial/deep-link.
     fetchSessionDetails(id);
@@ -133,6 +156,7 @@ export default function WorkoutHistoryPage() {
       onBack={handleBack}
       selectedSession={selectedSession}
       onSessionClick={handleSessionClick}
+      onDeleteLog={handleDeleteLog}
     />
   );
 }

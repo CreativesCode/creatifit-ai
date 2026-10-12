@@ -9,6 +9,7 @@ import {
   OfflineError,
 } from "./local-cache";
 import { compressPhoto } from "./image-compress";
+import { removeWorkoutLog } from "./workout-outbox";
 export { supabase };
 
 // Fotos de progreso: las subidas desde el plan del piloto llevan este prefijo
@@ -612,6 +613,17 @@ supabaseClient.getPlans = () =>
   offlineCapable("plans", () => online.getPlans.call(supabaseClient));
 
 /** Tamaño del catálogo de ejercicios (contador del panel). */
+/** Borra una serie registrada. Va por la cola local (funciona sin conexión y
+    se envía al reconectar) y la quita también de la copia local del historial,
+    para que no reaparezca si la siguiente lectura sale de esa copia. */
+export function deleteWorkoutLog(uid: string, id: string): void {
+  removeWorkoutLog(uid, id);
+  const stored = cacheRead<{ id: string }[]>("logs");
+  if (Array.isArray(stored)) {
+    cacheWrite("logs", stored.filter((l) => l.id !== id));
+  }
+}
+
 export const getExerciseCount = (): Promise<number> =>
   offlineCapable(
     "exercise-count",

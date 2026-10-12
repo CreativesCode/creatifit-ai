@@ -19,6 +19,7 @@ import {
   Medal,
   Repeat,
   TrendingUp,
+  Trash2,
   Trophy,
   Weight,
 } from "lucide-react";
@@ -62,13 +63,48 @@ interface WorkoutHistoryProps {
   onBack: () => void;
   selectedSession?: WorkoutSession | null;
   onSessionClick?: (sessionId: string) => void;
+  // Borrar una serie del detalle (corregir un registro equivocado).
+  onDeleteLog?: (log: WorkoutLog) => void;
+}
+
+// Agrupa las series por sesión, de la más reciente a la más antigua.
+function buildSessions(logs: WorkoutLog[]): WorkoutSession[] {
+  const sessionMap = new Map<string, WorkoutSession>();
+  logs.forEach((log) => {
+    const sessionKey = log.session_id;
+    if (!sessionMap.has(sessionKey)) {
+      sessionMap.set(sessionKey, {
+        id: sessionKey,
+        planDayId: log.plan_day_id,
+        date: localDay(new Date(log.timestamp)),
+        logs: [],
+        totalSets: 0,
+        totalVolume: 0,
+        avgRPE: 0,
+      });
+    }
+    const session = sessionMap.get(sessionKey)!;
+    session.logs.push(log);
+    session.totalSets++;
+    session.totalVolume += log.actual_reps * (log.weight || 0);
+    if (log.rpe) {
+      const currentTotal = session.avgRPE * (session.logs.length - 1);
+      session.avgRPE = (currentTotal + log.rpe) / session.logs.length;
+    }
+  });
+  return Array.from(sessionMap.values()).sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 }
 
 export function WorkoutHistory({
   onBack,
   selectedSession,
   onSessionClick,
+  onDeleteLog,
 }: WorkoutHistoryProps) {
+  // Serie pendiente de confirmar su borrado (dos toques: evita borrar por error).
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const { t, i18n } = useTranslation("common");
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [allLogs, setAllLogs] = useState<WorkoutLog[]>([]);
@@ -125,39 +161,23 @@ export function WorkoutHistory({
       const logs = await supabaseClient.getLogs();
       if (logs) {
         setAllLogs(logs as WorkoutLog[]);
-        const sessionMap = new Map<string, WorkoutSession>();
-        logs.forEach((log: WorkoutLog) => {
-          const sessionKey = log.session_id;
-          if (!sessionMap.has(sessionKey)) {
-            sessionMap.set(sessionKey, {
-              id: sessionKey,
-              planDayId: log.plan_day_id,
-              date: localDay(new Date(log.timestamp)),
-              logs: [],
-              totalSets: 0,
-              totalVolume: 0,
-              avgRPE: 0,
-            });
-          }
-          const session = sessionMap.get(sessionKey)!;
-          session.logs.push(log);
-          session.totalSets++;
-          session.totalVolume += log.actual_reps * (log.weight || 0);
-          if (log.rpe) {
-            const currentTotal = session.avgRPE * (session.logs.length - 1);
-            session.avgRPE = (currentTotal + log.rpe) / session.logs.length;
-          }
-        });
-        const sessionsArray = Array.from(sessionMap.values()).sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        setSessions(sessionsArray);
+        setSessions(buildSessions(logs as WorkoutLog[]));
       }
     } catch (error) {
       console.error("Error fetching workout history:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Quita la serie de las listas ya cargadas (sin volver a pedir el historial:
+  // el borrado viaja en segundo plano y la red podría devolverla todavía).
+  const handleDeleteLog = (log: WorkoutLog) => {
+    setConfirmDeleteId(null);
+    const remaining = allLogs.filter((l) => l.id !== log.id);
+    setAllLogs(remaining);
+    setSessions(buildSessions(remaining));
+    onDeleteLog?.(log);
   };
 
   const formatDate = (dateString: string) =>
@@ -351,9 +371,40 @@ export function WorkoutHistory({
                             {log.weight ? ` · ${log.weight} kg` : ""}
                           </span>
                         </div>
-                        {log.rpe ? (
-                          <span className="cf-chip cf-chip-brand">RPE {log.rpe}</span>
-                        ) : null}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {confirmDeleteId === log.id ? (
+                            <>
+                              <button
+                                className="cf-btn cf-btn-ghost cf-btn-sm"
+                                onClick={() => setConfirmDeleteId(null)}
+                              >
+                                {t("workout_history.delete_set.cancel", "No")}
+                              </button>
+                              <button
+                                className="cf-btn cf-btn-primary cf-btn-sm"
+                                onClick={() => handleDeleteLog(log)}
+                              >
+                                {t("workout_history.delete_set.confirm", "Borrar")}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {log.rpe ? (
+                                <span className="cf-chip cf-chip-brand">RPE {log.rpe}</span>
+                              ) : null}
+                              {onDeleteLog && (
+                                <button
+                                  onClick={() => setConfirmDeleteId(log.id)}
+                                  className="cf-muted flex items-center justify-center"
+                                  style={{ width: 40, height: 40, marginRight: -8 }}
+                                  aria-label={t("workout_history.delete_set.label", "Borrar serie")}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     ))}
                 </div>

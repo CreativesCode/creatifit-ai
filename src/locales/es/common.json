@@ -587,6 +587,11 @@
     }
   },
   "workout_history": {
+    "delete_set": {
+      "label": "Borrar serie",
+      "confirm": "Borrar",
+      "cancel": "No"
+    },
     "title": "Historial de Entrenamientos",
     "subtitle": "Rastrea tu progreso y sesiones completadas",
     "back": "Volver",

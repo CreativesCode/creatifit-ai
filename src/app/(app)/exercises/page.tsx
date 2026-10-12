@@ -303,8 +303,11 @@ export default function ExercisesPage() {
     </button>
   );
 
-  // ---------- Loading (skeleton que replica la rejilla) ----------
-  if (loading) {
+  // ---------- Loading del detalle (skeleton de pantalla completa) ----------
+  // Solo al abrir un ejercicio por URL. En el listado el esqueleto va dentro de
+  // los resultados: si se desmontara el campo de búsqueda en cada carga, perdería
+  // el foco y el teclado se cerraría a cada letra.
+  if (loading && exerciseId) {
     return (
       <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
         <div className="pt-1 mb-4">
@@ -384,6 +387,10 @@ export default function ExercisesPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t("exercises.search.placeholder")}
+            type="search"
+            enterKeyHint="search"
+            autoComplete="off"
+            autoCorrect="off"
             className="bg-transparent outline-none w-full text-[14px] py-3"
           />
         </div>
@@ -413,7 +420,23 @@ export default function ExercisesPage() {
       </div>
 
       {/* list */}
-      {exercises.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="cf-card flex items-center gap-3.5 animate-pulse"
+              style={{ padding: 11, borderRadius: 18 }}
+            >
+              <div className="bg-surface-2 shrink-0" style={{ width: 58, height: 58, borderRadius: 14 }} />
+              <div className="flex-1">
+                <div className="h-4 bg-surface-2 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-surface-2 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : exercises.length === 0 ? (
         <div className="text-center py-12">
           <div
             className="cf-icon-tile bg-surface-2 border border-border mx-auto mb-4"

@@ -30,6 +30,23 @@ const KEY_PREFIX = "cf-workout-session:";
 export const sessionStorageKey = (planId: string, day: string) =>
   `${KEY_PREFIX}${planId}:${day}`;
 
+/** Descarta las sesiones a medias de un plan. Tras editar su estructura, las
+    letras de día y las posiciones guardadas ya no señalan lo mismo. */
+export function clearPlanSessions(planId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const prefix = `${KEY_PREFIX}${planId}:`;
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key?.startsWith(prefix)) keys.push(key);
+    }
+    keys.forEach((key) => window.localStorage.removeItem(key));
+  } catch {
+    // ignorar
+  }
+}
+
 // Pasado este tiempo una sesión a medias ya no se reanuda: sería mezclar el
 // entrenamiento de hoy con el de otro día.
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;

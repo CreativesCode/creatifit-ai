@@ -397,11 +397,29 @@ export const supabaseClient = {
     return compatible.length > 0 ? compatible : list;
   },
 
-  // Sustituye un ejercicio del plan por otro. Persiste en DOS sitios:
-  //  - plans.payload (la sesión lee de aquí) -> requiere la política UPDATE de
-  //    plans (ver schemas/add-plans-update-policy.sql).
-  //  - plan_exercises (lo usan las imágenes/listados) -> permitido por RLS.
-  // Devuelve el payload actualizado para refrescar la UI sin recargar.
+  // Guarda la estructura de un plan (crea o actualiza). Es el ÚNICO camino para
+  // escribir días y ejercicios: la función SQL save_plan_structure deja
+  // plans.payload y plan_exercises iguales en una sola transacción y devuelve
+  // el payload normalizado (días A, B, C… y nombres del catálogo).
+  // `weeks` omitido = conservar las del plan. Repetir la llamada con el mismo
+  // id es inocuo, así que un reintento tras un corte de red no duplica nada.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async savePlanStructure(params: { id: string; weeks?: number; payload: any }) {
+    const { data, error } = await supabase.rpc("save_plan_structure", {
+      p_plan_id: params.id,
+      p_weeks: params.weeks ?? null,
+      p_payload: params.payload,
+    });
+    if (error) throw error;
+    // Las copias locales quedaron viejas: que la próxima lectura las rehaga.
+    cacheRemove(`plan:${params.id}`);
+    cacheRemove(`plan-exercises:${params.id}`);
+    cacheRemove("plans");
+    return data;
+  },
+
+  // Sustituye un ejercicio del plan por otro y devuelve el payload guardado
+  // para refrescar la UI sin recargar.
   async swapPlanExercise(params: {
     planId: string;
     currentPayload: { days: any[] };
@@ -429,45 +447,8 @@ export const supabaseClient = {
       }),
     };
 
-    // 2) Persistir en plans.payload.
-    //    Con `.select` se sabe si de verdad cambió una fila: un UPDATE que RLS
-    //    deja en cero filas no devuelve error y el cambio parecía guardado.
-    const { data: updated, error: planError } = await supabase
-      .from("plans")
-      .update({ payload })
-      .eq("id", planId)
-      .select("id");
-    if (planError) {
-      console.error("Error updating plan payload:", planError);
-      throw planError;
-    }
-    if (!updated || updated.length === 0) {
-      throw new Error("PLAN_NOT_UPDATED");
-    }
-    // La copia local del plan quedó vieja: que la próxima lectura la rehaga.
-    cacheRemove(`plan:${planId}`);
-    cacheRemove(`plan-exercises:${planId}`);
-    cacheRemove("plans");
-
-    // 3) Sincronizar la fila de plan_exercises (no bloqueante: si falla, el
-    //    payload ya está actualizado y la sesión funcionará igual).
-    //    `savePlan` guarda la letra por posición (A, B, C…), que puede no
-    //    coincidir con la etiqueta que devolvió el modelo en el payload.
-    const dayIndex = (currentPayload.days || []).findIndex(
-      (d: any) => d.day === dayLetter
-    );
-    const storedLetter = dayIndex >= 0 ? String.fromCharCode(65 + dayIndex) : dayLetter;
-    const { error: peError } = await supabase
-      .from("plan_exercises")
-      .update({ exercise_name: newName, exercise_id: newExerciseId, cues: [] })
-      .eq("plan_id", planId)
-      .eq("day_letter", storedLetter)
-      .eq("block_index", blockIndex);
-    if (peError) {
-      console.warn("plan_exercises no se pudo sincronizar (no crítico):", peError);
-    }
-
-    return payload;
+    // 2) Persistir payload y plan_exercises juntos.
+    return this.savePlanStructure({ id: planId, payload });
   },
 
   // Función de debug para verificar la tabla plans

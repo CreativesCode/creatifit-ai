@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PLAN_LIMITS } from "@/lib/plans/plan-structure";
 
 // Bloque de equipamiento reutilizable (intake + generación de plan).
 export const EquipmentSchema = z.object({
@@ -111,6 +112,39 @@ export const GeneratedPlanSchema = z.object({
       ),
     })
   ),
+});
+
+// Estructura de un plan tal como la guarda el editor (manual o de IA). Los topes
+// vienen de PLAN_LIMITS y son los mismos que valida save_plan_structure.
+export const EditablePlanSchema = z.object({
+  weeks: z.number().int().min(PLAN_LIMITS.weeks.min).max(PLAN_LIMITS.weeks.max),
+  days: z
+    .array(
+      z.object({
+        day: z.string(),
+        focus: z.string().max(PLAN_LIMITS.focus),
+        blocks: z
+          .array(
+            z.object({
+              name: z.string().min(1),
+              exercise_id: z.string().uuid().optional(),
+              sets: z.number().int().min(PLAN_LIMITS.sets.min).max(PLAN_LIMITS.sets.max),
+              reps: z
+                .tuple([
+                  z.number().int().min(PLAN_LIMITS.reps.min).max(PLAN_LIMITS.reps.max),
+                  z.number().int().min(PLAN_LIMITS.reps.min).max(PLAN_LIMITS.reps.max),
+                ])
+                .refine(([lo, hi]) => lo <= hi),
+              rest_sec: z.number().int().min(PLAN_LIMITS.rest.min).max(PLAN_LIMITS.rest.max),
+              cues: z.array(z.string()).optional(),
+            })
+          )
+          .min(PLAN_LIMITS.blocks.min)
+          .max(PLAN_LIMITS.blocks.max),
+      })
+    )
+    .min(PLAN_LIMITS.days.min)
+    .max(PLAN_LIMITS.days.max),
 });
 
 // Esquema para logging de entrenamientos

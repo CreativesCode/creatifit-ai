@@ -32,6 +32,14 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 - Reglas nuevas del código: el cupo de IA se cuenta solo sobre `plan_generations` (`countAiGenerations`), nunca sobre filas de `plans`; días y ejercicios de un plan se escriben solo con `supabaseClient.savePlanStructure`; un plan manual es una fila normal con `payload.meta.source = "manual"` (`isManualPlan`).
 - Verificado en navegador a 360 px contra el Supabase real (`.titan/qa/2026-10-12-plan-manual/`): crear, guardar, editar, recargar, cambiar un ejercicio y arrancar la sesión de un plan manual; y con una generación real, el cuestionario corto, el relleno de un día, el límite Free y la reutilización del `requestId`. **Sin verificar con llamada real: rellenar el plan entero, la generación de plan completo tras el cambio, "Mejorar plan" sobre un plan manual y recuperar un relleno tras un corte. Y todo en APK o teléfono.**
 
+## Android: API 36 para Google Play — 2026-10-12
+
+- Google Play exige orientar la app a Android 16 (API 36); el plazo del usuario vence el **31 de octubre de 2026**. Hay que publicar una versión nueva en producción antes de esa fecha.
+- Cambiado en el repo: `compileSdkVersion` y `targetSdkVersion` a 36 (`android/variables.gradle`), plugin de Android para Gradle 8.7.2 → 8.9.1 (`android/build.gradle`; Gradle 8.11.1 ya lo admite) y versión 1.0.5 / `versionCode` 5 (también en `package.json`). Capacitor sigue en 7.4.3.
+- **No se compiló:** en esta máquina no hay SDK de Android ni Android Studio en las rutas habituales, y el Java del sistema es el 14. Lo compila el usuario. Necesita la plataforma "Android 16 (API 36)" en el SDK Manager y un Android Studio que admita el plugin 8.9 (Meerkat 2024.3.1 Patch 1 o posterior).
+- Revisado para API 36: el botón Atrás pasa por `OnBackPressedCallback` del plugin `@capacitor/app` (compatible con el gesto de retroceso predictivo); la app ya era de borde a borde desde el API 35; en pantallas de 600 dp o más Android 16 deja de respetar el bloqueo en vertical.
+- Si el plugin 8.9.1 diera problemas con los módulos de Capacitor o RevenueCat, la alternativa es volver a 8.7.2 y añadir `android.suppressUnsupportedCompileSdk=36` a `android/gradle.properties` (compila con aviso). Sin probar ninguna de las dos.
+
 ## Entradas por tarea
 
 | Memoria | Cuándo leer |

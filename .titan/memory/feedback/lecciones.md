@@ -25,3 +25,5 @@ Lecciones del plan del piloto (trabajo real del 2026-10-12, no reconstruidas):
 18. (2026-10-12) Si se oculta la navegación en una pantalla, comprobar que todas sus fases tienen salida: el descanso no tenía botón de salir y solo se vio al probarlo.
 19. (2026-10-12) Probar en navegador a 360×640 con perfil táctil destapa fallos que no se ven en escritorio (acción principal fuera de pantalla, campos tapados), pero no sustituye al APK: teclado, wake lock, vibración y botón Atrás solo se confirman en un teléfono.
 20. (2026-10-12) En Windows PowerShell 5.1, `Set-Content -Encoding utf8` añade BOM y puede romper archivos fuente: editar el código con las herramientas de edición, no con PowerShell.
+21. (2026-10-12) En modo oscuro `.cf-card-solid` es translúcida (5 % de blanco): una hoja o diálogo sobre contenido necesita fondo propio (`var(--surface)`). Mirar la captura, no fiarse del nombre de la clase.
+22. (2026-10-12) No reescribir los `common.json` con `JSON.parse` + `JSON.stringify`: reformatea todo el archivo y funde claves duplicadas. Insertar las claves como texto.

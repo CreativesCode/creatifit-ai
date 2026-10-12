@@ -4,7 +4,7 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **16 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **22 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
@@ -19,14 +19,14 @@ Actualizado: 2026-10-12. **16 commits locales, sin push.** Todo lo marcado como 
 | 1.1, 1.2 Series sin pérdida ni duplicados | Hecho | Cola local |
 | 1.3 `session_id` estable | Hecho | |
 | 1.4, 1.5 Peso decimal, RPE válido | Hecho | Teclado real: dispositivo |
-| 1.6 Deshacer / corregir serie | Pendiente | |
+| 1.6 Deshacer / corregir serie | Hecho (parcial) | Se corrige la última serie dentro de la sesión, también sin red. Falta editar o borrar series desde el historial |
 | 1.7 Entrenar sin red y continuar sesión | Hecho | |
 | 1.8 Caducidad de sesión guardada | Hecho (parcial) | Falta marca real de sesión terminada (P13) |
 | 1.9 Acción principal a la vista | Hecho | |
 | 1.10 Arrastre de peso y RPE | Hecho | |
 | 1.11 Descanso por reloj, wake lock, vibración | Hecho | Wake lock y vibración: dispositivo; el permiso exige recompilar |
 | 1.12 Empezar en un toque | Hecho | El calentamiento de 15 s se mantiene (decisión de producto) |
-| 1.13 Saltar ejercicio / terminar antes | Pendiente | |
+| 1.13 Saltar ejercicio / terminar antes | Hecho | Salir con progreso ya no descarta la sesión |
 | 1.14 Botón Atrás | Hecho (parcial) | Falta en detalle del historial y cuestionario; probar en APK |
 | 1.15 Navegación oculta y teclado | Hecho (parcial) | Falta revisar menú de 6 pestañas a 360 px |
 | 2.1 No expulsar al login sin red | Hecho | |
@@ -34,12 +34,16 @@ Actualizado: 2026-10-12. **16 commits locales, sin push.** Todo lo marcado como 
 | 2.3 Error distinto de vacío | Hecho (parcial) | Falta historial y Mi cuerpo |
 | 2.4 Reintentar funciona | Hecho | |
 | 2.5 Errores legibles y banda sin conexión | Hecho (parcial) | Falta traducir los errores del login |
-| 2.6 Tier y refresco al volver | Pendiente | |
+| 2.6 Tier y refresco al volver | Hecho | La parte de RevenueCat nativo solo se confirma en dispositivo |
 | 2.7 Descargas repetidas del historial | Parcial | Hay copia local, pero sigue siendo red primero en cada visita |
-| 2.8 Fechas en día local | Parcial | Falta `records.ts` y `trends.ts` |
+| 2.8 Fechas en día local | Hecho | |
 | 2.9 Cerrar sesión sin red, claves por usuario | Pendiente | |
 | 2.10 RevenueCat usuario anónimo | Pendiente | |
-| 3.1 a 3.7 Consumo de datos | Pendiente | 3.1 (GIF) es la más larga: exige reprocesar archivos |
+| 3.1 Peso de los GIF | Pendiente | La más larga: exige reprocesar los archivos guardados |
+| 3.2 Una sola URL por imagen | Hecho | |
+| 3.3 Fotos de progreso | Pendiente | |
+| 3.4, 3.6, 3.7 Resto de consumo | Pendiente | |
+| 3.5 Buscador de ejercicios | Hecho | |
 | 4.1 Generación que no se pierde | Hecho, en producción | Una generación real de prueba |
 | 4.2 Doble toque en generar/mejorar | Hecho | |
 | 4.3 Límites sobre generaciones reales | Hecho, en producción | Free 1, Pro 30 cada 30 días |
@@ -57,11 +61,12 @@ Actualizado: 2026-10-12. **16 commits locales, sin push.** Todo lo marcado como 
 
 ### Siguiente por hacer, en este orden
 
-1. 3.1 y 3.2 (GIF) y 3.3 (fotos): el mayor consumo de datos.
-2. 2.6 (tier y refresco al volver a primer plano).
-3. 1.6 y 1.13 (deshacer serie, saltar ejercicio, terminar antes).
-4. Resto de 2.8 (logros y volumen en día local) y 3.5 (buscador de ejercicios).
+1. 3.1 (GIF) y 3.3 (fotos): el mayor consumo de datos. 3.1 exige reprocesar los archivos guardados en Storage.
+2. Resto de 1.6: editar o borrar series desde el historial.
+3. 2.9 y 2.10 (cerrar sesión sin red, RevenueCat anónimo), restos de 2.3 y 2.5.
+4. 3.4, 3.6 y 3.7.
 5. Fase 6.
+6. Al preparar el APK: 0.4, 0.5 y la prueba en teléfono de todo lo marcado como "dispositivo".
 
 Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions que hagan falta (la app está en modo prueba); un commit por tarea y continuar sin esperar confirmación; mantener al día este plan y la memoria.
 
@@ -72,19 +77,24 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **1.1, 1.2** `src/lib/workout-outbox.ts`: id generado en el teléfono, upsert que ignora duplicados, reintento al recuperar red, al volver a primer plano y al abrir la app; aviso de series pendientes en la sesión y en el resumen. "Completar serie" no espera a la red y un segundo toque no duplica.
 - **1.3** El `session_id` se conserva al reanudar.
 - **1.4, 1.5** Peso con teclado decimal y coma aceptada; RPE entero 1-10; topes de reps (200) y peso (500 kg).
+- **1.6** La última serie se puede corregir desde el descanso ("Corregir la serie anterior") o desde la hoja de opciones (botón "⋯" junto a la X): vuelve a esa serie con sus valores para completarla de nuevo. La fila sale de la cola local y se apunta en una lista de borrados (`cf-workout-outbox-deletes`) que se envía al servidor después de los envíos pendientes, así que también funciona sin conexión. Probado: con red se borra la fila; sin red no llega nada al servidor y el borrado se vacía al reconectar.
 - **1.7** Copia local de lecturas en `src/lib/local-cache.ts`, aplicada en `supabase-client.ts` a planes, plan por id, ejercicios del plan, historial, favoritos y medidas: red primero y, si falla, lo último guardado. El panel deja en el teléfono los ejercicios del plan activo. Si hay una sesión a medias, el panel ofrece "Continuar · Día X (n series)".
 - **1.8** Una sesión guardada hace más de 12 h no se reanuda ni se ofrece, y se limpia.
 - **1.9** Barra de acción fija, GIF más pequeño, objetivo en una línea y pista de progresión bajo los campos. A 360×640, campos y "Completar serie" visibles sin desplazarse.
 - **1.10** Peso y RPE se arrastran entre series del mismo ejercicio; el campo se selecciona al enfocarlo.
 - **1.11** Descanso y calentamiento cuentan contra la hora de fin; wake lock de pantalla durante la sesión; el manifest declara `VIBRATE`.
 - **1.12** El botón del panel dice "Entrenar · Día X" y lleva al día que toca (`src/lib/session-resume.ts`); "Elegir otro día" queda como enlace y el selector marca "Te toca hoy".
+- **1.13** Hoja de opciones con "Saltar este ejercicio" y "Terminar aquí" (resumen con lo hecho). La X con progreso ofrece "Terminar aquí", "Pausar y salir" (la sesión queda guardada y se retoma desde el inicio) o "Seguir entrenando"; el texto ya no dice que se pierde el progreso. Hoja y diálogo llevan fondo opaco: `.cf-card-solid` es translúcido en modo oscuro.
 - **1.14** El manejador de Atrás importa de verdad `@capacitor/app` (antes nunca se registraba) y reconoce las pestañas raíz con barra final. Al salir de una sesión se retiran del historial las entradas centinela.
 - **1.15** Navegación inferior oculta durante el entrenamiento, botón de salir propio en el descanso y `windowSoftInputMode="adjustResize"`.
 - **2.1** `auth-context.tsx` arranca con la sesión guardada en el dispositivo; solo se cierra sesión si auth-js borró el token.
 - **2.2** `src/lib/supabase-config.ts`: 15 s por petición, 120 s para Edge Functions y Storage.
 - **2.3, 2.4** Componente `LoadError` con "Reintentar" en inicio, planes, ejercicios y sesión; el reintento limpia el error.
 - **2.5** Banda "Sin conexión / conexión inestable · mostrando datos guardados" (`connection-banner.tsx`).
-- **2.8** Historial y fecha por defecto de Mi cuerpo usan el día local.
+- **2.6** `src/lib/profile-flags.ts`: tier e `is_admin` en un almacén único que parte del último valor conocido en el teléfono, no degrada a Free ni a "no admin" por un fallo de lectura, y relee al volver a primer plano (como mucho una vez por minuto) y al recuperar conexión. Lo usan `revenuecat-context.tsx`, `use-is-admin.ts` y `/admin`, que ofrece reintentar en vez de "Acceso denegado" si no pudo leer el perfil. Antes eran tres lecturas separadas de `profiles`; ahora una.
+- **2.8** Historial, fecha por defecto de Mi cuerpo, logros, racha de logros, volumen semanal y progreso de fuerza usan el día local (`localDay` de `streak.ts`).
+- **3.2** `src/lib/exercise-media.ts` es el único constructor de la URL de imagen; lo usan ejercicios, detalle, planes y sesión. Comprobado: 56 imágenes pedidas, ninguna con doble barra ni repetida.
+- **3.5** El esqueleto de carga de Ejercicios va solo en la zona de resultados; el campo de búsqueda no se desmonta y conserva el foco al escribir. El campo es de tipo búsqueda para que el teclado muestre la tecla Buscar.
 - **4.1, 4.3, 4.4, 4.5** Tabla `plan_generations` (`schemas/add-plan-generations.sql`) y función `generate-plan`: el teléfono envía un `requestId` (que es el id del plan); un reintento con el mismo id devuelve el plan guardado sin llamar a OpenAI; un id en curso recibe 409 y el cliente espera. El cliente (`src/lib/ai/openai.ts`) guarda el id pendiente por cuestionario y `savePlan` tolera el reintento de un plan ya guardado. Prueba real: 12 s, 16/16 ejercicios; repetida, 0,8 s y `reused`; id en curso, 409; 2.401 + 1.056 tokens.
 - **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
 - **5.1** Entrada "Panel de administración" en Ajustes solo para admins y botón de volver en `/admin`.
@@ -95,6 +105,7 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`.
 - Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` (sin `verify_jwt`, valida ella).
 - Contraseña del admin cambiada.
+- Las pruebas de deshacer serie crearon y borraron sus propias filas; no dejaron datos nuevos.
 - Datos de prueba: 11 series del 2026-10-12 en la cuenta de pruebas (ver al final) y un registro en `plan_generations` (`qa-idempotency-check-1`).
 
 ## Cómo se probó

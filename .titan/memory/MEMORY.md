@@ -14,7 +14,7 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 ## Estado a 2026-10-12
 
 - En curso: **plan de correcciones para el piloto en Cuba** (`.titan/plans/2026-10-12-piloto-cuba-qa.md`). Su sección "Progreso" dice qué está hecho, qué falta y en qué orden; leerla antes de tocar sesión, conexión, generación o admin.
-- Desde esa fecha hay **offline básico** (cola local de series y copia local de lecturas), **generación idempotente con registro de consumo** y **actividad por usuario en admin**. Varias notas de septiembre que los daban por ausentes quedaron superadas; cada entrada lleva su apartado "Actualización 2026-10-12".
+- Desde esa fecha hay **offline básico** (cola local de series y copia local de lecturas), **corrección de la última serie, saltar ejercicio y terminar antes**, **generación idempotente con registro de consumo**, **tier y admin que no se degradan sin red** y **actividad por usuario en admin**. Varias notas de septiembre que los daban por ausentes quedaron superadas; cada entrada lleva su apartado "Actualización 2026-10-12".
 - Verificado en navegador con perfil de teléfono contra el Supabase real. **Nada probado aún en un APK ni en un teléfono físico.**
 - La app es principalmente móvil (APK Android) y el piloto será con conexión lenta e intermitente.
 

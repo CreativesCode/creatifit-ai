@@ -48,9 +48,11 @@ Sustituye lo dicho arriba sobre la sesión donde choque.
 - **Entrada al entrenamiento:** el panel lleva en un toque al día que toca ("Entrenar · Día X" = siguiente al último entrenado de ese plan) o a la sesión a medias ("Continuar · Día X"). El selector de días queda como camino secundario. El calentamiento de 15 s sigue existiendo.
 - **Series:** cada serie se guarda primero en el teléfono (cola local) y se sincroniza en segundo plano; la sesión no espera a la red. El `session_id` se conserva al reanudar. Peso con decimales y coma; RPE entero 1-10.
 - **Sesión a medias:** se guarda en el dispositivo y caduca a las 12 h. Reanudar sigue siendo local a ese teléfono, no entre dispositivos.
-- **Durante la sesión** la navegación inferior está oculta; se sale con la X (también en el descanso) o con Atrás, ambos con confirmación si hay series hechas.
+- **Durante la sesión** la navegación inferior está oculta; se sale con la X (también en el descanso) o con Atrás. Con series hechas, salir ofrece "Terminar aquí" (resumen con lo hecho), "Pausar y salir" (la sesión queda guardada y se retoma desde el inicio) o "Seguir entrenando"; ya no se descarta nada.
+- **Corregir y saltar:** "Corregir la serie anterior" (en el descanso y en la hoja de opciones "⋯") borra la última serie y vuelve a ella con sus valores. La misma hoja permite "Saltar este ejercicio" y "Terminar aquí".
 - **Sin conexión:** planes, ejercicios del plan, historial, favoritos y medidas se ven desde la última copia guardada, con una banda que lo avisa. Generar o mejorar un plan, comprar y el panel admin exigen red.
-- **Fechas:** historial y Mi cuerpo usan el día local. Logros y volumen semanal siguen agrupando en UTC.
+- **Fechas:** historial, Mi cuerpo, logros, volumen semanal y progreso de fuerza usan el día local.
+- **Ejercicios:** el campo de búsqueda conserva el foco mientras cargan los resultados.
 - **Admin:** se entra desde Ajustes (solo admins) y el panel muestra actividad por usuario.
 
 Fuentes: `src/app/**/page.tsx`, `src/components/forms/intake-form.tsx`, `src/components/ui/workout-session.tsx`, `src/lib/ai/improve-plan.ts`, `src/lib/progress/*`, `src/lib/validators/schemas.ts`, `docs/PLAN-ENGAGEMENT-FEATURES.md`.

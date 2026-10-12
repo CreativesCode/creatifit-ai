@@ -26,7 +26,8 @@ Comentario “pasarela futura” de `plans-config.ts` está obsoleto: RevenueCat
 - Un usuario ya no puede cambiar su propio `tier` ni `is_admin` desde el cliente (ver datos-seguridad).
 - Admin: la lista incluye actividad por usuario; se llega desde Ajustes en móvil. La cuenta admin cambió de contraseña y el secret de bootstrap no existe en el proyecto.
 - Decisión del usuario: durante el piloto los testers conservan su tier; no se toca la compra. Google Play no cobra en Cuba, así que Pro solo llegaría por asignación manual desde admin.
-- Sigue pendiente: el build local usa la key de Test Store de RevenueCat si falta la de Android; el tier no se relee al volver a primer plano; RevenueCat puede quedarse con usuario anónimo.
+- El tier de BD se relee al volver a primer plano y al recuperar conexión, y un fallo de lectura conserva el último valor conocido (`src/lib/profile-flags.ts`): un Pro concedido desde admin llega sin reiniciar la app.
+- Sigue pendiente: el build local usa la key de Test Store de RevenueCat si falta la de Android; RevenueCat puede quedarse con usuario anónimo.
 
 Pendiente (resuelto el 2026-10-12, se conserva como contexto): contador de filas no representa generaciones consumidas: borrar plan, generar sin guardar o concurrencia pueden eludirlo. La política Pro y rate limit requieren decisión/implementación servidor. No migrar a Polar/Stripe porque el toolkit incluya una receta distinta.
 

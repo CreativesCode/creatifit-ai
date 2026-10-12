@@ -24,7 +24,32 @@ export const supabaseConfig = {
 const clientUrl = supabaseConfig.url || "https://placeholder.supabase.co";
 const clientAnonKey = supabaseConfig.anonKey || "placeholder-anon-key";
 
+// Sin límite de tiempo, una conexión colgada deja loaders infinitos. Las Edge
+// Functions (generación de plan) y las subidas a Storage necesitan más margen.
+const REQUEST_TIMEOUT_MS = 15000;
+const SLOW_REQUEST_TIMEOUT_MS = 120000;
+
+const fetchWithTimeout: typeof fetch = (input, init) => {
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  const slow = url.includes("/functions/v1/") || url.includes("/storage/v1/");
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(),
+    slow ? SLOW_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS
+  );
+  // Respetar la señal del llamador (p. ej. la cola de series) además del timeout.
+  const outer = init?.signal;
+  if (outer) {
+    if (outer.aborted) controller.abort();
+    else outer.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  return fetch(input, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(timer)
+  );
+};
+
 export const supabase = createClient(clientUrl, clientAnonKey, {
+  global: { fetch: fetchWithTimeout },
   auth: {
     persistSession: true,
     autoRefreshToken: true,

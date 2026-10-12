@@ -226,12 +226,18 @@
     "pending_sync_retry": "Retry",
     "load_error": "We couldn't load your plan. Check your connection and try again.",
     "exit_confirm_title": "Leave session?",
-    "exit_confirm_body": "You have unsaved progress in this session. If you leave now, your current session state will be discarded.",
-    "exit_confirm_leave": "Leave",
-    "exit_confirm_stay": "Stay",
+    "exit_confirm_body": "Your sets are already saved. You can finish with what you did or pause and continue later.",
+    "exit_confirm_leave": "Pause and leave",
+    "exit_confirm_stay": "Keep training",
     "resumed_notice": "Resumed your previous session",
     "select_day": "Select your day",
-    "next_up": "Up next"
+    "next_up": "Up next",
+    "undo_last_set": "Fix the previous set",
+    "undo_done": "Set removed. Correct it and complete it again.",
+    "skip_exercise": "Skip this exercise",
+    "finish_here": "Finish here",
+    "more_actions": "More options",
+    "actions_cancel": "Cancel"
   },
   "common": {
     "loading": "Loading...",

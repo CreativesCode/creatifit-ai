@@ -6,7 +6,9 @@ import { supabase } from "./supabase-config";
    Cada serie se guarda primero en el dispositivo y se envía a workout_logs en
    segundo plano. El id se genera en el cliente y el envío es un upsert que
    ignora duplicados, así que reintentar nunca crea filas repetidas. Una serie
-   solo sale de la cola cuando el servidor la confirma. */
+   solo sale de la cola cuando el servidor la confirma.
+   Deshacer una serie sigue el mismo camino: se apunta su id en una lista de
+   borrados y se elimina del servidor cuando haya conexión. */
 
 export interface OutboxRow {
   id: string;
@@ -30,6 +32,7 @@ interface OutboxEntry {
 }
 
 const STORAGE_KEY = "cf-workout-outbox";
+const DELETES_KEY = "cf-workout-outbox-deletes";
 const SEND_TIMEOUT_MS = 12000;
 const RETRY_MIN_MS = 5000;
 const RETRY_MAX_MS = 60000;
@@ -56,8 +59,29 @@ const read = (): OutboxEntry[] => {
   }
 };
 
+interface DeleteEntry {
+  uid: string;
+  id: string;
+}
+
+const readDeletes = (): DeleteEntry[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(DELETES_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? (parsed as DeleteEntry[]) : [];
+  } catch {
+    return [];
+  }
+};
+
 const listeners = new Set<() => void>();
 let pendingCount = 0;
+
+const notify = () => {
+  pendingCount = read().length + readDeletes().length;
+  listeners.forEach((l) => l());
+};
 
 const write = (entries: OutboxEntry[]) => {
   try {
@@ -65,8 +89,16 @@ const write = (entries: OutboxEntry[]) => {
   } catch {
     // cuota llena: la serie sigue en memoria del intento en curso
   }
-  pendingCount = entries.length;
-  listeners.forEach((l) => l());
+  notify();
+};
+
+const writeDeletes = (entries: DeleteEntry[]) => {
+  try {
+    window.localStorage.setItem(DELETES_KEY, JSON.stringify(entries));
+  } catch {
+    // cuota llena: el borrado se reintentará la próxima vez que se deshaga algo
+  }
+  notify();
 };
 
 const currentUserId = async (): Promise<string | null> => {
@@ -85,6 +117,24 @@ const send = async (rows: OutboxRow[]): Promise<boolean> => {
     const { error } = await supabase
       .from("workout_logs")
       .upsert(rows, { onConflict: "id", ignoreDuplicates: true })
+      .abortSignal(controller.signal);
+    return !error;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const sendDeletes = async (ids: string[]): Promise<boolean> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
+  try {
+    // Borrar una fila que no existe no es un error: reintentar es seguro.
+    const { error } = await supabase
+      .from("workout_logs")
+      .delete()
+      .in("id", ids)
       .abortSignal(controller.signal);
     return !error;
   } catch {
@@ -114,10 +164,11 @@ export function flushOutbox(): Promise<void> {
     const uid = await currentUserId();
     if (!uid) return;
     const mine = read().filter((e) => e.uid === uid);
-    if (mine.length === 0) return;
 
     const sent = new Set<string>();
-    if (await send(mine.map((e) => e.row))) {
+    if (mine.length === 0) {
+      // nada que enviar; puede haber borrados pendientes
+    } else if (await send(mine.map((e) => e.row))) {
       mine.forEach((e) => sent.add(e.row.id));
     } else if (mine.length > 1) {
       // Si el lote falla, una fila inválida no debe retener a las demás.
@@ -128,8 +179,22 @@ export function flushOutbox(): Promise<void> {
 
     // Releer: pueden haberse encolado series nuevas durante el envío.
     const remaining = read().filter((e) => !sent.has(e.row.id));
-    write(remaining);
-    if (remaining.some((e) => e.uid === uid)) {
+    if (sent.size > 0) write(remaining);
+
+    // Los borrados van DESPUÉS de los envíos: si la serie deshecha estaba
+    // viajando en este mismo intento, primero llega y luego se elimina.
+    const doomed = readDeletes().filter((d) => d.uid === uid);
+    let deletesLeft = false;
+    if (doomed.length > 0) {
+      if (await sendDeletes(doomed.map((d) => d.id))) {
+        const gone = new Set(doomed.map((d) => d.id));
+        writeDeletes(readDeletes().filter((d) => !gone.has(d.id)));
+      } else {
+        deletesLeft = true;
+      }
+    }
+
+    if (deletesLeft || remaining.some((e) => e.uid === uid)) {
       scheduleRetry();
     } else {
       retryDelay = RETRY_MIN_MS;
@@ -148,14 +213,23 @@ export function enqueueWorkoutLog(uid: string, row: OutboxRow): void {
   void flushOutbox();
 }
 
+/** Deshace una serie: la saca de la cola y la borra del servidor si ya llegó. */
+export function removeWorkoutLog(uid: string, id: string): void {
+  write(read().filter((e) => e.row.id !== id));
+  // Siempre se apunta el borrado: la serie pudo enviarse ya, o estar viajando.
+  writeDeletes([...readDeletes().filter((d) => d.id !== id), { uid, id }]);
+  retryDelay = RETRY_MIN_MS;
+  // Si hay un envío en curso, el borrado se procesa en él o en el siguiente.
+  void flushOutbox().then(() => flushOutbox());
+}
+
 let started = false;
 
 /** Reintenta al recuperar la red, al volver a primer plano y al abrir la app. */
 export function startOutboxSync(): void {
   if (started || typeof window === "undefined") return;
   started = true;
-  pendingCount = read().length;
-  listeners.forEach((l) => l());
+  notify();
   const kick = () => {
     retryDelay = RETRY_MIN_MS;
     void flushOutbox();

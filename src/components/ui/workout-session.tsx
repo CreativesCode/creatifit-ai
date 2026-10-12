@@ -14,6 +14,7 @@ import {
   enqueueWorkoutLog,
   flushOutbox,
   newId,
+  removeWorkoutLog,
   usePendingWorkoutLogs,
 } from "@/lib/workout-outbox";
 import { formatReps } from "@/lib/plan-display";
@@ -31,7 +32,9 @@ import {
   Dumbbell,
   Flame,
   Info,
+  Flag,
   Medal,
+  MoreHorizontal,
   Pause,
   Play,
   Repeat,
@@ -39,6 +42,7 @@ import {
   Target,
   TrendingUp,
   Trophy,
+  Undo2,
   Weight,
   X,
 } from "lucide-react";
@@ -78,6 +82,10 @@ interface WorkoutLog {
   rpe?: number;
   notes?: string;
   completed: boolean;
+  // Id de la fila en workout_logs (lo genera el cliente): permite deshacerla.
+  id?: string;
+  // Posición del ejercicio en el día: a dónde volver al deshacer.
+  exerciseIndex?: number;
 }
 
 // Fila de workout_logs tal como la devuelve Supabase (snake_case)
@@ -628,12 +636,15 @@ function RestStep({
   onSkip,
   onAdjust,
   onExit,
+  onUndo,
   isLongRest,
   nextExercise,
   nextExerciseDetails,
   t,
 }: {
   onExit: () => void;
+  // Deshacer la serie recién registrada (undefined = nada que deshacer).
+  onUndo?: () => void;
   restTime: number;
   total: number;
   isPaused: boolean;
@@ -710,6 +721,17 @@ function RestStep({
         )}
 
         <div className="flex-1" />
+        {/* El error se suele ver justo aquí, nada más completar la serie */}
+        {onUndo && (
+          <button
+            className="cf-muted flex items-center justify-center gap-1.5 text-[13px] font-semibold mx-auto mb-2"
+            style={{ minHeight: 44, padding: "0 14px" }}
+            onClick={onUndo}
+          >
+            <Undo2 size={15} />
+            {t("session.undo_last_set", "Corregir la serie anterior")}
+          </button>
+        )}
         <div className="flex gap-3 pb-6">
           <button className="cf-btn cf-btn-ghost flex-1" onClick={onPauseToggle}>
             {isPaused ? <Play size={17} /> : <Pause size={17} />}
@@ -956,6 +978,8 @@ export function WorkoutSession({
   // Feedback no bloqueante (toast) y confirmación de salida
   const [toast, setToast] = useState<string | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  // Hoja de acciones secundarias del ejercicio (corregir, saltar, terminar)
+  const [showActions, setShowActions] = useState(false);
   // Destino al que el usuario intentó navegar (link del menú). null = salir vía onExit.
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   // Indica si ya intentamos restaurar el estado persistido (evita re-restaurar)
@@ -968,6 +992,10 @@ export function WorkoutSession({
   const currentExercise = planDay.blocks[currentExerciseIndex];
   const totalSets = planDay.blocks.reduce((total, block) => total + block.sets, 0);
   const completedSets = workoutLogs.filter((log) => log.completed).length;
+  // Solo se puede deshacer una serie cuya fila conocemos (sesiones antiguas
+  // restauradas no guardaban el id).
+  const lastLog = workoutLogs[workoutLogs.length - 1];
+  const canUndo = !!lastLog?.id;
   const progress = (completedSets / totalSets) * 100;
   // Sesión en curso (no en el resumen final): activa los guards de navegación.
   const isSessionActive = phase !== "completed";
@@ -1330,7 +1358,10 @@ export function WorkoutSession({
     if (lastCompletedSetRef.current === setKey) return;
     lastCompletedSetRef.current = setKey;
 
+    const rowId = newId();
     const newLog: WorkoutLog = {
+      id: rowId,
+      exerciseIndex: currentExerciseIndex,
       exerciseName: currentExercise.name,
       setIndex: currentSetIndex + 1,
       targetReps: currentExercise.reps,
@@ -1346,7 +1377,7 @@ export function WorkoutSession({
     // La serie queda en el dispositivo y se envía en segundo plano: la sesión
     // avanza sin esperar a la red y nada se pierde si no hay conexión.
     enqueueWorkoutLog(user.id, {
-      id: newId(),
+      id: rowId,
       exercise_name: newLog.exerciseName,
       set_index: newLog.setIndex,
       target_reps: newLog.targetReps,
@@ -1389,6 +1420,63 @@ export function WorkoutSession({
         clearPersistedSession();
         setPhase("completed");
       }
+    }
+  };
+
+  // Deshace la última serie: la borra (del teléfono y del servidor) y vuelve a
+  // ella con sus valores para corregirla y completarla de nuevo.
+  const handleUndoLastSet = () => {
+    setShowActions(false);
+    if (!lastLog?.id || !user) return;
+    removeWorkoutLog(user.id, lastLog.id);
+    setWorkoutLogs((prev) => prev.filter((l) => l.id !== lastLog.id));
+    const idx =
+      lastLog.exerciseIndex ??
+      planDay.blocks.findIndex((b) => b.name === lastLog.exerciseName);
+    if (idx >= 0) {
+      setCurrentExerciseIndex(idx);
+      setCurrentSetIndex(Math.max(0, lastLog.setIndex - 1));
+    }
+    setCurrentLog({
+      actualReps: lastLog.actualReps,
+      weight: lastLog.weight,
+      rpe: lastLog.rpe,
+      notes: lastLog.notes,
+    });
+    lastCompletedSetRef.current = null;
+    setPhase("exercise");
+    setIsPaused(false);
+    setToast(
+      t("session.undo_done", "Serie eliminada. Corrígela y complétala de nuevo.")
+    );
+  };
+
+  // Termina el entrenamiento con lo hecho hasta ahora (las series ya están
+  // guardadas): muestra el resumen en vez de descartar la sesión.
+  const handleFinishHere = () => {
+    setShowActions(false);
+    setShowExitConfirm(false);
+    setPendingNav(null);
+    clearPersistedSession();
+    if (completedSets === 0) {
+      leaveSession(onExit);
+      return;
+    }
+    setPhase("completed");
+  };
+
+  // Pasa al siguiente ejercicio sin registrar las series que faltan de este.
+  const handleSkipExercise = () => {
+    setShowActions(false);
+    setCurrentLog({});
+    lastCompletedSetRef.current = null;
+    if (currentExerciseIndex + 1 < planDay.blocks.length) {
+      setCurrentExerciseIndex(currentExerciseIndex + 1);
+      setCurrentSetIndex(0);
+      setPhase("exercise");
+      setIsPaused(false);
+    } else {
+      handleFinishHere();
     }
   };
 
@@ -1452,9 +1540,10 @@ export function WorkoutSession({
     }
   };
 
+  // "Pausar y salir": la sesión queda guardada en el teléfono y se retoma desde
+  // el inicio ("Continuar · Día X"). Las series hechas ya están registradas.
   const handleConfirmExit = () => {
     setShowExitConfirm(false);
-    clearPersistedSession();
     const dest = pendingNav;
     setPendingNav(null);
     if (dest) {
@@ -1504,14 +1593,24 @@ export function WorkoutSession({
                     day: planDay.day,
                   })}
                 </span>
-                <button
-                  onClick={handleExitRequest}
-                  className="cf-icon-tile bg-surface-2 border border-border"
-                  style={{ width: 36, height: 36 }}
-                  aria-label={t("session.exit", "Salir")}
-                >
-                  <X size={18} />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setShowActions(true)}
+                    className="cf-icon-tile bg-surface-2 border border-border"
+                    style={{ width: 40, height: 40 }}
+                    aria-label={t("session.more_actions", "Más opciones")}
+                  >
+                    <MoreHorizontal size={18} />
+                  </button>
+                  <button
+                    onClick={handleExitRequest}
+                    className="cf-icon-tile bg-surface-2 border border-border"
+                    style={{ width: 40, height: 40 }}
+                    aria-label={t("session.exit", "Salir")}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="cf-bar-track flex-1">
@@ -1560,6 +1659,7 @@ export function WorkoutSession({
             onSkip={handleSkipRest}
             onAdjust={handleAdjustRest}
             onExit={handleExitRequest}
+            onUndo={canUndo ? handleUndoLastSet : undefined}
             isLongRest={isLongRest}
             nextExercise={nextExercise}
             nextExerciseDetails={nextExerciseDetails}
@@ -1620,7 +1720,49 @@ export function WorkoutSession({
         </div>
       )}
 
-      {/* Confirmación de salida cuando hay progreso */}
+      {/* Acciones secundarias del ejercicio */}
+      {showActions && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setShowActions(false)}
+        >
+          <div
+            className="cf-card-solid w-full max-w-xl flex flex-col gap-2.5"
+            style={{
+              // Fondo opaco: en oscuro .cf-card-solid es translúcido y se leía el fondo.
+              background: "var(--surface)",
+              padding: "16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)",
+              borderRadius: "22px 22px 0 0",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {canUndo && (
+              <button className="cf-btn cf-btn-ghost cf-btn-block" onClick={handleUndoLastSet}>
+                <Undo2 size={17} />
+                {t("session.undo_last_set", "Corregir la serie anterior")}
+              </button>
+            )}
+            <button className="cf-btn cf-btn-ghost cf-btn-block" onClick={handleSkipExercise}>
+              <SkipForward size={17} />
+              {t("session.skip_exercise", "Saltar este ejercicio")}
+            </button>
+            {completedSets > 0 && (
+              <button className="cf-btn cf-btn-ghost cf-btn-block" onClick={handleFinishHere}>
+                <Flag size={17} />
+                {t("session.finish_here", "Terminar aquí")}
+              </button>
+            )}
+            <button className="cf-btn cf-btn-block cf-muted" onClick={() => setShowActions(false)}>
+              {t("session.actions_cancel", "Cancelar")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Salida con progreso: terminar con lo hecho, pausar o quedarse */}
       {showExitConfirm && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center px-5"
@@ -1628,25 +1770,30 @@ export function WorkoutSession({
           role="dialog"
           aria-modal="true"
         >
-          <div className="cf-card-solid w-full max-w-sm" style={{ padding: 20, borderRadius: 20 }}>
+          <div
+            className="cf-card-solid w-full max-w-sm"
+            style={{ padding: 20, borderRadius: 20, background: "var(--surface)" }}
+          >
             <div className="cf-h2 text-[18px] mb-2">
               {t("session.exit_confirm_title", "¿Salir de la sesión?")}
             </div>
             <div className="cf-muted text-[13.5px] leading-relaxed mb-5">
               {t(
                 "session.exit_confirm_body",
-                "Tienes progreso sin terminar en esta sesión. Si sales ahora, se descartará el estado actual."
+                "Tus series ya están guardadas. Puedes terminar con lo hecho o pausar y seguir más tarde."
               )}
             </div>
-            <div className="flex gap-3">
-              <button
-                className="cf-btn cf-btn-ghost flex-1"
-                onClick={handleCancelExit}
-              >
-                {t("session.exit_confirm_stay", "Quedarme")}
+            <div className="flex flex-col gap-2.5">
+              <button className="cf-btn cf-btn-primary cf-btn-block" onClick={handleFinishHere}>
+                <Flag size={17} />
+                {t("session.finish_here", "Terminar aquí")}
               </button>
-              <button className="cf-btn cf-btn-primary flex-1" onClick={handleConfirmExit}>
-                {t("session.exit_confirm_leave", "Salir")}
+              <button className="cf-btn cf-btn-ghost cf-btn-block" onClick={handleConfirmExit}>
+                <Pause size={17} />
+                {t("session.exit_confirm_leave", "Pausar y salir")}
+              </button>
+              <button className="cf-btn cf-btn-block cf-muted" onClick={handleCancelExit}>
+                {t("session.exit_confirm_stay", "Seguir entrenando")}
               </button>
             </div>
           </div>

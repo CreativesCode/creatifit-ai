@@ -226,12 +226,18 @@
     "pending_sync_retry": "Reintentar",
     "load_error": "No pudimos cargar tu plan. Revisa tu conexión e inténtalo de nuevo.",
     "exit_confirm_title": "¿Salir de la sesión?",
-    "exit_confirm_body": "Tienes progreso sin terminar en esta sesión. Si sales ahora, se descartará el estado actual.",
-    "exit_confirm_leave": "Salir",
-    "exit_confirm_stay": "Quedarme",
+    "exit_confirm_body": "Tus series ya están guardadas. Puedes terminar con lo hecho o pausar y seguir más tarde.",
+    "exit_confirm_leave": "Pausar y salir",
+    "exit_confirm_stay": "Seguir entrenando",
     "resumed_notice": "Se restauró tu sesión anterior",
     "select_day": "Selecciona tu día",
-    "next_up": "Te toca hoy"
+    "next_up": "Te toca hoy",
+    "undo_last_set": "Corregir la serie anterior",
+    "undo_done": "Serie eliminada. Corrígela y complétala de nuevo.",
+    "skip_exercise": "Saltar este ejercicio",
+    "finish_here": "Terminar aquí",
+    "more_actions": "Más opciones",
+    "actions_cancel": "Cancelar"
   },
   "common": {
     "loading": "Cargando...",

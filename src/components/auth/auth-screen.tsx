@@ -14,7 +14,8 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type Mode = "signin" | "signup";
@@ -93,6 +94,13 @@ export function AuthScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmSent, setConfirmSent] = useState(false);
 
+  // Los botones de registro del landing llegan con ?mode=signup.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("mode") === "signup") {
+      setMode("signup");
+    }
+  }, []);
+
   const score = useMemo(() => passwordScore(password), [password]);
 
   const switchMode = (m: Mode) => {
@@ -114,7 +122,7 @@ export function AuthScreen() {
       return;
     }
     if (mode === "signup" && !terms) {
-      setError(t("auth.errors.required"));
+      setError(t("auth.errors.terms_required"));
       return;
     }
     setBusy(true);
@@ -135,8 +143,10 @@ export function AuthScreen() {
   const handleResend = async () => {
     setBusy(true);
     setError(null);
+    setNotice(null);
     const { error } = await resendConfirmation(email);
     if (error) setError(translateAuthError(error, t));
+    else setNotice(t("auth.confirm.resent"));
     setBusy(false);
   };
 
@@ -171,6 +181,8 @@ export function AuthScreen() {
           </p>
           <p className="cf-muted text-xs">{t("auth.confirm.then_signin")}</p>
           {error && <p className="text-danger text-sm">{error}</p>}
+          {error && <p className="text-danger text-sm">{error}</p>}
+          {notice && <p className="text-sm" style={{ color: "var(--mint)" }}>{notice}</p>}
           <div className="flex flex-col gap-2.5 w-full pt-2">
             <button onClick={handleResend} disabled={busy} className="cf-btn cf-btn-ghost cf-btn-block" style={{ gap: 8 }}>
               {busy ? (
@@ -279,9 +291,14 @@ export function AuthScreen() {
             </button>
             <span className="cf-txt2 text-[12.5px] leading-relaxed">
               {t("auth.terms_prefix", "Acepto los")}{" "}
-              <span className="text-primary font-semibold">{t("auth.terms", "Términos")}</span>{" "}
+              <Link href="/terms" className="text-primary font-semibold underline">
+                {t("auth.terms", "Términos")}
+              </Link>{" "}
               {t("auth.and", "y la")}{" "}
-              <span className="text-primary font-semibold">{t("auth.privacy", "Política de privacidad")}</span>.
+              <Link href="/privacy" className="text-primary font-semibold underline">
+                {t("auth.privacy", "Política de privacidad")}
+              </Link>
+              .
             </span>
           </label>
 

@@ -158,7 +158,7 @@ export default function WelcomePage() {
             <a href="#como-funciona" className="hidden md:inline hover:text-txt transition-colors">Cómo funciona</a>
             <a href="#precios" className="hidden md:inline hover:text-txt transition-colors">Precios</a>
             <Link href="/login" className="cf-btn cf-btn-ghost cf-btn-sm">Entrar</Link>
-            <Link href="/login" className="cf-btn cf-btn-primary cf-btn-sm">Empezar gratis</Link>
+            <Link href="/login?mode=signup" className="cf-btn cf-btn-primary cf-btn-sm">Empezar gratis</Link>
           </div>
         </nav>
 
@@ -177,7 +177,7 @@ export default function WelcomePage() {
               Dile tu objetivo y CreatiFit genera un plan a tu medida, registra cada serie y adapta tus entrenos a tu progreso real.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
-              <Link href="/login" className="cf-btn cf-btn-primary cf-btn-lg" style={{ fontSize: 16 }}>
+              <Link href="/login?mode=signup" className="cf-btn cf-btn-primary cf-btn-lg" style={{ fontSize: 16 }}>
                 Empieza gratis<ArrowRight size={19} />
               </Link>
               <Link href="/login" className="cf-btn cf-btn-ghost cf-btn-lg" style={{ fontSize: 16 }}>
@@ -383,7 +383,7 @@ export default function WelcomePage() {
                       </div>
                     ))}
                   </div>
-                  <Link href="/login" className={`cf-btn cf-btn-block ${pl.hot ? "cf-btn-primary" : "cf-btn-ghost"}`}>{pl.cta}</Link>
+                  <Link href="/login?mode=signup" className={`cf-btn cf-btn-block ${pl.hot ? "cf-btn-primary" : "cf-btn-ghost"}`}>{pl.cta}</Link>
                 </div>
               </div>
             ))}
@@ -405,7 +405,7 @@ export default function WelcomePage() {
                 Empieza a entrenar con inteligencia
               </div>
               <div className="cf-muted text-[17px] mt-3.5">Tu primer plan generado por IA, gratis. Sin tarjeta.</div>
-              <Link href="/login" className="cf-btn cf-btn-primary cf-btn-lg mt-7" style={{ fontSize: 17, padding: "18px 36px" }}>
+              <Link href="/login?mode=signup" className="cf-btn cf-btn-primary cf-btn-lg mt-7" style={{ fontSize: 17, padding: "18px 36px" }}>
                 Crear mi plan gratis<ArrowRight size={20} />
               </Link>
             </div>

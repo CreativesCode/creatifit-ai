@@ -10,6 +10,7 @@
     "sending": "Enviando...",
     "errors": {
       "required": "Ingresa correo y contraseña",
+      "terms_required": "Acepta los Términos y la Política de privacidad para continuar",
       "password_short": "La contraseña debe tener al menos 6 caracteres",
       "invalid_credentials": "Correo o contraseña incorrectos",
       "not_confirmed": "Confirma tu correo antes de iniciar sesión",
@@ -24,6 +25,7 @@
       "title": "Revisa tu correo",
       "body": "Te enviamos un enlace de confirmación a",
       "then_signin": "Confírmalo y luego inicia sesión.",
+      "resent": "Correo reenviado. Revisa también la carpeta de spam.",
       "resend": "Reenviar correo de confirmación",
       "back_to_signin": "Volver a iniciar sesión"
     },
@@ -376,6 +378,10 @@
     "loading": "Cargando dashboard..."
   },
   "body": {
+    "empty_error": "Escribe al menos un dato o añade una foto.",
+    "save_error": "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.",
+    "delete_confirm": "Borrar",
+    "delete_cancel": "No",
     "eyebrow": "Tu cuerpo",
     "title": "Progreso corporal",
     "back": "Volver",

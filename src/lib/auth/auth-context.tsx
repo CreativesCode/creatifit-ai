@@ -101,6 +101,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
     if (error) return { error: error.message, needsConfirmation: false };
+    // Con confirmación de correo activada, Supabase responde "éxito" a un correo
+    // ya registrado (sin identidades y sin enviar nada): no decir "revisa tu correo".
+    if (!data.session && data.user && (data.user.identities?.length ?? 0) === 0) {
+      return { error: "User already registered", needsConfirmation: false };
+    }
     // Si la confirmación de correo está activada, no hay sesión hasta confirmar.
     const needsConfirmation = !data.session;
     return { error: null, needsConfirmation };

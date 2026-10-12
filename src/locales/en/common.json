@@ -10,6 +10,7 @@
     "sending": "Sending...",
     "errors": {
       "required": "Enter email and password",
+      "terms_required": "Accept the Terms and the Privacy Policy to continue",
       "password_short": "Password must be at least 6 characters",
       "invalid_credentials": "Invalid email or password",
       "not_confirmed": "Confirm your email before signing in",
@@ -24,6 +25,7 @@
       "title": "Check your email",
       "body": "We sent a confirmation link to",
       "then_signin": "Confirm it and then sign in.",
+      "resent": "Email sent again. Check your spam folder too.",
       "resend": "Resend confirmation email",
       "back_to_signin": "Back to sign in"
     },
@@ -376,6 +378,10 @@
     "loading": "Loading dashboard..."
   },
   "body": {
+    "empty_error": "Enter at least one value or add a photo.",
+    "save_error": "Could not save. Check your connection and try again.",
+    "delete_confirm": "Delete",
+    "delete_cancel": "No",
     "eyebrow": "Your body",
     "title": "Body progress",
     "back": "Back",

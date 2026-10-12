@@ -32,7 +32,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface IntakeFormProps {
@@ -94,12 +94,57 @@ export function IntakeForm({
   // Continuación diferida hacia el plan tras el aviso de ejercicios.
   const pendingNavRef = useRef<(() => void) | null>(null);
 
+  // Quien ya generó un plan no vuelve a rellenar todo: el cuestionario parte de
+  // las respuestas de su plan más reciente (se guardan en payload.meta). Solo se
+  // aplica si todavía no ha tocado nada, y funciona con la copia local sin red.
+  const touchedRef = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    supabaseClient
+      .getPlans()
+      .then((plans) => {
+        if (cancelled || touchedRef.current || !Array.isArray(plans)) return;
+        const latest = [...plans].sort((a, b) =>
+          String(b.created_at).localeCompare(String(a.created_at))
+        )[0];
+        const meta = latest?.payload?.meta;
+        if (!meta) return;
+        setFormData((prev) => ({
+          ...prev,
+          objective: meta.objective ?? prev.objective,
+          level: meta.level ?? prev.level,
+          gender: meta.gender ?? prev.gender,
+          age: Number(meta.age) || prev.age,
+          weightKg: Number(meta.weight_kg) || prev.weightKg,
+          heightCm: Number(meta.height_cm) || prev.heightCm,
+          stepsDay: Number(meta.steps_day) || prev.stepsDay,
+          weeks: Number(latest.weeks) || prev.weeks,
+          equipment:
+            meta.equipment && typeof meta.equipment === "object" && !Array.isArray(meta.equipment)
+              ? meta.equipment
+              : prev.equipment,
+          constraints:
+            meta.constraints && typeof meta.constraints === "object"
+              ? meta.constraints
+              : prev.constraints,
+        }));
+      })
+      .catch(() => {
+        /* sin planes o sin red y sin copia: se queda con los valores por defecto */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const set = (field: keyof Intake, value: any) => {
+    touchedRef.current = true;
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const toggleEquipment = (key: string) => {
+    touchedRef.current = true;
     setFormData((prev) => ({
       ...prev,
       equipment: {
@@ -110,6 +155,7 @@ export function IntakeForm({
   };
 
   const toggleConstraint = (key: ConstraintKey) => {
+    touchedRef.current = true;
     setFormData((prev) => ({
       ...prev,
       constraints: {

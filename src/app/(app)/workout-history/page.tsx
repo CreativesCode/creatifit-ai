@@ -1,7 +1,7 @@
 "use client";
 import { WorkoutHistory } from "@/components/ui/workout-history";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { deleteWorkoutLog, supabaseClient } from "@/lib/supabase-client";
 import { useAuth } from "@/lib/auth/auth-context";
 import { localDay } from "@/lib/progress/streak";
@@ -37,12 +37,21 @@ export default function WorkoutHistoryPage() {
   const sessionId = searchParams.get("id");
   const [selectedSession, setSelectedSession] = useState<WorkoutSession | null>(null);
   const [loading, setLoading] = useState(false);
+  // true si el detalle se abrió desde la lista (hay una entrada propia en el
+  // historial de navegación a la que volver).
+  const openedByPushRef = useRef(false);
 
   useEffect(() => {
     // Evita el doble fetch cuando handleSessionClick ya pidió esta sesión
     // (estado primero, navegación best-effort — ver handleSessionClick).
     if (sessionId && selectedSession?.id !== sessionId && !loading) {
       fetchSessionDetails(sessionId);
+    }
+    // Botón Atrás del teléfono: la URL vuelve al historial y la pantalla también
+    // (antes cambiaba la URL y el detalle seguía en pantalla).
+    if (!sessionId && openedByPushRef.current) {
+      openedByPushRef.current = false;
+      setSelectedSession(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
@@ -79,7 +88,14 @@ export default function WorkoutHistoryPage() {
       // en /exercises) y el botón quedaba muerto.
       setSelectedSession(null);
       try {
-        router.replace("/workout-history");
+        // Si se llegó desde la lista, retroceder consume esa entrada: así el
+        // siguiente Atrás no vuelve a abrir el detalle.
+        if (openedByPushRef.current && sessionId) {
+          openedByPushRef.current = false;
+          router.back();
+        } else {
+          router.replace("/workout-history");
+        }
       } catch {
         /* no-op: el estado ya muestra el historial */
       }
@@ -114,6 +130,7 @@ export default function WorkoutHistoryPage() {
     // Estado primero; push (jerarquía) best-effort para historial/deep-link.
     fetchSessionDetails(id);
     try {
+      openedByPushRef.current = true;
       router.push(`/workout-history?id=${id}`);
     } catch {
       /* no-op */

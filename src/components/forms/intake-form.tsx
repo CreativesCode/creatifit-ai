@@ -234,11 +234,60 @@ export function IntakeForm({
     return Object.keys(e).length === 0;
   };
 
+  // Borrador: si el usuario sale del cuestionario (botón Atrás, cambio de
+  // pestaña) y vuelve, encuentra sus respuestas y el paso donde iba.
+  const draftKey = `cf-intake-draft:${user?.id ?? ""}`;
+  // El borrador no se guarda hasta haber leído el anterior: si no, el primer
+  // render lo pisaría con los valores por defecto.
+  const [draftRead, setDraftRead] = useState(false);
+  useEffect(() => {
+    try {
+      const draft = JSON.parse(window.sessionStorage.getItem(draftKey) || "null");
+      if (draft?.formData) {
+        touchedRef.current = true;
+        setFormData((prev) => ({ ...prev, ...draft.formData }));
+        setStep(Math.min(TOTAL_STEPS - 1, Math.max(0, Number(draft.step) || 0)));
+      }
+    } catch {
+      /* sin borrador */
+    }
+    setDraftRead(true);
+  }, [draftKey]);
+  useEffect(() => {
+    if (!draftRead || (!touchedRef.current && step === 0)) return;
+    try {
+      window.sessionStorage.setItem(draftKey, JSON.stringify({ formData, step }));
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }, [draftKey, draftRead, formData, step]);
+
+  // Botón Atrás del teléfono: retrocede un paso en vez de sacar al usuario del
+  // cuestionario. Cada avance deja una entrada en el historial que el Atrás consume.
+  const historyStepsRef = useRef(0);
+  useEffect(() => {
+    const onPop = () => {
+      if (historyStepsRef.current === 0) return;
+      historyStepsRef.current--;
+      setStep((s) => Math.max(0, s - 1));
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   const next = () => {
     if (step === 2 && !validateMeasures()) return;
-    if (step < TOTAL_STEPS - 1) setStep(step + 1);
+    if (step < TOTAL_STEPS - 1) {
+      window.history.pushState(null, "", window.location.href);
+      historyStepsRef.current++;
+      setStep(step + 1);
+    }
   };
-  const back = () => step > 0 && setStep(step - 1);
+  const back = () => {
+    if (step === 0) return;
+    if (historyStepsRef.current > 0) window.history.back();
+    else setStep(step - 1);
+  };
 
   // Cada generación cuesta dinero: un segundo toque mientras se comprueba el
   // límite o se genera no debe lanzar otra. El estado isGenerating llega tarde
@@ -390,6 +439,11 @@ export function IntakeForm({
 
       if (!savedPlan) throw new Error("Failed to save plan to database");
       clearGenerationRequest();
+      try {
+        window.sessionStorage.removeItem(draftKey);
+      } catch {
+        /* no-op */
+      }
 
       // El plan se guardó. Si la RPC de ejercicios falló (E-COD-3) no perdemos el
       // plan: avisamos al usuario y le dejamos continuar de todos modos.

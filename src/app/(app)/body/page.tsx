@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { supabaseClient } from "@/lib/supabase-client";
+import { localDay } from "@/lib/progress/streak";
 import {
   ArrowLeft,
   Camera,
@@ -96,7 +97,7 @@ export default function BodyPage() {
       if (photoFile) photo_path = await supabaseClient.uploadProgressPhoto(photoFile);
 
       const entry: Record<string, unknown> = {
-        date: form.date || new Date().toISOString().split("T")[0],
+        date: form.date || localDay(new Date()),
         weight: num(form.weight ?? ""),
         body_fat: num(form.body_fat ?? ""),
         notes: form.notes?.trim() || null,

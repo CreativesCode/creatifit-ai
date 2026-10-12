@@ -18,11 +18,17 @@ const DAY_MS = 86400000;
 
 // Fecha LOCAL en formato YYYY-MM-DD (no UTC). Importante: usar el día local hace
 // que "hoy" coincida con lo que ve el usuario, incluso para entrenos de noche.
-function localDay(d: Date): string {
+export function localDay(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+// Interpreta un YYYY-MM-DD como medianoche LOCAL. `new Date("YYYY-MM-DD")` lo toma
+// como UTC y, al oeste de Greenwich, lo pinta como el día anterior.
+export function parseLocalDay(day: string): Date {
+  return new Date(`${day}T00:00:00`);
 }
 
 function logLocalDay(l: LogEntry): string | null {

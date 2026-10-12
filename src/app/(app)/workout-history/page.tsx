@@ -3,6 +3,7 @@ import { WorkoutHistory } from "@/components/ui/workout-history";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { supabaseClient } from "@/lib/supabase-client";
+import { localDay } from "@/lib/progress/streak";
 
 interface WorkoutLog {
   id: string;
@@ -54,7 +55,7 @@ export default function WorkoutHistoryPage() {
         const session: WorkoutSession = {
           id: id,
           planDayId: logs[0].plan_day_id,
-          date: logs[0].timestamp.split("T")[0],
+          date: localDay(new Date(logs[0].timestamp)),
           logs: logs,
           totalSets: logs.length,
           totalVolume: logs.reduce((sum: number, log: WorkoutLog) => sum + (log.actual_reps * (log.weight || 0)), 0),

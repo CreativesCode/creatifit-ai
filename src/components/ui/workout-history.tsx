@@ -5,6 +5,7 @@ import {
   computeAchievements,
   computeExerciseRecords,
 } from "@/lib/progress/records";
+import { localDay, parseLocalDay } from "@/lib/progress/streak";
 import { bodyWeightSeries, weeklyVolume } from "@/lib/progress/trends";
 import { supabaseClient } from "@/lib/supabase-client";
 import i18n from "@/lib/i18n";
@@ -131,7 +132,7 @@ export function WorkoutHistory({
             sessionMap.set(sessionKey, {
               id: sessionKey,
               planDayId: log.plan_day_id,
-              date: log.timestamp.split("T")[0],
+              date: localDay(new Date(log.timestamp)),
               logs: [],
               totalSets: 0,
               totalVolume: 0,
@@ -160,7 +161,7 @@ export function WorkoutHistory({
   };
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString(i18n.language, {
+    parseLocalDay(dateString).toLocaleDateString(i18n.language, {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -168,7 +169,7 @@ export function WorkoutHistory({
     });
 
   const formatShort = (dateString: string) =>
-    new Date(dateString).toLocaleDateString(i18n.language, {
+    parseLocalDay(dateString).toLocaleDateString(i18n.language, {
       day: "numeric",
       month: "short",
     });

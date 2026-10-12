@@ -288,9 +288,12 @@ async function handle(req: Request): Promise<Response> {
         }));
 
       // La tabla `intake` no la escribe la app: el cuestionario viaja dentro del
-      // plan (payload.meta). Se usa el del plan más reciente como respaldo.
+      // plan (payload.meta). Se usa el del plan más reciente que lo tenga: un plan
+      // hecho a mano no lleva cuestionario.
       // deno-lint-ignore no-explicit-any
-      const meta: any = (plansRes.data ?? [])[0]?.payload?.meta ?? null;
+      const withIntake: any = (plansRes.data ?? []).find((p: any) => p?.payload?.meta?.objective);
+      // deno-lint-ignore no-explicit-any
+      const meta: any = withIntake?.payload?.meta ?? null;
       const trueKeys = (o: unknown) =>
         o && typeof o === "object"
           ? Object.entries(o as Record<string, unknown>)
@@ -311,7 +314,7 @@ async function handle(req: Request): Promise<Response> {
               [meta.notes, avoid.length ? `Evitar: ${avoid.join(", ")}` : null]
                 .filter(Boolean)
                 .join(" · ") || null,
-            created_at: meta.created_at ?? (plansRes.data ?? [])[0]?.created_at,
+            created_at: meta.created_at ?? withIntake?.created_at,
           }
         : null;
 

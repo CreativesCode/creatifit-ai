@@ -33,6 +33,25 @@ function onPop() {
 }
 
 /**
+ * Navega después de cerrar una vista protegida. Al cerrarla se retira su
+ * centinela con un retroceso que el navegador aplica más tarde: navegar antes
+ * de que termine haría que ese retroceso deshiciera la navegación.
+ */
+export function afterBackGuards(go: () => void): void {
+  let waited = 0;
+  const check = () => {
+    if (suppress > 0 && waited < 600) {
+      waited += 40;
+      setTimeout(check, 40);
+    } else {
+      go();
+    }
+  };
+  // Margen para que React desmonte la vista y pida el retroceso.
+  setTimeout(check, 60);
+}
+
+/**
  * @param active la vista está abierta.
  * @param onBack se llama con Atrás; debe cerrar la vista, o devolver `true`
  *   para mantenerla abierta.

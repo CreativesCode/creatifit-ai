@@ -310,6 +310,12 @@ export default function DashboardPage() {
               <Plus size={18} />
               {t("dashboard.welcome.create_first_plan")}
             </button>
+            <button
+              className="cf-btn cf-btn-ghost cf-btn-block"
+              onClick={() => router.push("/plans?new=1")}
+            >
+              {t("plans.create.manual_link", "O crea tu plan a mano")}
+            </button>
           </div>
         </div>
       )}

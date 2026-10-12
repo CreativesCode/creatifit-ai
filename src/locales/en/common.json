@@ -220,7 +220,8 @@
     "start_session": "Start Session",
     "back_to_plan": "Back to Plan",
     "regenerate": "Regenerate Plan",
-    "ai_generated": "AI Generated"
+    "ai_generated": "AI Generated",
+    "manual": "Made by hand"
   },
   "session": {
     "session_ended": "Session ended",
@@ -565,6 +566,15 @@
       "exit_desc": "If you leave now, the changes stay on this phone and you can continue later.",
       "exit_keep": "Leave and continue later",
       "exit_discard": "Discard changes"
+    },
+    "create": {
+      "title": "Create a plan",
+      "manual": "Build it by hand",
+      "manual_resume": "Continue my hand-built plan",
+      "manual_desc": "Pick the exercises from the catalog yourself. No limit on plans.",
+      "ai": "Create with AI",
+      "ai_desc": "Answer a few questions and the AI builds the plan around your goal and equipment.",
+      "manual_link": "Or build your plan by hand"
     },
     "picker": {
       "title": "Add exercises",

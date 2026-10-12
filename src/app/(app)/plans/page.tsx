@@ -6,12 +6,15 @@ import {
   type ExerciseDetailData,
   type ExercisePlanSpec,
 } from "@/components/ui/exercise-detail-view";
-import { planTitle, formatReps } from "@/lib/plan-display";
+import { planTitle, formatReps, isManualPlan } from "@/lib/plan-display";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { canGenerate } from "@/lib/config/plans-config";
 import { countAiGenerations } from "@/lib/plans/ai-quota";
 import { PlanEditor } from "@/components/plans/plan-editor";
+import { CreatePlanSheet } from "@/components/plans/create-plan-sheet";
+import { NEW_PLAN_SLOT, readDraft } from "@/lib/plans/plan-draft";
+import { afterBackGuards } from "@/lib/back-guard";
 import {
   computeImproveEligibility,
   buildProgressionNotes,
@@ -27,6 +30,7 @@ import {
   Dumbbell,
   Edit,
   Loader2,
+  PencilLine,
   Play,
   Plus,
   Repeat,
@@ -61,7 +65,7 @@ interface Plan {
   created_at: string;
   payload: {
     days: PlanDay[];
-    meta?: { objective?: string; name?: string };
+    meta?: { objective?: string; name?: string; source?: string };
   };
 }
 
@@ -86,6 +90,8 @@ export default function PlansPage() {
   const [exDetailOpen, setExDetailOpen] = useState(false);
   // Editor de plan abierto: sobre un plan existente o, con `plan: null`, uno nuevo.
   const [editor, setEditor] = useState<{ plan: Plan | null } | null>(null);
+  // Hoja "Crear con IA / Crear a mano".
+  const [createOpen, setCreateOpen] = useState(false);
   // Estado de la hoja de cambio de ejercicio.
   const [swapTarget, setSwapTarget] = useState<{
     blockIndex: number;
@@ -108,6 +114,16 @@ export default function PlansPage() {
 
   const planId = searchParams.get("id");
   const dayParam = searchParams.get("day");
+
+  // /plans?new=1 (enlace desde Inicio) abre directamente el editor de plan nuevo.
+  const newParam = searchParams.get("new");
+  const openedNewRef = useRef(false);
+  useEffect(() => {
+    if (newParam === "1" && !openedNewRef.current) {
+      openedNewRef.current = true;
+      setEditor({ plan: null });
+    }
+  }, [newParam]);
 
   // Vista del día en estado local, sincronizada desde la URL. La URL sigue
   // sirviendo para deep-links, pero los botones actualizan PRIMERO el estado:
@@ -970,10 +986,17 @@ export default function PlansPage() {
             aria-hidden
           />
           <div className="relative">
-            <span className="cf-chip cf-chip-brand">
-              <Sparkles size={12} fill="currentColor" />
-              {t("plan.ai_generated", "Generado por IA")}
-            </span>
+            {isManualPlan(selectedPlan) ? (
+              <span className="cf-chip">
+                <PencilLine size={12} />
+                {t("plan.manual", "Hecho a mano")}
+              </span>
+            ) : (
+              <span className="cf-chip cf-chip-brand">
+                <Sparkles size={12} fill="currentColor" />
+                {t("plan.ai_generated", "Generado por IA")}
+              </span>
+            )}
             <div className="cf-h1 text-[24px] mt-3">{planTitle(selectedPlan, t)}</div>
             <div className="cf-muted text-[13px] mt-1">
               {t("plans.plan_details.plan_duration", { weeks: selectedPlan.weeks })}
@@ -1029,7 +1052,8 @@ export default function PlansPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-[15.5px]">
-                  {t("plan.day")} {d.day} · {d.focus}
+                  {t("plan.day")} {d.day}
+                  {d.focus ? ` · ${d.focus}` : ""}
                 </div>
                 <div className="cf-muted text-[12px] font-semibold mt-0.5">
                   {d.blocks?.length || 0} {t("nav.exercises")}
@@ -1104,7 +1128,7 @@ export default function PlansPage() {
           <div className="cf-h1 text-[26px] mt-1.5">{t("plans.title")}</div>
         </div>
         <button
-          onClick={() => router.push("/onboarding")}
+          onClick={() => setCreateOpen(true)}
           className="cf-icon-tile bg-grad-brand text-white shadow-glow-brand"
           aria-label={t("plans.create_new_plan")}
         >
@@ -1124,10 +1148,7 @@ export default function PlansPage() {
           <p className="cf-muted mb-6 text-sm">
             {t("plans.no_plans.description")}
           </p>
-          <button
-            className="cf-btn cf-btn-primary"
-            onClick={() => router.push("/onboarding")}
-          >
+          <button className="cf-btn cf-btn-primary" onClick={() => setCreateOpen(true)}>
             <Plus size={18} />
             {t("plans.no_plans.create_first")}
           </button>
@@ -1205,6 +1226,21 @@ export default function PlansPage() {
       )}
 
       {deleteModal}
+
+      {createOpen && (
+        <CreatePlanSheet
+          hasDraft={!!user?.id && !!readDraft(user.id, NEW_PLAN_SLOT)}
+          onClose={() => setCreateOpen(false)}
+          onManual={() => {
+            setCreateOpen(false);
+            setEditor({ plan: null });
+          }}
+          onAi={() => {
+            setCreateOpen(false);
+            afterBackGuards(() => router.push("/onboarding"));
+          }}
+        />
+      )}
     </div>
   );
 }

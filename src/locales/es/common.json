@@ -220,7 +220,8 @@
     "start_session": "Iniciar Sesión",
     "back_to_plan": "Volver al Plan",
     "regenerate": "Regenerar Plan",
-    "ai_generated": "Generado por IA"
+    "ai_generated": "Generado por IA",
+    "manual": "Hecho a mano"
   },
   "session": {
     "session_ended": "Sesión terminada",
@@ -565,6 +566,15 @@
       "exit_desc": "Si sales ahora, los cambios se quedan en este teléfono y podrás seguir después.",
       "exit_keep": "Salir y seguir después",
       "exit_discard": "Descartar cambios"
+    },
+    "create": {
+      "title": "Crear un plan",
+      "manual": "Crear a mano",
+      "manual_resume": "Seguir con mi plan a mano",
+      "manual_desc": "Elige tú los ejercicios del catálogo. Sin límite de planes.",
+      "ai": "Crear con IA",
+      "ai_desc": "Responde unas preguntas y la IA arma el plan según tu objetivo y tu equipo.",
+      "manual_link": "O crea tu plan a mano"
     },
     "picker": {
       "title": "Añadir ejercicios",

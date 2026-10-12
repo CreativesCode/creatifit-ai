@@ -162,9 +162,10 @@ export function IntakeForm({
       .getPlans()
       .then((plans) => {
         if (cancelled || touchedRef.current || !Array.isArray(plans)) return;
-        const latest = [...plans].sort((a, b) =>
-          String(b.created_at).localeCompare(String(a.created_at))
-        )[0];
+        // El más reciente que tenga cuestionario: un plan hecho a mano no lo lleva.
+        const latest = [...plans]
+          .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+          .find((p) => p?.payload?.meta?.objective);
         const meta = latest?.payload?.meta;
         if (!meta) return;
         setFormData((prev) => ({

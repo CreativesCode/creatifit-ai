@@ -11,23 +11,32 @@ type TFn = (key: string, options?: Record<string, unknown>) => string;
 interface PlanLike {
   id?: string;
   payload?: {
-    meta?: { objective?: string; name?: string };
+    meta?: { objective?: string; name?: string; source?: string } | Record<string, unknown>;
   };
 }
+
+/** ¿Plan hecho a mano por el usuario? (los de IA no llevan `meta.source`). */
+export const isManualPlan = (plan: PlanLike | null | undefined): boolean =>
+  plan?.payload?.meta?.source === "manual";
 
 /** Etiqueta traducida del objetivo del plan (o null si no se conoce). */
 export function planObjectiveLabel(plan: PlanLike, t: TFn): string | null {
   const objective = plan?.payload?.meta?.objective;
-  if (!objective) return null;
+  if (!objective || typeof objective !== "string") return null;
   return t(`onboarding.objective.${objective}`, { defaultValue: objective });
 }
 
 /** Nombre legible del plan, ligado al objetivo. Cae a fallbacks si falta el dato. */
 export function planTitle(plan: PlanLike, t: TFn): string {
+  const name = plan?.payload?.meta?.name;
+  const saved = typeof name === "string" ? name : "";
+  // En un plan hecho a mano manda el nombre que le puso el usuario, aunque
+  // después guarde un objetivo para usar la IA.
+  if (isManualPlan(plan) && saved) return saved;
   const label = planObjectiveLabel(plan, t);
   if (label) return t("plans.objective_name", { objective: label, defaultValue: label });
   // Planes antiguos sin objetivo: usa el nombre guardado o un genérico.
-  return plan?.payload?.meta?.name || t("plan.title", { defaultValue: "Plan" });
+  return saved || t("plan.title", { defaultValue: "Plan" });
 }
 
 /**

@@ -14,6 +14,8 @@ export const setCacheUser = (uid: string | null) => {
   cacheUserId = uid;
 };
 
+export const getCacheUser = () => cacheUserId;
+
 const keyFor = (name: string) => `${PREFIX}:${cacheUserId}:${name}`;
 
 export function cacheRead<T>(name: string): T | null {

@@ -144,6 +144,26 @@ const sendDeletes = async (ids: string[]): Promise<boolean> => {
   }
 };
 
+/** Series de este usuario que siguen en el teléfono sin confirmar por el servidor. */
+export const pendingWorkoutRows = (uid: string): OutboxRow[] =>
+  read()
+    .filter((e) => e.uid === uid)
+    .map((e) => e.row);
+
+/** Ids de series borradas por este usuario cuyo borrado aún no llegó al servidor. */
+export const pendingWorkoutDeletes = (uid: string): string[] =>
+  readDeletes()
+    .filter((d) => d.uid === uid)
+    .map((d) => d.id);
+
+/** Avisa cada vez que cambia la cola (serie encolada, enviada o borrada). */
+export const subscribeOutbox = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+
 let flushing: Promise<void> | null = null;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let retryDelay = RETRY_MIN_MS;

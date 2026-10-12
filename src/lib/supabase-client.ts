@@ -5,11 +5,17 @@ import {
   cacheRead,
   cacheRemove,
   cacheWrite,
+  getCacheUser,
   isNetworkError,
   OfflineError,
 } from "./local-cache";
 import { compressPhoto } from "./image-compress";
-import { removeWorkoutLog } from "./workout-outbox";
+import {
+  pendingWorkoutDeletes,
+  pendingWorkoutRows,
+  removeWorkoutLog,
+  subscribeOutbox,
+} from "./workout-outbox";
 export { supabase };
 
 // Fotos de progreso: las subidas desde el plan del piloto llevan este prefijo
@@ -21,6 +27,10 @@ interface SignedPhotoUrl {
   url: string;
   exp: number;
 }
+
+const LOGS_PAGE = 1000;
+const LOG_COLUMNS =
+  "id, exercise_name, set_index, target_reps, actual_reps, weight, rpe, notes, plan_day_id, plan_id, session_id, timestamp, created_at";
 
 /** Ruta de la miniatura de una foto, o null si esa foto no tiene (las antiguas). */
 export function photoThumbPath(path: string): string | null {
@@ -341,20 +351,26 @@ export const supabaseClient = {
   },
 
   // Logs
-  async getLogs(sessionId?: string) {
-    let query = supabase
-      .from("workout_logs")
-      .select("*")
-      .order("created_at", { ascending: false });
+  // Historial de series. Solo las columnas que usa la app y por páginas: la API
+  // corta en 1000 filas por petición y un historial largo se truncaba en silencio.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getLogs(sessionId?: string): Promise<any[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const all: any[] = [];
+    for (let from = 0; ; from += LOGS_PAGE) {
+      let query = supabase
+        .from("workout_logs")
+        .select(LOG_COLUMNS)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, from + LOGS_PAGE - 1);
+      if (sessionId) query = query.eq("session_id", sessionId);
 
-    if (sessionId) {
-      query = query.eq("session_id", sessionId);
+      const { data, error } = await query;
+      if (error) throw error;
+      all.push(...(data ?? []));
+      if (!data || data.length < LOGS_PAGE) return all;
     }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-    return data;
   },
 
   // Devuelve ejercicios "similares" para sustituir a uno dado: misma categoría y,
@@ -618,6 +634,7 @@ supabaseClient.getPlans = () =>
     para que no reaparezca si la siguiente lectura sale de esa copia. */
 export function deleteWorkoutLog(uid: string, id: string): void {
   removeWorkoutLog(uid, id);
+  logsMemo = null;
   const stored = cacheRead<{ id: string }[]>("logs");
   if (Array.isArray(stored)) {
     cacheWrite("logs", stored.filter((l) => l.id !== id));
@@ -649,10 +666,55 @@ supabaseClient.getPlanExercises = (planId: string) =>
     online.getPlanExercises.call(supabaseClient, planId)
   );
 
-supabaseClient.getLogs = (sessionId?: string) =>
-  sessionId
-    ? online.getLogs.call(supabaseClient, sessionId)
-    : offlineCapable("logs", () => online.getLogs.call(supabaseClient));
+/* Historial: una sola descarga compartida.
+   Inicio, planes, sesión e historial lo piden cada uno por su cuenta y se llegaba
+   a bajar entero 5 veces en una navegación. Ahora:
+   - las peticiones simultáneas comparten la misma descarga y el resultado vale
+     LOGS_FRESH_MS (se descarta antes si cambia la cola de series);
+   - a lo que diga el servidor se le suman las series que siguen en el teléfono
+     y se le quitan las borradas pendientes, así el historial cuadra sin red;
+   - el detalle de una sesión se saca de esa misma lista, sin otra petición. */
+const LOGS_FRESH_MS = 60_000;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LogRow = any;
+let logsMemo: { uid: string | null; at: number; promise: Promise<LogRow[]> } | null = null;
+
+subscribeOutbox(() => {
+  logsMemo = null;
+});
+
+function loadServerLogs(): Promise<LogRow[]> {
+  const uid = getCacheUser();
+  if (logsMemo && logsMemo.uid === uid && Date.now() - logsMemo.at < LOGS_FRESH_MS) {
+    return logsMemo.promise;
+  }
+  const promise = offlineCapable("logs", () => online.getLogs.call(supabaseClient));
+  const memo = { uid, at: Date.now(), promise };
+  logsMemo = memo;
+  // Un fallo no se recuerda: el siguiente intento vuelve a pedirlo.
+  promise.catch(() => {
+    if (logsMemo === memo) logsMemo = null;
+  });
+  return promise;
+}
+
+function withPendingLogs(server: LogRow[]): LogRow[] {
+  const uid = getCacheUser();
+  if (!uid) return server;
+  const deleted = new Set(pendingWorkoutDeletes(uid));
+  const known = new Set(server.map((l) => l.id));
+  const pending = pendingWorkoutRows(uid)
+    .filter((r) => !known.has(r.id))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .map((r) => ({ ...r, created_at: r.timestamp }));
+  if (pending.length === 0 && deleted.size === 0) return server;
+  return [...pending, ...server].filter((l) => !deleted.has(l.id));
+}
+
+supabaseClient.getLogs = async (sessionId?: string) => {
+  const all = withPendingLogs(await loadServerLogs());
+  return sessionId ? all.filter((l) => l.session_id === sessionId) : all;
+};
 
 supabaseClient.getFavoriteIds = () =>
   offlineCapable("favorites", () => online.getFavoriteIds.call(supabaseClient));

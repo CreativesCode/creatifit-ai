@@ -1,5 +1,12 @@
 // Reexportamos el cliente único (autenticado vía RLS con el JWT del usuario).
 import { supabase } from "./supabase-config";
+import {
+  cached,
+  cacheRead,
+  cacheRemove,
+  isNetworkError,
+  OfflineError,
+} from "./local-cache";
 export { supabase };
 
 // Funciones para reemplazar las APIs de Next.js
@@ -162,6 +169,9 @@ export const supabaseClient = {
   async deletePlan(id: string) {
     const { error } = await supabase.from("plans").delete().eq("id", id);
     if (error) throw error;
+    // Que un plan borrado no reaparezca desde la copia local sin conexión.
+    cacheRemove(`plan:${id}`);
+    cacheRemove(`plan-exercises:${id}`);
   },
 
   async getPlanExercises(planId: string) {
@@ -482,3 +492,78 @@ export const supabaseClient = {
     return data?.signedUrl ?? null;
   },
 };
+
+/* ===== Lecturas disponibles sin conexión =====
+   Se envuelven con la copia local (red primero, copia si la red falla) las
+   lecturas que hacen falta para entrenar y ver el progreso: planes, ejercicios
+   del plan, historial, favoritos y medidas. */
+
+// Con el token caducado y sin poder refrescarlo, supabase-js envía la petición
+// como anónima y RLS devuelve listas vacías: lo tratamos como falta de conexión
+// para no pisar la copia local con datos vacíos.
+//
+// Con el token caducado getSession() espera al refresh, que sin red reintenta
+// durante ~30 s por llamada. No esperamos tanto para enseñar la copia local.
+const SESSION_WAIT_MS = 4000;
+async function requireSession(): Promise<void> {
+  const hasSession = await Promise.race([
+    supabase.auth.getSession().then(({ data }) => !!data.session),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), SESSION_WAIT_MS)),
+  ]);
+  if (!hasSession) throw new OfflineError();
+}
+
+const online = {
+  getPlans: supabaseClient.getPlans,
+  getPlanById: supabaseClient.getPlanById,
+  getPlanExercises: supabaseClient.getPlanExercises,
+  getLogs: supabaseClient.getLogs,
+  getFavoriteIds: supabaseClient.getFavoriteIds,
+  getMeasurements: supabaseClient.getMeasurements,
+};
+
+const offlineCapable = <T>(name: string, fetcher: () => Promise<T>): Promise<T> =>
+  cached(name, async () => {
+    await requireSession();
+    return fetcher();
+  });
+
+supabaseClient.getPlans = () =>
+  offlineCapable("plans", () => online.getPlans.call(supabaseClient));
+
+/** Tamaño del catálogo de ejercicios (contador del panel). */
+export const getExerciseCount = (): Promise<number> =>
+  offlineCapable(
+    "exercise-count",
+    async () => (await supabaseClient.getExercises(1, 1)).count ?? 0
+  );
+
+supabaseClient.getPlanById = async (id: string) => {
+  try {
+    return await offlineCapable(`plan:${id}`, () =>
+      online.getPlanById.call(supabaseClient, id)
+    );
+  } catch (err) {
+    if (!isNetworkError(err)) throw err;
+    // Sin copia propia del plan: puede estar en la lista de planes guardada.
+    const fromList = cacheRead<{ id: string }[]>("plans")?.find((p) => p.id === id);
+    if (!fromList) throw err;
+    return fromList as Awaited<ReturnType<typeof online.getPlanById>>;
+  }
+};
+
+supabaseClient.getPlanExercises = (planId: string) =>
+  offlineCapable(`plan-exercises:${planId}`, () =>
+    online.getPlanExercises.call(supabaseClient, planId)
+  );
+
+supabaseClient.getLogs = (sessionId?: string) =>
+  sessionId
+    ? online.getLogs.call(supabaseClient, sessionId)
+    : offlineCapable("logs", () => online.getLogs.call(supabaseClient));
+
+supabaseClient.getFavoriteIds = () =>
+  offlineCapable("favorites", () => online.getFavoriteIds.call(supabaseClient));
+
+supabaseClient.getMeasurements = () =>
+  offlineCapable("measurements", () => online.getMeasurements.call(supabaseClient));

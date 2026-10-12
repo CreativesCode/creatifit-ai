@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "../supabase-config";
+import { supabase, supabaseConfig } from "../supabase-config";
+import { setCacheUser } from "../local-cache";
 import { envConfig } from "../env-config";
 
 interface AuthContextValue {
@@ -22,6 +23,18 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+// Sesión que auth-js persiste en localStorage (clave sb-<ref>-auth-token).
+function readStoredSession(): Session | null {
+  try {
+    const ref = new URL(supabaseConfig.url).hostname.split(".")[0];
+    const raw = window.localStorage.getItem(`sb-${ref}-auth-token`);
+    const parsed = raw ? (JSON.parse(raw) as Session) : null;
+    return parsed?.user?.id && parsed.refresh_token ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,8 +46,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // restaurada del storage) y luego login/logout/refresh/confirmación. Con eso
     // basta para fijar el estado inicial: evitamos el doble setSession/setLoading
     // de un getSession() paralelo y el flicker asociado.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    //
+    // Sin red y con el token caducado, INITIAL_SESSION tarda (espera al refresh) y
+    // llega con sesión null aunque el usuario siga logueado. Por eso arrancamos con
+    // la sesión guardada en el dispositivo y solo la damos por cerrada si auth-js
+    // la borró del storage (cierre real o refresh token inválido).
+    const stored = readStoredSession();
+    if (stored) {
+      setCacheUser(stored.user.id);
+      setSession(stored);
+      setLoading(false);
+    }
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
+      if (!newSession && event !== "SIGNED_OUT") {
+        const kept = readStoredSession();
+        if (kept) {
+          setCacheUser(kept.user.id);
+          setSession(kept);
+          setLoading(false);
+          return;
+        }
+      }
+      setCacheUser(newSession?.user.id ?? null);
       setSession(newSession);
       setLoading(false);
     });

@@ -4,10 +4,29 @@ import {
   cached,
   cacheRead,
   cacheRemove,
+  cacheWrite,
   isNetworkError,
   OfflineError,
 } from "./local-cache";
+import { compressPhoto } from "./image-compress";
 export { supabase };
+
+// Fotos de progreso: las subidas desde el plan del piloto llevan este prefijo
+// y tienen miniatura al lado (mismo nombre con ".thumb.jpg").
+const PHOTO_V2_PREFIX = "p2-";
+const PHOTO_URL_TTL_SEC = 24 * 3600;
+const PHOTO_URL_MARGIN_MS = 10 * 60 * 1000;
+interface SignedPhotoUrl {
+  url: string;
+  exp: number;
+}
+
+/** Ruta de la miniatura de una foto, o null si esa foto no tiene (las antiguas). */
+export function photoThumbPath(path: string): string | null {
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  if (!name.startsWith(PHOTO_V2_PREFIX)) return null;
+  return path.replace(/\.jpg$/, ".thumb.jpg");
+}
 
 // Funciones para reemplazar las APIs de Next.js
 export const supabaseClient = {
@@ -467,8 +486,11 @@ export const supabaseClient = {
 
   async deleteMeasurement(id: string, photoPath?: string | null) {
     if (photoPath) {
-      // Borrado best-effort de la foto; no bloquea el borrado de la fila.
-      await supabase.storage.from("progress-photos").remove([photoPath]);
+      // Borrado best-effort de la foto (y su miniatura); no bloquea el de la fila.
+      const thumb = photoThumbPath(photoPath);
+      await supabase.storage
+        .from("progress-photos")
+        .remove(thumb ? [photoPath, thumb] : [photoPath]);
     }
     const { error } = await supabase
       .from("body_measurements")
@@ -479,28 +501,75 @@ export const supabaseClient = {
 
   // Sube una foto al bucket privado bajo {user_id}/... (lo exige la RLS de Storage).
   // Devuelve la ruta guardable en `body_measurements.photo_path`.
+  // La foto se reduce en el teléfono antes de subir y se guarda además una
+  // miniatura para la lista: la de cámara pesa megas y se pedía entera para
+  // pintar un cuadro de 56 px.
   async uploadProgressPhoto(file: File): Promise<string> {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) throw new Error("No authenticated user");
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    // Sin Math.random/Date inseguros: el nombre se basa en el id de usuario +
-    // marca temporal; colisiones improbables y, si ocurre, upsert lo resuelve.
-    const path = `${uid}/${Date.now()}-${file.size}.${ext}`;
-    const { error } = await supabase.storage
-      .from("progress-photos")
-      .upload(path, file, { upsert: true, contentType: file.type || "image/jpeg" });
+    const bucket = supabase.storage.from("progress-photos");
+    // El nombre no cambia nunca de contenido, así que puede cachearse un año.
+    const opts = { upsert: true, cacheControl: "31536000" };
+    const small = await compressPhoto(file);
+
+    if (!small) {
+      // El navegador no pudo decodificarla: se sube tal cual, sin miniatura.
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${uid}/${Date.now()}-${file.size}.${ext}`;
+      const { error } = await bucket.upload(path, file, {
+        ...opts,
+        contentType: file.type || "image/jpeg",
+      });
+      if (error) throw error;
+      return path;
+    }
+
+    const path = `${uid}/${PHOTO_V2_PREFIX}${Date.now()}-${small.full.size}.jpg`;
+    const { error } = await bucket.upload(path, small.full, {
+      ...opts,
+      contentType: "image/jpeg",
+    });
     if (error) throw error;
+    if (small.thumb) {
+      // Si la miniatura falla, la lista cae a la foto completa: no es un error.
+      await bucket
+        .upload(photoThumbPath(path)!, small.thumb, { ...opts, contentType: "image/jpeg" })
+        .catch(() => undefined);
+    }
     return path;
   },
 
-  // URL firmada temporal para mostrar una foto privada (bucket no público).
-  async getPhotoUrl(path: string, expiresInSec = 3600): Promise<string | null> {
-    const { data, error } = await supabase.storage
-      .from("progress-photos")
-      .createSignedUrl(path, expiresInSec);
-    if (error) return null;
-    return data?.signedUrl ?? null;
+  // URLs firmadas para mostrar fotos privadas (bucket no público), en una sola
+  // petición. Se reutilizan mientras sigan vigentes: una URL firmada nueva en
+  // cada visita es otra dirección y obliga a descargar la foto otra vez.
+  async getPhotoUrls(paths: string[]): Promise<Record<string, string>> {
+    const now = Date.now();
+    const store = cacheRead<Record<string, SignedPhotoUrl>>("photo-urls") ?? {};
+    const out: Record<string, string> = {};
+    const missing: string[] = [];
+    for (const p of paths) {
+      const hit = store[p];
+      if (hit && hit.exp - now > PHOTO_URL_MARGIN_MS) out[p] = hit.url;
+      else missing.push(p);
+    }
+    if (missing.length > 0) {
+      // Sin red no se pueden firmar: se muestran las que ya tenían URL vigente.
+      const { data } = await supabase.storage
+        .from("progress-photos")
+        .createSignedUrls(missing, PHOTO_URL_TTL_SEC)
+        .catch(() => ({ data: null }));
+      for (const row of data ?? []) {
+        if (!row.path || !row.signedUrl || row.error) continue;
+        out[row.path] = row.signedUrl;
+        store[row.path] = { url: row.signedUrl, exp: now + PHOTO_URL_TTL_SEC * 1000 };
+      }
+    }
+    // Se guardan solo las pedidas ahora: las de fotos borradas desaparecen.
+    const kept: Record<string, SignedPhotoUrl> = {};
+    for (const p of paths) if (store[p] && out[p]) kept[p] = store[p];
+    cacheWrite("photo-urls", kept);
+    return out;
   },
 };
 

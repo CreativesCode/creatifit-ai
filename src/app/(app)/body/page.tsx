@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
-import { supabaseClient } from "@/lib/supabase-client";
+import { photoThumbPath, supabaseClient } from "@/lib/supabase-client";
 import { localDay } from "@/lib/progress/streak";
 import {
   ArrowLeft,
@@ -61,22 +61,39 @@ export default function BodyPage() {
 
   // Estado del formulario (strings; se parsean al guardar).
   const [form, setForm] = useState<Record<string, string>>({});
+  const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const load = async () => {
     try {
       const data = (await supabaseClient.getMeasurements()) as Measurement[];
       setEntries(data);
-      // Firmamos las URLs de las fotos (bucket privado).
+      // Firmamos las URLs de las fotos (bucket privado) en una sola petición.
+      // La lista usa la miniatura cuando existe; la foto completa solo hace
+      // falta para el "antes y después" (la más antigua y la más reciente).
       const withPhotos = data.filter((d) => d.photo_path);
-      const urls: Record<string, string> = {};
-      await Promise.all(
-        withPhotos.map(async (d) => {
-          const u = await supabaseClient.getPhotoUrl(d.photo_path!);
-          if (u) urls[d.id] = u;
-        })
+      const fullIds = new Set(
+        [withPhotos[0], withPhotos[withPhotos.length - 1]].filter(Boolean).map((d) => d.id)
       );
+      const wanted = new Set<string>();
+      for (const d of withPhotos) {
+        const thumb = photoThumbPath(d.photo_path!);
+        if (thumb) wanted.add(thumb);
+        if (!thumb || fullIds.has(d.id)) wanted.add(d.photo_path!);
+      }
+      const signed = wanted.size
+        ? await supabaseClient.getPhotoUrls(Array.from(wanted))
+        : {};
+      const urls: Record<string, string> = {};
+      const thumbs: Record<string, string> = {};
+      for (const d of withPhotos) {
+        const full = signed[d.photo_path!];
+        const thumb = signed[photoThumbPath(d.photo_path!) ?? ""];
+        if (full) urls[d.id] = full;
+        if (thumb || full) thumbs[d.id] = thumb || full;
+      }
       setPhotoUrls(urls);
+      setThumbUrls(thumbs);
     } catch (e) {
       console.error("Error loading measurements", e);
     } finally {
@@ -336,10 +353,16 @@ export default function BodyPage() {
             const d = weightDelta(i);
             return (
               <div key={m.id} className="cf-card flex gap-3.5" style={{ padding: 14, borderRadius: 18 }}>
-                {photoUrls[m.id] ? (
+                {thumbUrls[m.id] ? (
                   <div className="overflow-hidden shrink-0" style={{ width: 56, height: 56, borderRadius: 14 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photoUrls[m.id]} alt="" className="w-full h-full object-cover" />
+                    <img
+                      src={thumbUrls[m.id]}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 ) : (
                   <div className="cf-icon-tile bg-surface-2 border border-border shrink-0" style={{ width: 56, height: 56, borderRadius: 14 }}>

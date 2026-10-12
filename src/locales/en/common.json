@@ -65,6 +65,10 @@
     "settings": "Settings"
   },
   "onboarding": {
+    "generating_step_1": "Reading your answers…",
+    "generating_step_2": "Choosing exercises for your equipment…",
+    "generating_step_3": "Building your training days…",
+    "generating_slow": "The connection is slow. We keep trying: your plan is not lost and does not count twice.",
     "title": "Welcome to CreatiFit AI",
     "subtitle": "Let's create your personalized fitness plan",
     "objective": {
@@ -125,7 +129,7 @@
     "retry": "Retry",
     "continue": "Continue",
     "generating_title": "Generating your plan…",
-    "generating_hint": "We're designing your personalized routine. This may take a few seconds.",
+    "generating_hint": "It usually takes 10 to 20 seconds. Keep the app open.",
     "exercises_failed_title": "Plan saved",
     "exercises_failed_hint": "Your plan was saved, but there was a problem loading the detailed exercises. You can continue; they'll appear once it's resolved.",
     "submit": "Generate My Plan",

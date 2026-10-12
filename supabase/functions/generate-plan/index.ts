@@ -98,6 +98,7 @@ interface DbExercise {
   kind?: string | null;
   equipment?: string | null;
   primary_muscles?: string | null;
+  category?: string | null;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -115,30 +116,93 @@ function equipmentTerms(equipment?: Record<string, boolean>): string[] {
   return Array.from(terms);
 }
 
-// Obtiene ejercicios reales de la BD que casen con el equipamiento del usuario.
-// Consulta directa (fiable) con respaldo a una muestra general si algo falla.
+const CATALOG_SIZE = 150;
+
+// Generador determinista a partir de un texto (el requestId): la misma petición
+// ve siempre el mismo catálogo, peticiones distintas ven catálogos distintos.
+function seededRandom(seed: string): () => number {
+  let h = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+}
+
+// Elige `size` ejercicios repartidos entre categorías (grupos musculares).
+// Antes se enviaban las primeras 150 filas que devolviera la BD, sin orden: casi
+// todos los planes salían con los mismos ejercicios del principio del catálogo
+// y con grupos musculares enteros sin representar.
+function balancedSample(rows: DbExercise[], size: number, seed: string): DbExercise[] {
+  if (rows.length <= size) return rows;
+  const random = seededRandom(seed);
+  const groups = new Map<string, DbExercise[]>();
+  for (const row of rows) {
+    const key = (row.category || "General").trim();
+    const list = groups.get(key);
+    if (list) list.push(row);
+    else groups.set(key, [row]);
+  }
+  for (const list of groups.values()) {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+  }
+  const keys = Array.from(groups.keys()).sort();
+  const out: DbExercise[] = [];
+  for (let round = 0; out.length < size; round++) {
+    let added = false;
+    for (const key of keys) {
+      const item = groups.get(key)![round];
+      if (!item) continue;
+      out.push(item);
+      added = true;
+      if (out.length === size) break;
+    }
+    if (!added) break;
+  }
+  return out;
+}
+
+// Obtiene ejercicios reales de la BD que casen con el equipamiento del usuario
+// y devuelve una muestra equilibrada. La API corta en 1000 filas por petición,
+// así que se lee por páginas.
 async function fetchExercises(
   supabase: SupabaseClient,
-  equipment?: Record<string, boolean>
+  equipment: Record<string, boolean> | undefined,
+  seed: string
 ): Promise<DbExercise[]> {
   const terms = equipmentTerms(equipment);
   const orFilter = terms.map((t) => `equipment.ilike.%${t}%`).join(",");
 
-  const { data, error } = await supabase
-    .from("exercises")
-    .select("id,name,equipment,primary_muscles")
-    .or(orFilter)
-    .limit(150);
+  const readAll = async (filtered: boolean): Promise<DbExercise[]> => {
+    const all: DbExercise[] = [];
+    for (let from = 0; from < 5000; from += 1000) {
+      let query = supabase
+        .from("exercises")
+        .select("id,name,equipment,primary_muscles,category");
+      if (filtered) query = query.or(orFilter);
+      const { data, error } = await query.order("id").range(from, from + 999);
+      if (error) {
+        console.error("exercises query error:", error);
+        break;
+      }
+      all.push(...((data ?? []) as DbExercise[]));
+      if (!data || data.length < 1000) break;
+    }
+    return all;
+  };
 
-  if (error) console.error("exercises query error:", error);
-  if (Array.isArray(data) && data.length > 0) return data;
-
-  // Respaldo: cualquier muestra de ejercicios (no debería hacer falta).
-  const { data: fallback } = await supabase
-    .from("exercises")
-    .select("id,name,equipment,primary_muscles")
-    .limit(150);
-  return Array.isArray(fallback) ? fallback : [];
+  let rows = await readAll(true);
+  // Respaldo: catálogo completo (no debería hacer falta).
+  if (rows.length === 0) rows = await readAll(false);
+  return balancedSample(rows, CATALOG_SIZE, seed);
 }
 
 function buildSystemPrompt(intake: Intake, exercises: DbExercise[]): string {
@@ -204,7 +268,7 @@ CRITICAL RULES:
 2. Produce 4 days labelled "A", "B", "C", "D", each with a distinct focus and 4-6 blocks.
 3. Pick exercises that match the user's equipment, level, objective and the RPN ranges above.
 4. Use the RPN sets/reps/rest ranges; vary within them to fit each exercise.
-5. Provide 2-3 concise form cues per block.
+5. Provide 1-2 very short form cues per block (max 8 words each).
 6. Do not repeat the same exercise within a day.
 7. Write the "focus" text and ALL "cues" in ${lang}. Do NOT translate or modify exercise names — they are resolved from the reference list by number.`;
 }
@@ -295,50 +359,83 @@ async function callOpenAI(
 
 // Resuelve los `ref` numéricos a ejercicios reales y limpia la estructura del plan.
 // Devuelve { plan, matched, total } para que el cliente sepa cuántos casaron.
+const clampInt = (value: unknown, min: number, max: number, fallback: number) => {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n > 0 ? Math.min(max, Math.max(min, n)) : fallback;
+};
+
+const MAX_CUES = 2;
+const MAX_CUE_CHARS = 90;
+const MIN_BLOCKS_PER_DAY = 3;
+const MIN_DAYS = 2;
+
+// Convierte la respuesta del modelo en un plan seguro de usar:
+// - cada `ref` se resuelve contra el catálogo enviado; lo inventado se descarta;
+// - no se repite un ejercicio dentro del mismo día;
+// - series, repeticiones y descanso quedan dentro de rangos razonables;
+// - como mucho MAX_CUES indicaciones cortas por ejercicio;
+// - los días con menos de MIN_BLOCKS_PER_DAY ejercicios válidos se descartan;
+// - los días se etiquetan A, B, C… por posición, que es como los guarda la app
+//   (el modelo a veces devolvía "Day 1", "Lunes" o etiquetas repetidas).
 function resolvePlan(raw: any, exercises: DbExercise[]) {
   const days = Array.isArray(raw?.days) ? raw.days : [];
   let total = 0;
   let matched = 0;
 
-  const resolvedDays = days.map((day: any) => {
-    const blocks = Array.isArray(day?.blocks) ? day.blocks : [];
-    const resolvedBlocks = blocks
-      .map((block: any) => {
-        total++;
-        const ref = Number(block?.ref);
-        const exercise =
-          Number.isFinite(ref) && ref >= 1 && ref <= exercises.length
-            ? exercises[ref - 1]
-            : undefined;
-        if (!exercise) return null; // descartamos bloques con ref inválida
+  const usableDays = days
+    .map((day: any) => {
+      const blocks = Array.isArray(day?.blocks) ? day.blocks : [];
+      const seen = new Set<string>();
+      const resolvedBlocks = blocks
+        .map((block: any) => {
+          total++;
+          const ref = Number(block?.ref);
+          const exercise =
+            Number.isFinite(ref) && ref >= 1 && ref <= exercises.length
+              ? exercises[ref - 1]
+              : undefined;
+          if (!exercise || seen.has(exercise.id)) return null;
+          seen.add(exercise.id);
 
-        matched++;
-        const reps = Array.isArray(block?.reps) ? block.reps : [];
-        return {
-          name: exercise.name,
-          exercise_id: exercise.id,
-          sets: Number(block?.sets) || 3,
-          reps: [Number(reps[0]) || 8, Number(reps[1]) || 12],
-          rest_sec: Number(block?.rest_sec) || 60,
-          cues: Array.isArray(block?.cues) ? block.cues.map(String) : [],
-        };
-      })
-      .filter(Boolean);
+          matched++;
+          const reps = Array.isArray(block?.reps) ? block.reps : [];
+          const repMin = clampInt(reps[0], 1, 50, 8);
+          const repMax = Math.max(repMin, clampInt(reps[1], 1, 50, Math.max(repMin, 12)));
+          return {
+            name: exercise.name,
+            exercise_id: exercise.id,
+            sets: clampInt(block?.sets, 1, 6, 3),
+            reps: [repMin, repMax],
+            rest_sec: clampInt(block?.rest_sec, 15, 300, 60),
+            cues: (Array.isArray(block?.cues) ? block.cues : [])
+              .map((cue: unknown) => String(cue).trim().slice(0, MAX_CUE_CHARS))
+              .filter(Boolean)
+              .slice(0, MAX_CUES),
+          };
+        })
+        .filter(Boolean);
 
-    return {
-      day: String(day?.day || "A"),
-      focus: String(day?.focus || ""),
-      blocks: resolvedBlocks,
-    };
-  });
+      return { focus: String(day?.focus || "").slice(0, 80), blocks: resolvedBlocks };
+    })
+    .filter((day: { blocks: unknown[] }) => day.blocks.length >= MIN_BLOCKS_PER_DAY)
+    .slice(0, 7);
+
+  const resolvedDays = usableDays.map(
+    (day: { focus: string; blocks: unknown[] }, index: number) => ({
+      day: String.fromCharCode(65 + index),
+      focus: day.focus,
+      blocks: day.blocks,
+    })
+  );
 
   return {
     plan: {
-      weeks: Number(raw?.weeks) || undefined,
+      weeks: clampInt(raw?.weeks, 1, 52, 0) || undefined,
       days: resolvedDays,
     },
     matched,
     total,
+    daysReturned: days.length,
   };
 }
 
@@ -520,7 +617,7 @@ Deno.serve(async (req: Request) => {
         .eq("id", generationId);
 
     // 1) Obtener ejercicios reales de la BD según el perfil del usuario.
-    const exercises = await fetchExercises(supabase, intake.equipment);
+    const exercises = await fetchExercises(supabase, intake.equipment, requestId);
 
     if (exercises.length === 0) {
       await failGeneration("no exercises matched equipment");
@@ -563,11 +660,16 @@ Deno.serve(async (req: Request) => {
     }
 
     // 4) Resolver refs -> ejercicios reales.
-    const { plan, matched, total } = resolvePlan(parsed, exercises);
+    const { plan, matched, total, daysReturned } = resolvePlan(parsed, exercises);
     if (!plan.weeks) plan.weeks = intake.weeks || 8;
 
-    if (matched === 0 || plan.days.length === 0) {
-      console.error("Plan vacío tras resolver refs", { total, matched });
+    if (matched === 0 || plan.days.length < MIN_DAYS) {
+      console.error("Plan no utilizable tras validar", {
+        total,
+        matched,
+        daysReturned,
+        daysKept: plan.days.length,
+      });
       await failGeneration("AI did not produce a usable plan");
       return new Response(
         JSON.stringify({ error: "AI did not produce a usable plan" }),
@@ -577,7 +679,7 @@ Deno.serve(async (req: Request) => {
 
     // Guardar el resultado ANTES de responder: si la respuesta no llega al
     // teléfono, el reintento con el mismo requestId lo recupera de aquí.
-    const meta = { matched, total };
+    const meta = { matched, total, days: plan.days.length, days_returned: daysReturned };
     await supabase
       .from("plan_generations")
       .update({

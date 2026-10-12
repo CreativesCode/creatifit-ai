@@ -23,7 +23,9 @@ Sustituye los puntos 5, 7 y 8 de arriba y la advertencia sobre `FREE_LIMIT_REACH
 - **Validación (2026-10-12, sustituye el punto 6):** `resolvePlan` descarta refs inventadas y ejercicios repetidos en el día, acota series/reps/descanso, limita a 2 indicaciones cortas, descarta días con menos de 3 ejercicios, rechaza planes con menos de 2 días y etiqueta los días A, B, C por posición (resuelve la discrepancia con `savePlan`). `meta` incluye `days` y `days_returned`.
 - **Restricciones físicas (2026-10-12):** `exercises.movement_flags` marca saltos, alto impacto y cargas pesadas con reglas sobre el nombre (`schemas/add-exercise-movement-flags.sql`, con trigger). `generate-plan` excluye del catálogo lo marcado con una restricción activa. Para cambiar las reglas se edita la función SQL `exercise_movement_flags` y se vuelve a ejecutar el archivo. Añadir una restricción nueva exige: clave en el cuestionario, marca en esa función y nombre en `MOVEMENT_FLAGS` de la Edge Function.
 - **Cuestionario (2026-10-12):** decisión: no se usa la tabla `intake` (0 filas); las respuestas viven en `payload.meta` de cada plan, de donde las leen el panel admin y el propio cuestionario para abrirse ya relleno. Si se quisiera editar el perfil sin generar un plan, habría que empezar a escribir `intake`.
-- **Sigue pendiente:** mejorar la espera en pantalla. El filtro de equipo es flojo: casi todo el catálogo (1.168 de 1.176) lleva la etiqueta "Full Gym".
+- **Equipo (2026-10-12):** `isAvailable` en `generate-plan` decide ejercicio a ejercicio: "Full Gym" (presente en casi todo el catálogo) se ignora, "NO EQUIPMENT" marca el peso corporal y el resto de aparatos deben estar todos cubiertos por lo que marcó el usuario (`TOKEN_NEEDS`), más reglas por nombre (`NAME_NEEDS`). Lo que no tiene equivalencia (máquinas, poleas…) exige `full_gym`. Al añadir una opción de equipo: constante en `equipment.ts`, clave en `EquipmentSchema`, traducción y entrada en `TOKEN_NEEDS`.
+- **Imágenes:** un ejercicio con `gif_url` NULL no se ofrece al modelo.
+- **Sigue pendiente:** mejorar la espera en pantalla.
 
 ## Contratos y advertencias
 

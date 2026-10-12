@@ -4,14 +4,14 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **50 commits locales, sin push.** El build de producción (`next build`) pasa con todos los cambios (comprobado el 2026-10-12). Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **Todo subido a `origin/main` (push del 2026-10-12, autorizado por el usuario).** La web de Vercel se despliega sola con cada push. El build de producción (`next build`) pasa con todos los cambios (comprobado el 2026-10-12). Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
 | Tarea | Estado | Nota |
 |---|---|---|
 | 0.1 Usuarios no pueden ponerse Pro/admin | Hecho, en producción | Verificado 403 |
-| 0.2 Alta y recuperación de contraseña | Alta: hecho, en producción. Recuperación: pendiente | El usuario desactivó "Confirm email" el 2026-10-12. Probado con una cuenta desechable: el alta devuelve sesión, crea el perfil con nombre y un correo repetido responde "ya registrado". Recuperar contraseña desde el APK sigue sin resolver (el enlace abre la web) |
+| 0.2 Alta y recuperación de contraseña | Hecho, en producción | Alta sin confirmación de correo. Recuperación: el enlace se abre en el navegador, cambia la contraseña en la web pública y ofrece "Abrir la app". Ese botón necesita el APK recompilado; el envío real del correo no se probó (se usó un enlace generado en el servidor) |
 | 0.3 Key de RevenueCat y compra en Cuba | Decidido: no tocar | Los testers se quedan con su tier. La key de Test Store en el build sigue pendiente para cuando se prepare el APK |
 | 0.4 WebView mínimo | Pendiente | Al preparar el APK |
 | 0.5 Build limpio y `cap sync` | Parcial | `next dev` ya escribe en `.next-dev`, no en `out`. Falta el build limpio y `cap sync` al preparar el APK |
@@ -39,7 +39,7 @@ Actualizado: 2026-10-12. **50 commits locales, sin push.** El build de producci�
 | 2.8 Fechas en día local | Hecho | |
 | 2.9 Cerrar sesión sin red, claves por usuario | Hecho | |
 | 2.10 RevenueCat usuario anónimo | Hecho en código | Solo se confirma en dispositivo |
-| 3.1 Peso de los GIF | Hecho, en producción | 19 ejercicios del catálogo apuntan a un GIF que no existe en Storage |
+| 3.1 Peso de los GIF | Hecho, en producción | De los 19 ejercicios sin imagen, 10 reparados; 9 no tienen ninguna y no se ofrecen en los planes |
 | 3.2 Una sola URL por imagen | Hecho | |
 | 3.3 Fotos de progreso | Hecho | Las fotos ya subidas siguen con su tamaño original |
 | 3.4 Peticiones repetidas | Hecho (parcial) | Resuelto para el historial y su detalle. Volver del detalle de un ejercicio sigue recargando la lista |
@@ -104,6 +104,9 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **3.5** El esqueleto de carga de Ejercicios va solo en la zona de resultados; el campo de búsqueda no se desmonta y conserva el foco al escribir. El campo es de tipo búsqueda para que el teclado muestre la tecla Buscar.
 - **4.1, 4.3, 4.4, 4.5** Tabla `plan_generations` (`schemas/add-plan-generations.sql`) y función `generate-plan`: el teléfono envía un `requestId` (que es el id del plan); un reintento con el mismo id devuelve el plan guardado sin llamar a OpenAI; un id en curso recibe 409 y el cliente espera. El cliente (`src/lib/ai/openai.ts`) guarda el id pendiente por cuestionario y `savePlan` tolera el reintento de un plan ya guardado. Prueba real: 12 s, 16/16 ejercicios; repetida, 0,8 s y `reused`; id en curso, 409; 2.401 + 1.056 tokens.
 - **4.5, 4.6** `generate-plan`: el catálogo que ve el modelo ya no son las primeras 150 filas sin orden, sino 150 ejercicios repartidos entre categorías, con semilla en el `requestId` (antes los planes repetían siempre los ejercicios del principio del catálogo). `resolvePlan` valida la respuesta: descarta ejercicios inventados o repetidos en el día, acota series (1-6), repeticiones (1-50) y descanso (15-300 s), deja 2 indicaciones de 90 caracteres como mucho, descarta días con menos de 3 ejercicios válidos, rechaza un plan con menos de 2 días y etiqueta los días A, B, C por posición. Sin llamadas extra a OpenAI. Prueba real: 12 s, 4 días de 4 ejercicios, 16/16, 2.423 + 916 tokens.
+- **0.2 (recuperación)** `resetPassword` (`auth-context.tsx`) llama a `/auth/v1/recover` sin PKCE y con destino fijo en la web pública (`PUBLIC_WEB_URL` en `env-config.ts`): con PKCE el enlace solo valía en el navegador que lo pidió, y se pide en la app y se abre en el navegador del teléfono. `/reset-password` recoge la sesión del fragmento con `setSession` y borra los tokens de la barra. Al terminar, en Android muestra "Abrir la app" (`intent://…scheme=creatifit`, declarado en el manifest). Probado en la web pública con un enlace real de recuperación de una cuenta desechable: contraseña cambiada, la nueva entra y la antigua no.
+- **3.1 (imágenes rotas)** `schemas/fix-exercise-media.sql`: 10 ejercicios apuntan ahora a imágenes que estaban subidas con otro nombre (emparejadas a la vista), con sus miniaturas; 9 quedan con `gif_url` NULL (4 de cuello con mancuerna, 2 de cuello con disco, y "Neck Warm-up", "Neck Cool-down", "Neck Recovery").
+- **4.6 (equipo)** `generate-plan` ya no busca subcadenas en `equipment`: lee el catálogo y deja un ejercicio solo si el usuario tiene todo lo que necesita (`isAvailable`), con reglas por nombre para barra de dominadas, paralelas, rueda abdominal, comba y banco. Máquinas, poleas, landmine, TRX y gymstick exigen la opción nueva "Gimnasio completo"; "Rack de potencia" ya no abre todo el catálogo. Opciones nuevas en el cuestionario: gimnasio completo, pesa rusa, pelota. Solo peso corporal: 378 ejercicios; mancuernas y silla: 554; gimnasio completo: 1.176. No se ofrecen ejercicios sin imagen.
 - **4.6 (restricciones)** `schemas/add-exercise-movement-flags.sql`: columna `exercises.movement_flags` (`jumps`, `high_impact`, `heavy_lifting`) calculada por reglas fijas sobre el nombre, con trigger para ejercicios nuevos o renombrados. De 1.176: 34 saltos, 55 alto impacto (incluye los saltos), 92 cargas pesadas. `generate-plan` deja fuera del catálogo los ejercicios marcados con una restricción activa, así el modelo no puede elegirlos. Prueba real con saltos e impacto restringidos: 16/16 ejercicios, ninguno marcado.
 - **4.7 (cuestionario)** `intake-form.tsx` parte de las respuestas del plan más reciente (`payload.meta`) si el usuario aún no tocó nada; funciona con la copia local. La tabla `intake` sigue sin usarse: el cuestionario vive en cada plan.
 - **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
@@ -126,13 +129,13 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 
 ### Cambios hechos en producción (Supabase `oacjsudvmgkrtcesxjsr`)
 
-- SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`, `add-exercise-movement-flags.sql`, `add-profile-name-from-signup.sql`.
+- SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`, `add-exercise-movement-flags.sql`, `add-profile-name-from-signup.sql`, `fix-exercise-media.sql`.
 - Auth: confirmación de correo desactivada por el usuario (`mailer_autoconfirm = true`).
 - Storage: carpetas nuevas `exercise-thumbs/` y `exercise-posters/` en el bucket `CreatiFit AI` (2.310 archivos WebP, ~10 MB). Los GIF originales no se tocaron.
 - Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` y `delete-account` (sin `verify_jwt`, validan ellas). `admin-api` se desplegó dos veces (actividad por usuario; borrado de fotos).
 - Contraseña del admin cambiada.
 - Las pruebas de deshacer serie y de fotos crearon y borraron sus propias filas y archivos; no dejaron datos nuevos.
-- Generaciones reales de prueba: `qa-idempotency-check-1`, `qa-validation-check-1` y `qa-constraints-check-1` (tres en total); ninguna guardó un plan en la cuenta. Dos cuentas desechables de alta creadas y eliminadas.
+- Generaciones reales de prueba: `qa-idempotency-check-1`, `qa-validation-check-1`, `qa-constraints-check-1` y `qa-equipment-check-1` (cuatro en total); ninguna guardó un plan en la cuenta. Cuentas desechables de alta y de recuperación creadas y eliminadas en sus pruebas.
 - Datos de prueba: 11 series del 2026-10-12 en la cuenta de pruebas (ver al final) y un registro en `plan_generations` (`qa-idempotency-check-1`).
 
 ## Cómo se probó

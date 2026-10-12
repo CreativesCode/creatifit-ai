@@ -34,7 +34,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface ExerciseBlock {
@@ -372,8 +372,12 @@ export default function PlansPage() {
   // Genera una PROGRESIÓN del plan actual usando el historial de entrenamientos
   // y la guarda como plan nuevo. Reutiliza la misma Edge Function `generate-plan`
   // (vía notes) y el mismo gating de tier que la creación de un plan.
+  // Bloqueo inmediato: `improving` es estado y un doble toque lo lee aún en false,
+  // lo que lanzaría (y cobraría) dos generaciones.
+  const improvingRef = useRef(false);
   const handleImprovePlan = async () => {
-    if (!selectedPlan || improving) return;
+    if (!selectedPlan || improving || improvingRef.current) return;
+    improvingRef.current = true;
     setImproveError(null);
     try {
       setImproving(true);
@@ -483,6 +487,7 @@ export default function PlansPage() {
         t("plans.improve.error", "No se pudo mejorar el plan. Inténtalo de nuevo.")
       );
     } finally {
+      improvingRef.current = false;
       setImproving(false);
     }
   };

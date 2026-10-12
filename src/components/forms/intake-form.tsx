@@ -136,7 +136,21 @@ export function IntakeForm({
   };
   const back = () => step > 0 && setStep(step - 1);
 
+  // Cada generación cuesta dinero: un segundo toque mientras se comprueba el
+  // límite o se genera no debe lanzar otra. El estado isGenerating llega tarde
+  // (tras una petición de red), así que el bloqueo es un ref inmediato.
+  const submittingRef = useRef(false);
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      await submitPlan();
+    } finally {
+      submittingRef.current = false;
+    }
+  };
+
+  const submitPlan = async () => {
     if (!validateMeasures()) {
       setStep(2);
       return;

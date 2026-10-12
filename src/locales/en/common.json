@@ -1,5 +1,43 @@
 {
+  "subscription": {
+    "pro_active": "CreatiFit AI Pro",
+    "pro_desc": "Unlimited AI plans",
+    "manage": "Manage subscription",
+    "upgrade_title": "Upgrade to Pro",
+    "upgrade_desc": "Generate unlimited AI plans and unlock advanced analytics.",
+    "see_plans": "See Pro plans",
+    "restoring": "Restoring…",
+    "restore": "Restore purchases",
+    "mobile_only": "Available in the mobile app."
+  },
+  "paywall": {
+    "limit_reached": "You have used your free plan. Upgrade to Pro from the mobile app to generate unlimited plans."
+  },
   "auth": {
+    "free_badge": "Free to start",
+    "signup_title": "Create your account",
+    "signup_subtitle": "Your AI coach is waiting. No card needed.",
+    "name": "Name",
+    "pw_weak": "Weak",
+    "pw_ok": "Fair",
+    "pw_strong": "Strong",
+    "terms_accept": "Accept terms",
+    "terms_prefix": "I accept the",
+    "terms": "Terms",
+    "and": "and the",
+    "privacy": "Privacy policy",
+    "signup_cta": "Create account",
+    "have_account": "Already have an account?",
+    "signin_title": "Welcome back",
+    "signin_subtitle": "Sign in to keep track of your progress",
+    "forgot": "Forgot your password?",
+    "no_account": "No account yet?",
+    "signup_link": "Sign up",
+    "feature_ai": "AI-generated plans",
+    "feature_track": "Volume, RPE and records",
+    "feature_streak": "Streaks and reminders",
+    "brand_headline": "Train smart",
+    "brand_subtitle": "Personalised AI plans, real tracking of your progress and goals reached faster.",
     "tagline": "Your AI-powered workout plans",
     "signin": "Sign in",
     "signup": "Sign up",
@@ -57,6 +95,7 @@
     "progress": "Progress"
   },
   "nav": {
+    "admin": "Admin",
     "dashboard": "Home",
     "plans": "Plans",
     "exercises": "Exercises",
@@ -272,11 +311,22 @@
     "cached_banner": "Unstable connection · showing saved data"
   },
   "settings": {
+    "legal": {
+      "privacy": "Privacy policy",
+      "terms": "Terms of service",
+      "support": "Support and contact"
+    },
     "admin": {
       "title": "Admin panel",
       "desc": "Users, plans and subscriptions"
     },
     "account": {
+      "delete": "Delete account",
+      "delete_desc": "Deletes your account and all your data",
+      "delete_confirm_title": "Delete your account?",
+      "delete_confirm_desc": "Your profile, your plans and your whole training history will be permanently deleted. This cannot be undone.",
+      "deleting": "Deleting…",
+      "delete_confirm_cta": "Yes, delete my account",
       "title": "Account",
       "description": "Manage your session",
       "email": "Email",
@@ -328,6 +378,7 @@
     "create_plan_emoji": "🏋️‍♂️ Create Plan"
   },
   "ui": {
+    "close": "Close",
     "options": "Options",
     "close_menu": "Close menu",
     "open_menu": "Open menu",
@@ -481,6 +532,7 @@
     "retry": "Retry"
   },
   "exercises": {
+    "favorite": "Favourite",
     "play_animation": "Show animation",
     "title": "Exercise Library",
     "subtitle": "Explore our complete collection of exercises with detailed instructions",

@@ -1,5 +1,43 @@
 {
+  "subscription": {
+    "pro_active": "CreatiFit AI Pro",
+    "pro_desc": "Planes con IA ilimitados",
+    "manage": "Gestionar suscripción",
+    "upgrade_title": "Mejora a Pro",
+    "upgrade_desc": "Genera planes con IA ilimitados y desbloquea las analíticas avanzadas.",
+    "see_plans": "Ver planes Pro",
+    "restoring": "Restaurando…",
+    "restore": "Restaurar compras",
+    "mobile_only": "Disponible en la app móvil."
+  },
+  "paywall": {
+    "limit_reached": "Ya usaste tu plan gratuito. Mejora a Pro desde la app móvil para generar planes ilimitados."
+  },
   "auth": {
+    "free_badge": "Gratis para empezar",
+    "signup_title": "Crea tu cuenta",
+    "signup_subtitle": "Tu entrenador con IA te espera. Sin tarjeta.",
+    "name": "Nombre",
+    "pw_weak": "Débil",
+    "pw_ok": "Media",
+    "pw_strong": "Fuerte",
+    "terms_accept": "Aceptar términos",
+    "terms_prefix": "Acepto los",
+    "terms": "Términos",
+    "and": "y la",
+    "privacy": "Política de privacidad",
+    "signup_cta": "Crear cuenta",
+    "have_account": "¿Ya tienes cuenta?",
+    "signin_title": "Bienvenido de nuevo",
+    "signin_subtitle": "Entra para seguir tu progreso",
+    "forgot": "¿Olvidaste tu contraseña?",
+    "no_account": "¿No tienes cuenta?",
+    "signup_link": "Regístrate",
+    "feature_ai": "Planes generados por IA",
+    "feature_track": "Volumen, RPE y récords",
+    "feature_streak": "Rachas y recordatorios",
+    "brand_headline": "Entrena con inteligencia",
+    "brand_subtitle": "Planes personalizados con IA, seguimiento real de tu progreso y metas que se cumplen más rápido.",
     "tagline": "Tus planes de entrenamiento con IA",
     "signin": "Iniciar sesión",
     "signup": "Crear cuenta",
@@ -57,6 +95,7 @@
     "progress": "Progreso"
   },
   "nav": {
+    "admin": "Admin",
     "dashboard": "Inicio",
     "plans": "Planes",
     "exercises": "Ejercicios",
@@ -272,11 +311,22 @@
     "cached_banner": "Conexión inestable · mostrando datos guardados"
   },
   "settings": {
+    "legal": {
+      "privacy": "Política de privacidad",
+      "terms": "Términos de servicio",
+      "support": "Soporte y contacto"
+    },
     "admin": {
       "title": "Panel de administración",
       "desc": "Usuarios, planes y suscripciones"
     },
     "account": {
+      "delete": "Eliminar cuenta",
+      "delete_desc": "Borra tu cuenta y todos tus datos",
+      "delete_confirm_title": "¿Eliminar tu cuenta?",
+      "delete_confirm_desc": "Se borrarán de forma permanente tu perfil, tus planes y todo tu historial de entrenamiento. Esta acción no se puede deshacer.",
+      "deleting": "Eliminando…",
+      "delete_confirm_cta": "Sí, eliminar mi cuenta",
       "title": "Cuenta",
       "description": "Gestiona tu sesión",
       "email": "Correo",
@@ -328,6 +378,7 @@
     "create_plan_emoji": "🏋️‍♂️ Crear Plan"
   },
   "ui": {
+    "close": "Cerrar",
     "options": "Opciones",
     "close_menu": "Cerrar menú",
     "open_menu": "Abrir menú",
@@ -481,6 +532,7 @@
     "retry": "Reintentar"
   },
   "exercises": {
+    "favorite": "Favorito",
     "play_animation": "Ver animación",
     "title": "Biblioteca de Ejercicios",
     "subtitle": "Explora nuestra colección completa de ejercicios con instrucciones detalladas",

@@ -16,3 +16,12 @@ The complete local toolkit is in `.agents/skills/titan-factory-codex/`; its 29 s
 - Reuse authorization already given for the task. Delegate only when the user requests or authorizes delegation; do not launch agents merely because role files exist.
 - Preserve local code and project knowledge during toolkit updates. Never store credentials in shared memory.
 <!-- titan-factory-codex:end -->
+
+<!-- titan-factory-shared:start -->
+## Shared agent tooling
+
+- This repository hosts two Titan Factory toolboxes: Codex (`.agents/skills/`, `.codex/`) and Claude Code (`CLAUDE.md`, `.claude/`). Both expose the same 29 `tf-` skills and 7 `tf-` agents; keep the two catalogs in sync when adding, renaming or removing one.
+- Third-party skills (`supabase`, `supabase-postgres-best-practices`, `logo-design`) live once in `.agents/skills/`, locked in `skills-lock.json`. `.claude/skills/` only holds thin bridges to them.
+- Both share one project memory: `.titan/memory/` (plus `.titan/plans/` and `.titan/qa/`). Never create a second copy such as `.claude/memory/`.
+- Do not modify the other agent's toolbox unless the task is about it.
+<!-- titan-factory-shared:end -->

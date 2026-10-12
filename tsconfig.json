@@ -38,6 +38,7 @@
   ],
   "exclude": [
     ".agents",
+    ".claude",
     "node_modules",
     "supabase/functions"
   ]

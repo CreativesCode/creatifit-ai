@@ -14,6 +14,18 @@ En un nuevo hilo de este proyecto, escribe `$tf-primer revisa el estado actual d
 
 Esta instalación usa el descubrimiento de skills del repositorio, no una instalación global de marketplace. La prueba con `skills/list` del app-server local devuelve 29/29 habilitadas, alcance `repo`, sin errores. El descubrimiento del paquete anidado por sí solo devolvió cero; las entradas directas resuelven ese problema sin enlaces simbólicos que requieren privilegios adicionales en este Windows.
 
+## Claude Code (agregado el 2026-10-12)
+
+Copiado desde el proyecto LensSpace para que Claude Code y Codex tengan el mismo catálogo:
+
+- `.claude/skills/tf-*/`: las mismas 29 skills, en formato Claude Code. Procedencia y hashes en `.claude/titan-factory-source.json`; se actualizan con `tf-update-tf`.
+- `.claude/agents/tf-*.md`: los mismos siete perfiles que `.codex/agents/tf-*.toml`.
+- `.claude/design-systems/`: los mismos cinco estilos del paquete.
+- `.agents/skills/{supabase,supabase-postgres-best-practices,logo-design}` + `skills-lock.json`: skills de terceros compartidas (se actualizan con `npx skills update --project --yes`). Codex las descubre directamente; Claude Code las usa mediante puentes en `.claude/skills/`.
+- `CLAUDE.md`: importa `AGENTS.md` y agrega el bloque propio de Claude Code.
+
+Al agregar, renombrar o retirar una skill o un perfil en un lado, replicar el cambio en el otro. TypeScript y ESLint excluyen también `.claude/`.
+
 ## Verificar
 
 Desde la raíz:

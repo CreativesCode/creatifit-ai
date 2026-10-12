@@ -53,6 +53,9 @@ supabase/.temp/
 !/.agents/skills/titan-factory-codex/docs/**
 !/.agents/skills/titan-factory-codex/templates/nextjs-supabase/next-env.d.ts
 !/.agents/skills/titan-factory-codex/templates/nextjs-supabase/package-lock.json
+# Claude Code: shared config is versioned; personal state stays local
+/.claude/settings.local.json
+/CLAUDE.local.md
 /.titan-toolkit-backups/
 /.titan/logs/
 /.titan/**/__pycache__/

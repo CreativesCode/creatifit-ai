@@ -58,4 +58,6 @@ supabase/.temp/
 /CLAUDE.local.md
 /.titan-toolkit-backups/
 /.titan/logs/
+# Memoria con credenciales: vive en el equipo, nunca en el repositorio
+/.titan/memory/**/*.local.md
 /.titan/**/__pycache__/

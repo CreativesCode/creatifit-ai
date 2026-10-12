@@ -28,6 +28,8 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 | [Lecciones](feedback/lecciones.md) | Evitar errores/regresiones anteriores |
 | [Fuentes y cobertura](reference/fuentes.md) | Evidencia, límites y documentación obsoleta |
 | [Inventario](reference/inventario.json) | Rutas, hashes y clase de revisión |
+| [Credenciales de prueba](reference/credenciales.local.md) | Acceso admin y uso del CLI de Supabase. **Archivo local, fuera de git**: solo existe en el equipo donde se creó |
+| [Plan del piloto en Cuba](../plans/2026-10-12-piloto-cuba-qa.md) | QA general de octubre 2026: qué se corrigió y qué falta |
 
 ## Al retomar
 

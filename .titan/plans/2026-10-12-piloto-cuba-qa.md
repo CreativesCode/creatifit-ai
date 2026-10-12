@@ -13,6 +13,7 @@ Hecho el 2026-10-12 (sin commitear):
 - **1.10** Peso y RPE se arrastran entre series del mismo ejercicio; el campo se selecciona al enfocarlo.
 - **2.8 (parcial)** Historial y fecha por defecto de Mi cuerpo usan el día local. Falta `records.ts` y `trends.ts` (logros y volumen semanal siguen en UTC).
 
+- **1.11** El descanso y el calentamiento cuentan contra la hora de fin (no se desincronizan con la pantalla apagada), se pide wake lock de pantalla durante la sesión y el manifest declara `VIBRATE`. Verificado en navegador (cuenta, pausa, reanudar, saltar); wake lock y vibración solo se confirman en un teléfono, y el permiso exige recompilar el APK.
 - **2.2** Límite de tiempo global en el cliente Supabase (`src/lib/supabase-config.ts`): 15 s, y 120 s para Edge Functions y Storage.
 - **2.1** Arranque con la sesión guardada en el dispositivo (`auth-context.tsx`): sin red y con el token caducado ya no se manda al login; solo se cierra sesión si auth-js borró el token.
 - **1.7 (parcial) y 2.7 (parcial)** Copia local de lecturas en `src/lib/local-cache.ts`, aplicada en `supabase-client.ts` a planes, plan por id, ejercicios del plan, historial, favoritos y medidas: red primero y, si falla, lo último guardado. El panel deja en el teléfono los ejercicios del plan activo, así que la sesión arranca sin conexión. Falta la tarjeta "Continuar entrenamiento" de 1.7 y reducir las descargas repetidas de 2.7 (sigue siendo red primero en cada visita).

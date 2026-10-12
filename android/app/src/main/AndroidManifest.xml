@@ -38,4 +38,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Aviso háptico de fin de descanso (navigator.vibrate en el WebView) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

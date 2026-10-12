@@ -1210,11 +1210,60 @@ export function WorkoutSession({
   // (re-render / StrictMode). Se rearma cada vez que empieza un descanso nuevo.
   const restCueFiredRef = useRef(false);
 
+  // La cuenta atrás se deriva de la hora de fin, no de restar 1 por tick: con la
+  // pantalla apagada o la app en segundo plano el WebView congela los timers, y al
+  // volver el contador debe reflejar el tiempo real transcurrido.
+  const [timerEndsAt, setTimerEndsAt] = useState<number | null>(null);
   useEffect(() => {
-    if ((phase === "warmup" || phase === "rest") && timer > 0 && !isPaused) {
-      const interval = setTimeout(() => setTimer((prev) => prev - 1), 1000);
-      return () => clearTimeout(interval);
-    } else if (timer === 0) {
+    const timed = phase === "warmup" || phase === "rest";
+    if (!timed || isPaused) {
+      if (timerEndsAt !== null) setTimerEndsAt(null);
+      return;
+    }
+    if (timerEndsAt === null) {
+      setTimerEndsAt(Date.now() + timer * 1000);
+      return;
+    }
+    const sync = () =>
+      setTimer(Math.max(0, Math.ceil((timerEndsAt - Date.now()) / 1000)));
+    const id = setInterval(sync, 500);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [phase, isPaused, timerEndsAt, timer]);
+
+  // Mantener la pantalla encendida durante el entrenamiento: los descansos duran
+  // más que el apagado automático del teléfono.
+  useEffect(() => {
+    if (!isSessionActive || typeof navigator === "undefined" || !("wakeLock" in navigator)) {
+      return;
+    }
+    let lock: WakeLockSentinel | null = null;
+    let cancelled = false;
+    const acquire = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const sentinel = await navigator.wakeLock.request("screen");
+        if (cancelled) void sentinel.release();
+        else lock = sentinel;
+      } catch {
+        // sin permiso o batería baja: seguimos sin bloqueo
+      }
+    };
+    // El sistema libera el bloqueo al ocultar la app; se vuelve a pedir al regresar.
+    document.addEventListener("visibilitychange", acquire);
+    void acquire();
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", acquire);
+      void lock?.release().catch(() => undefined);
+    };
+  }, [isSessionActive]);
+
+  useEffect(() => {
+    if (timer === 0) {
       if (phase === "warmup") setPhase("exercise");
       else if (phase === "rest") {
         // Solo al agotarse el descanso de forma natural (no al saltar/ajustar):
@@ -1233,7 +1282,10 @@ export function WorkoutSession({
     setIsPaused(false);
   };
 
-  const handleWarmupSkip = () => setTimer(0);
+  const handleWarmupSkip = () => {
+    setTimerEndsAt(null);
+    setTimer(0);
+  };
 
   const handleStartRest = useCallback(() => {
     restCueFiredRef.current = false;
@@ -1324,6 +1376,8 @@ export function WorkoutSession({
   };
 
   const handleAdjustRest = (delta: number) => {
+    // Rearmar la hora de fin a partir del tiempo ajustado.
+    setTimerEndsAt(null);
     setTimer((prev) => Math.max(0, prev + delta));
     setRestTotal((prev) => Math.max(1, prev + delta));
   };

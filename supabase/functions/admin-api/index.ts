@@ -142,16 +142,35 @@ async function handle(req: Request): Promise<Response> {
   switch (action) {
     // Listado de usuarios con su tier y número de planes.
     case "list": {
-      const { data: profiles, error } = await admin
-        .from("profiles")
-        .select("id, email, name, tier, is_admin, created_at")
-        .order("created_at", { ascending: false });
-      if (error) return json({ error: error.message }, 500);
+      // La API devuelve como mucho 1000 filas por petición: se lee por páginas
+      // para que la lista no se corte en silencio cuando crezca.
+      const PAGE = 1000;
+      // deno-lint-ignore no-explicit-any
+      const profiles: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await admin
+          .from("profiles")
+          .select("id, email, name, tier, is_admin, created_at")
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (error) return json({ error: error.message }, 500);
+        profiles.push(...(data ?? []));
+        if ((data ?? []).length < PAGE) break;
+      }
 
       // Actividad por usuario agregada en la BD (planes, sesiones, último entreno,
       // generaciones y último acceso): una fila por usuario, sin traer tablas enteras.
-      const { data: activity, error: activityErr } = await admin.rpc("admin_user_activity");
-      if (activityErr) return json({ error: activityErr.message }, 500);
+      // deno-lint-ignore no-explicit-any
+      const activity: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error: activityErr } = await admin
+          .rpc("admin_user_activity")
+          .range(from, from + PAGE - 1);
+        if (activityErr) return json({ error: activityErr.message }, 500);
+        activity.push(...(data ?? []));
+        if ((data ?? []).length < PAGE) break;
+      }
 
       type Activity = {
         user_id: string;
@@ -312,6 +331,64 @@ async function handle(req: Request): Promise<Response> {
         .eq("id", userId);
       if (error) return json({ error: error.message }, 500);
       return json({ ok: true });
+    }
+
+    // Mismo tier para varios usuarios a la vez (p. ej. Pro a todo el piloto).
+    case "setTierBulk": {
+      const tier = String(body?.tier ?? "");
+      const userIds = Array.isArray(body?.userIds)
+        ? (body.userIds as unknown[]).map(String).filter(Boolean)
+        : [];
+      if (!VALID_TIERS.has(tier) || userIds.length === 0 || userIds.length > 500) {
+        return json({ error: "Parámetros inválidos" }, 400);
+      }
+      const { data, error } = await admin
+        .from("profiles")
+        .update({ tier, subscription_updated_at: new Date().toISOString() })
+        .in("id", userIds)
+        .select("id");
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, updated: (data ?? []).length });
+    }
+
+    // Crear una cuenta lista para usar (sin correo de confirmación): el admin
+    // entrega el correo y la contraseña al tester.
+    case "createUser": {
+      const email = String(body?.email ?? "").trim().toLowerCase();
+      const password = String(body?.password ?? "");
+      const name = String(body?.name ?? "").trim().slice(0, 80);
+      const tier = String(body?.tier ?? "free");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return json({ error: "Correo no válido" }, 400);
+      }
+      if (password.length < 8) {
+        return json({ error: "La contraseña debe tener al menos 8 caracteres" }, 400);
+      }
+      if (!VALID_TIERS.has(tier)) return json({ error: "Plan no válido" }, 400);
+
+      const { data, error } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: name ? { full_name: name } : {},
+      });
+      if (error || !data?.user) {
+        const msg = error?.message ?? "";
+        return json(
+          { error: /already|registered|exists/i.test(msg) ? "Ya existe una cuenta con ese correo" : msg || "No se pudo crear la cuenta" },
+          400
+        );
+      }
+      const userId = data.user.id;
+      // El trigger on_auth_user_created crea el perfil; se asegura igualmente.
+      const { error: profileErr } = await admin
+        .from("profiles")
+        .upsert(
+          { id: userId, email, name: name || null, tier, subscription_updated_at: new Date().toISOString() },
+          { onConflict: "id" }
+        );
+      if (profileErr) return json({ error: profileErr.message }, 500);
+      return json({ ok: true, userId });
     }
 
     // Eliminar la cuenta por completo. Borra las fotos del Storage y luego

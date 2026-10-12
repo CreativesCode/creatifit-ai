@@ -98,4 +98,8 @@ export const adminApi = {
   setTier: (userId: string, tier: Tier) => callAdmin("setTier", { userId, tier }),
   deleteUser: (userId: string) => callAdmin("deleteUser", { userId }),
   userDetail: (userId: string) => callAdmin<AdminUserDetail>("userDetail", { userId }),
+  setTierBulk: (userIds: string[], tier: Tier) =>
+    callAdmin<{ updated: number }>("setTierBulk", { userIds, tier }).then((r) => r.updated),
+  createUser: (input: { email: string; password: string; name: string; tier: Tier }) =>
+    callAdmin<{ userId: string }>("createUser", input),
 };

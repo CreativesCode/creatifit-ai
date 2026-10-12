@@ -18,6 +18,7 @@ import {
   Search,
   ShieldCheck,
   Trash2,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -52,6 +53,17 @@ function fmtAgo(iso: string | null) {
   return `hace ${days} d`;
 }
 
+// Usuarios que se pintan de una vez; el resto, con "Mostrar más".
+const PAGE_SIZE = 50;
+
+// Contraseña legible para dictarla o copiarla (sin 0/O ni 1/l).
+function randomPassword() {
+  const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint32Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
+
 function fmtDate(iso: string) {
   try {
     return new Date(iso).toLocaleDateString("es-ES", {
@@ -82,6 +94,20 @@ export default function AdminPage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, AdminUserDetail>>({});
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  // Alta de cuentas desde el panel.
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [form, setForm] = useState<{ name: string; email: string; password: string; tier: Tier }>({
+    name: "",
+    email: "",
+    password: "",
+    tier: "free",
+  });
 
   // Redirige a login si no hay sesión.
   useEffect(() => {
@@ -117,6 +143,50 @@ export default function AdminPage() {
       setError(e instanceof Error ? e.message : "Error al cambiar el plan");
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (creating) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const email = form.email.trim().toLowerCase();
+      await adminApi.createUser({ ...form, email, name: form.name.trim() });
+      setCreated({ email, password: form.password });
+      setCopied(false);
+      setForm({ name: "", email: "", password: "", tier: form.tier });
+      void loadUsers();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "No se pudo crear la cuenta");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Pasa a Pro a todos los usuarios Free de la lista que se está viendo (con el
+  // buscador se acota a quién).
+  const handleBulkPro = async (ids: string[]) => {
+    if (ids.length === 0 || bulkBusy) return;
+    if (
+      !window.confirm(
+        `¿Dar Pro Mensual a ${ids.length} ${ids.length === 1 ? "usuario" : "usuarios"} que ahora están en Free?`
+      )
+    )
+      return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      await adminApi.setTierBulk(ids, "pro_monthly");
+      const changed = new Set(ids);
+      setUsers((prev) =>
+        prev.map((x) => (changed.has(x.id) ? { ...x, tier: "pro_monthly" } : x))
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al cambiar el plan");
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -174,6 +244,15 @@ export default function AdminPage() {
     }
     return list;
   }, [users, query, sort]);
+
+  const freeShown = useMemo(
+    () => filtered.filter((u) => u.tier === "free").map((u) => u.id),
+    [filtered]
+  );
+  // Al cambiar la búsqueda o el orden se vuelve a la primera tanda.
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [query, sort]);
 
   const stats = useMemo(() => {
     const total = users.length;
@@ -241,6 +320,20 @@ export default function AdminPage() {
               <h1 className="cf-h1 text-[26px] mt-1.5">Usuarios</h1>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setShowCreate((v) => !v);
+              setCreateError(null);
+              setCreated(null);
+            }}
+            className="cf-icon-tile bg-surface-2 border border-border"
+            style={{ width: 40, height: 40 }}
+            aria-label="Nueva cuenta"
+            aria-expanded={showCreate}
+          >
+            <UserPlus size={18} />
+          </button>
           <button
             onClick={loadUsers}
             disabled={loading}
@@ -250,7 +343,102 @@ export default function AdminPage() {
           >
             <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
           </button>
+          </div>
         </div>
+
+        {/* alta de una cuenta */}
+        {showCreate && (
+          <form
+            onSubmit={handleCreate}
+            className="cf-card flex flex-col gap-2.5 mb-5"
+            style={{ padding: 14, borderRadius: 18 }}
+          >
+            <div className="cf-h2 text-[15px]">Nueva cuenta</div>
+            <div className="cf-muted text-[12px] -mt-1">
+              Queda lista para entrar, sin correo de confirmación. Entrega tú el correo y la
+              contraseña.
+            </div>
+            <input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Nombre"
+              autoComplete="off"
+              className="bg-surface-2 border border-border rounded-xl text-[14px] px-3 py-2.5 outline-none"
+            />
+            <input
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="Correo"
+              type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoComplete="off"
+              required
+              className="bg-surface-2 border border-border rounded-xl text-[14px] px-3 py-2.5 outline-none"
+            />
+            <div className="flex gap-2">
+              <input
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Contraseña (mín. 8)"
+                autoCapitalize="none"
+                autoComplete="off"
+                minLength={8}
+                required
+                className="flex-1 min-w-0 bg-surface-2 border border-border rounded-xl text-[14px] px-3 py-2.5 outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, password: randomPassword() })}
+                className="cf-btn cf-btn-ghost shrink-0"
+                style={{ padding: "0 14px" }}
+              >
+                Generar
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={form.tier}
+                onChange={(e) => setForm({ ...form, tier: e.target.value as Tier })}
+                aria-label="Plan de la cuenta"
+                className="bg-surface-2 border border-border rounded-xl text-[13.5px] font-semibold px-3 py-2.5 outline-none"
+              >
+                {TIER_OPTIONS.map((t) => (
+                  <option key={t} value={t}>
+                    {TIER_LABEL[t]}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" disabled={creating} className="cf-btn cf-btn-primary flex-1">
+                {creating ? <Loader2 size={16} className="animate-spin" /> : "Crear cuenta"}
+              </button>
+            </div>
+            {createError && (
+              <div className="text-[13px] font-semibold" style={{ color: "var(--danger, #ef4444)" }}>
+                {createError}
+              </div>
+            )}
+            {created && (
+              <div className="cf-card-solid text-[13px]" style={{ padding: "10px 12px", borderRadius: 12 }}>
+                <div className="font-semibold mb-1">Cuenta creada. La contraseña no se vuelve a mostrar.</div>
+                <div className="cf-txt2 break-all">{created.email}</div>
+                <div className="cf-txt2 break-all font-mono">{created.password}</div>
+                <button
+                  type="button"
+                  className="text-primary font-semibold mt-1.5"
+                  onClick={() => {
+                    void navigator.clipboard
+                      ?.writeText(`${created.email}\n${created.password}`)
+                      .then(() => setCopied(true))
+                      .catch(() => undefined);
+                  }}
+                >
+                  {copied ? "Copiado" : "Copiar correo y contraseña"}
+                </button>
+              </div>
+            )}
+          </form>
+        )}
 
         {/* stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
@@ -295,6 +483,24 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Pro en bloque para los Free de la lista visible */}
+        {!loading && freeShown.length > 0 && (
+          <div className="flex items-center justify-between gap-3 mb-3 text-[12.5px]">
+            <span className="cf-muted">
+              {filtered.length} {filtered.length === 1 ? "usuario" : "usuarios"} · {freeShown.length} en Free
+            </span>
+            <button
+              onClick={() => handleBulkPro(freeShown)}
+              disabled={bulkBusy}
+              className="cf-chip cf-chip-brand shrink-0"
+              style={{ padding: "8px 12px" }}
+            >
+              {bulkBusy ? <Loader2 size={13} className="animate-spin" /> : <Crown size={13} />}
+              Dar Pro a {freeShown.length === 1 ? "este" : `estos ${freeShown.length}`}
+            </button>
+          </div>
+        )}
+
         {/* list */}
         {loading ? (
           <div className="grid place-items-center py-16">
@@ -306,7 +512,7 @@ export default function AdminPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {filtered.map((u) => (
+            {filtered.slice(0, visible).map((u) => (
               <div key={u.id} className="cf-card" style={{ padding: 14, borderRadius: 18 }}>
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 {/* avatar + identidad (tocar abre el detalle) */}
@@ -401,6 +607,14 @@ export default function AdminPage() {
               )}
               </div>
             ))}
+            {filtered.length > visible && (
+              <button
+                onClick={() => setVisible((v) => v + PAGE_SIZE)}
+                className="cf-btn cf-btn-ghost cf-btn-block"
+              >
+                Mostrar más ({filtered.length - visible})
+              </button>
+            )}
           </div>
         )}
       </div>

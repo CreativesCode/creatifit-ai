@@ -23,11 +23,12 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 ## Plan manual + relleno con IA (PRP-001) — en curso desde 2026-10-12
 
 - Plan y avance: `.titan/plans/prp-plan-manual-relleno-ia.md`, sección "Progreso". **Fases 1 a 5 (editor manual) hechas en código y con commit en `main` local, sin push.** Fases 6 a 8 (relleno con IA y cuestionario corto para mejorar planes manuales) sin empezar.
-- **Nada de esto está aplicado en el Supabase real.** Falta, en este orden: `schemas/backfill-plan-generations-legacy.sql`, `schemas/add-save-plan-structure.sql`, desplegar `generate-plan` y `admin-api`. El usuario no ha confirmado que la autorización de despliegue del piloto valga para este plan: preguntarlo antes de aplicar.
-- **No hacer push a `main` antes de aplicar el SQL:** el push publica la web, y sin `save_plan_structure` falla cambiar un ejercicio y guardar desde el editor.
+- **Aplicado en el Supabase real el 2026-10-12** con autorización expresa del usuario para este plan: backfill de generaciones (12 planes antiguos), `save_plan_structure`, `generate-plan` v14 y `admin-api` v10. Las fases 6 a 8 volverán a tocar `generate-plan`: esa autorización cubrió "los cambios necesarios" de entonces; confirmar antes de desplegar lo nuevo.
+- **Falta el push:** la web pública sigue con el cliente anterior (compatible con lo aplicado). El editor manual no llega a los usuarios hasta el push y, en el teléfono, hasta un APK nuevo.
+- `scripts/run-sql.ps1` lee el SQL sin codificación y estropea los acentos; para archivos con acentos enviar en UTF-8.
 - Decisiones del usuario: planes manuales ilimitados en Free; solo se limita lo que usa IA; rellenar un día gasta una generación; el selector de ejercicios no funciona sin conexión (lo dice); un plan con entrenamientos se edita en sitio; "Mejorar plan" en un plan manual pedirá el cuestionario la primera vez.
 - Reglas nuevas del código: el cupo de IA se cuenta solo sobre `plan_generations` (`countAiGenerations`), nunca sobre filas de `plans`; días y ejercicios de un plan se escriben solo con `supabaseClient.savePlanStructure`; un plan manual es una fila normal con `payload.meta.source = "manual"` (`isManualPlan`).
-- Verificado: SQL en un Postgres local desechable; editor, selector, borrador y botón Atrás en navegador a 360 px contra el Supabase real (`.titan/qa/2026-10-12-plan-manual/`). **Sin verificar: guardar un plan de verdad, y todo en APK o teléfono.**
+- Verificado en navegador a 360 px contra el Supabase real (`.titan/qa/2026-10-12-plan-manual/`): crear, guardar, editar, recargar, cambiar un ejercicio y arrancar la sesión de un plan manual, con `payload` y `plan_exercises` iguales en la BD. **Sin verificar: generar con IA teniendo un plan manual, cuentas antiguas bloqueadas, y todo en APK o teléfono.**
 
 ## Entradas por tarea
 

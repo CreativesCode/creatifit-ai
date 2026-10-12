@@ -269,7 +269,13 @@ export default function PlansPage() {
     try {
       setAltLoading(true);
       const alts = await supabaseClient.getAlternativeExercises(block.exercise_id);
-      setAlternatives(alts || []);
+      // Sin los que el día ya tiene: cambiarlo por uno de esos lo duplicaría.
+      const inDay = new Set(
+        (selectedPlan?.payload?.days || [])
+          .find((d) => d.day === dayView)
+          ?.blocks.map((b) => b.exercise_id)
+      );
+      setAlternatives((alts || []).filter((a) => !inDay.has(a.id)));
     } catch {
       setSwapError(t("plans.swap.error", "No se pudieron cargar las alternativas."));
     } finally {

@@ -4,6 +4,7 @@ import { EQUIPMENT_BY_CATEGORY } from "@/lib/constants/equipment";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { canGenerate } from "@/lib/config/plans-config";
+import { countAiGenerations } from "@/lib/plans/ai-quota";
 import { supabaseClient } from "@/lib/supabase-client";
 import { isNetworkError } from "@/lib/local-cache";
 import {
@@ -341,10 +342,11 @@ export function IntakeForm({
 
     // GATING POR TIER — el plan Free permite 1 generación; Pro es ilimitado.
     // Pro se determina por el entitlement de RevenueCat. Para el free contamos
-    // los planes existentes del usuario. (La verdad última se valida en el
-    // servidor; esto evita gastar la llamada a OpenAI y guía al usuario al paywall.)
+    // sus generaciones de IA, no sus planes: los hechos a mano no gastan cupo.
+    // (La verdad última se valida en el servidor; esto evita gastar la llamada
+    // a OpenAI y guía al usuario al paywall.)
     if (!isPro) {
-      const used = await supabaseClient.countPlans();
+      const used = await countAiGenerations();
       if (!canGenerate("free", used)) {
         if (isNative) {
           // En la app: mostramos el paywall de RevenueCat. Si compra, seguimos.

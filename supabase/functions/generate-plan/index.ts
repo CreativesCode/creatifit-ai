@@ -588,12 +588,10 @@ Deno.serve(async (req: Request) => {
     );
 
     if (!isPro) {
-      // Los planes creados antes de existir plan_generations también consumen cupo.
-      const { count: planCount } = await supabase
-        .from("plans")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId);
-      if (Math.max(counted.length, planCount ?? 0) >= FREE_PLAN_LIMIT) {
+      // No se cuentan las filas de plans: un plan hecho a mano no gasta cupo. Los
+      // planes anteriores a plan_generations tienen su fila por
+      // schemas/backfill-plan-generations-legacy.sql.
+      if (counted.length >= FREE_PLAN_LIMIT) {
         return new Response(
           JSON.stringify({
             error: "FREE_LIMIT_REACHED",

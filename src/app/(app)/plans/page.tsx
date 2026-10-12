@@ -10,6 +10,7 @@ import { planTitle, formatReps } from "@/lib/plan-display";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { canGenerate } from "@/lib/config/plans-config";
+import { countAiGenerations } from "@/lib/plans/ai-quota";
 import {
   computeImproveEligibility,
   buildProgressionNotes,
@@ -393,7 +394,7 @@ export default function PlansPage() {
 
       // 2) Gating por tier (mejorar = nueva generación con IA). Free = 1 en total.
       if (!isPro) {
-        const used = await supabaseClient.countPlans();
+        const used = await countAiGenerations();
         if (!canGenerate("free", used)) {
           if (isNative) {
             const purchased = await presentPaywall();

@@ -281,7 +281,7 @@ ON CONFLICT (user_id, request_id) DO NOTHING;
 - **Fase 9 — validación (2026-10-12).** `tsc`, `npm run build` y lint de los archivos nuevos pasan (`npm run lint` global sigue con los errores `any` que ya tenía el proyecto). `es` y `en` con las mismas 681 claves. Con una generación real (cuenta admin, Free): cuestionario corto la primera vez, relleno de un día de pecho con mancuernas y banco en 8 s (1.355 + 238 tokens, 4 de 4 ejercicios de `Chest` y compatibles con el equipo), el segundo relleno se frena con el mensaje de límite sin llamar a la IA, el perfil queda en `payload.meta`, repetir el `requestId` devuelve `reused` y otro relleno responde 402. Sin coste: 400 `INVALID_FILL` con un objetivo inventado y 422 `NOT_ENOUGH_EXERCISES`. Detalle en `.titan/qa/2026-10-12-plan-manual/recorrido-editor.md`.
 - **Sin probar con una llamada real** (la cuenta de prueba agotó su única generación): rellenar el plan entero; la generación de plan completo después del cambio (revisada en el código: sin `mode` no entra en ninguna rama nueva); "Mejorar plan" sobre un plan manual; recuperar un relleno tras un corte de red; el paywall nativo. Y nada en APK.
 - **Datos de prueba que quedan:** en la cuenta admin, una generación `ok` de relleno (su cupo Free queda gastado) y una `failed` (`qa-fill-notenough`). El plan de prueba se borró.
-- **Estado:** las 9 fases hechas; backend aplicado en live. Falta publicar la web (push) y generar el APK.
+- **Estado:** las 9 fases hechas; backend aplicado en live; web publicada con el push del 2026-10-12 (commit `598f3f1`, comprobado que `https://creatifit-ai.vercel.app/plans/` ya sirve el editor). Falta el APK, que genera el usuario, y la prueba en teléfono.
 
 ## Aprendizajes de la ejecución
 

@@ -4,7 +4,7 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **22 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **24 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
@@ -41,7 +41,7 @@ Actualizado: 2026-10-12. **22 commits locales, sin push.** Todo lo marcado como 
 | 2.10 RevenueCat usuario anónimo | Pendiente | |
 | 3.1 Peso de los GIF | Pendiente | La más larga: exige reprocesar los archivos guardados |
 | 3.2 Una sola URL por imagen | Hecho | |
-| 3.3 Fotos de progreso | Pendiente | |
+| 3.3 Fotos de progreso | Hecho | Las fotos ya subidas siguen con su tamaño original |
 | 3.4, 3.6, 3.7 Resto de consumo | Pendiente | |
 | 3.5 Buscador de ejercicios | Hecho | |
 | 4.1 Generación que no se pierde | Hecho, en producción | Una generación real de prueba |
@@ -61,7 +61,7 @@ Actualizado: 2026-10-12. **22 commits locales, sin push.** Todo lo marcado como 
 
 ### Siguiente por hacer, en este orden
 
-1. 3.1 (GIF) y 3.3 (fotos): el mayor consumo de datos. 3.1 exige reprocesar los archivos guardados en Storage.
+1. 3.1 (GIF): el mayor consumo de datos. Exige reprocesar los archivos guardados en Storage; **espera confirmación del usuario**.
 2. Resto de 1.6: editar o borrar series desde el historial.
 3. 2.9 y 2.10 (cerrar sesión sin red, RevenueCat anónimo), restos de 2.3 y 2.5.
 4. 3.4, 3.6 y 3.7.
@@ -94,6 +94,7 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **2.6** `src/lib/profile-flags.ts`: tier e `is_admin` en un almacén único que parte del último valor conocido en el teléfono, no degrada a Free ni a "no admin" por un fallo de lectura, y relee al volver a primer plano (como mucho una vez por minuto) y al recuperar conexión. Lo usan `revenuecat-context.tsx`, `use-is-admin.ts` y `/admin`, que ofrece reintentar en vez de "Acceso denegado" si no pudo leer el perfil. Antes eran tres lecturas separadas de `profiles`; ahora una.
 - **2.8** Historial, fecha por defecto de Mi cuerpo, logros, racha de logros, volumen semanal y progreso de fuerza usan el día local (`localDay` de `streak.ts`).
 - **3.2** `src/lib/exercise-media.ts` es el único constructor de la URL de imagen; lo usan ejercicios, detalle, planes y sesión. Comprobado: 56 imágenes pedidas, ninguna con doble barra ni repetida.
+- **3.3** `src/lib/image-compress.ts` reduce la foto en el teléfono (1280 px, JPEG) y genera una miniatura de 240 px; `uploadProgressPhoto` sube ambas (`p2-<ts>-<bytes>.jpg` y `.thumb.jpg`) con caché de un año. `getPhotoUrls` firma todas en una sola petición y reutiliza cada URL firmada durante 24 h, guardada por usuario. La lista usa la miniatura; la foto completa solo se pide para el "antes y después". Medido: 1,78 MB pasan a 264 KB más 19 KB; segunda visita, cero peticiones de firma y foto servida desde la caché del teléfono. Borrar un registro borra también la miniatura.
 - **3.5** El esqueleto de carga de Ejercicios va solo en la zona de resultados; el campo de búsqueda no se desmonta y conserva el foco al escribir. El campo es de tipo búsqueda para que el teclado muestre la tecla Buscar.
 - **4.1, 4.3, 4.4, 4.5** Tabla `plan_generations` (`schemas/add-plan-generations.sql`) y función `generate-plan`: el teléfono envía un `requestId` (que es el id del plan); un reintento con el mismo id devuelve el plan guardado sin llamar a OpenAI; un id en curso recibe 409 y el cliente espera. El cliente (`src/lib/ai/openai.ts`) guarda el id pendiente por cuestionario y `savePlan` tolera el reintento de un plan ya guardado. Prueba real: 12 s, 16/16 ejercicios; repetida, 0,8 s y `reused`; id en curso, 409; 2.401 + 1.056 tokens.
 - **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
@@ -105,7 +106,7 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`.
 - Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` (sin `verify_jwt`, valida ella).
 - Contraseña del admin cambiada.
-- Las pruebas de deshacer serie crearon y borraron sus propias filas; no dejaron datos nuevos.
+- Las pruebas de deshacer serie y de fotos crearon y borraron sus propias filas y archivos; no dejaron datos nuevos.
 - Datos de prueba: 11 series del 2026-10-12 en la cuenta de pruebas (ver al final) y un registro en `plan_generations` (`qa-idempotency-check-1`).
 
 ## Cómo se probó

@@ -49,7 +49,7 @@ Sustituye lo dicho arriba sobre la sesión donde choque.
 - **Series:** cada serie se guarda primero en el teléfono (cola local) y se sincroniza en segundo plano; la sesión no espera a la red. El `session_id` se conserva al reanudar. Peso con decimales y coma; RPE entero 1-10.
 - **Sesión a medias:** se guarda en el dispositivo y caduca a las 12 h. Reanudar sigue siendo local a ese teléfono, no entre dispositivos.
 - **Durante la sesión** la navegación inferior está oculta; se sale con la X (también en el descanso) o con Atrás. Con series hechas, salir ofrece "Terminar aquí" (resumen con lo hecho), "Pausar y salir" (la sesión queda guardada y se retoma desde el inicio) o "Seguir entrenando"; ya no se descarta nada.
-- **Corregir y saltar:** "Corregir la serie anterior" (en el descanso y en la hoja de opciones "⋯") borra la última serie y vuelve a ella con sus valores. La misma hoja permite "Saltar este ejercicio" y "Terminar aquí".
+- **Corregir y saltar:** "Corregir la serie anterior" (en el descanso y en la hoja de opciones "⋯") borra la última serie y vuelve a ella con sus valores. La misma hoja permite "Saltar este ejercicio" y "Terminar aquí". En el detalle de una sesión del historial se puede borrar una serie (dos toques).
 - **Sin conexión:** planes, ejercicios del plan, historial, favoritos y medidas se ven desde la última copia guardada, con una banda que lo avisa. Generar o mejorar un plan, comprar y el panel admin exigen red.
 - **Fechas:** historial, Mi cuerpo, logros, volumen semanal y progreso de fuerza usan el día local.
 - **Ejercicios:** el campo de búsqueda conserva el foco mientras cargan los resultados. Las listas muestran miniaturas fijas; la animación solo se ve en el detalle y en la sesión.

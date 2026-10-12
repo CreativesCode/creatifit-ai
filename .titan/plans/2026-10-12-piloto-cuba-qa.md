@@ -4,7 +4,7 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **26 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **28 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
@@ -19,7 +19,7 @@ Actualizado: 2026-10-12. **26 commits locales, sin push.** Todo lo marcado como 
 | 1.1, 1.2 Series sin pérdida ni duplicados | Hecho | Cola local |
 | 1.3 `session_id` estable | Hecho | |
 | 1.4, 1.5 Peso decimal, RPE válido | Hecho | Teclado real: dispositivo |
-| 1.6 Deshacer / corregir serie | Hecho (parcial) | Se corrige la última serie dentro de la sesión, también sin red. Falta editar o borrar series desde el historial |
+| 1.6 Deshacer / corregir serie | Hecho | En la sesión se corrige la última serie; en el historial se borra cualquiera. No hay edición en el historial: se borra y ya |
 | 1.7 Entrenar sin red y continuar sesión | Hecho | |
 | 1.8 Caducidad de sesión guardada | Hecho (parcial) | Falta marca real de sesión terminada (P13) |
 | 1.9 Acción principal a la vista | Hecho | |
@@ -61,7 +61,6 @@ Actualizado: 2026-10-12. **26 commits locales, sin push.** Todo lo marcado como 
 
 ### Siguiente por hacer, en este orden
 
-2. Resto de 1.6: editar o borrar series desde el historial.
 3. 2.9 y 2.10 (cerrar sesión sin red, RevenueCat anónimo), restos de 2.3 y 2.5.
 4. 3.4, 3.6 y 3.7.
 5. Fase 6.
@@ -77,6 +76,7 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **1.3** El `session_id` se conserva al reanudar.
 - **1.4, 1.5** Peso con teclado decimal y coma aceptada; RPE entero 1-10; topes de reps (200) y peso (500 kg).
 - **1.6** La última serie se puede corregir desde el descanso ("Corregir la serie anterior") o desde la hoja de opciones (botón "⋯" junto a la X): vuelve a esa serie con sus valores para completarla de nuevo. La fila sale de la cola local y se apunta en una lista de borrados (`cf-workout-outbox-deletes`) que se envía al servidor después de los envíos pendientes, así que también funciona sin conexión. Probado: con red se borra la fila; sin red no llega nada al servidor y el borrado se vacía al reconectar.
+- **1.6 (historial)** En el detalle de una sesión cada serie tiene un icono de borrar con confirmación en la misma fila ("No" / "Borrar"). Usa `deleteWorkoutLog` (`supabase-client.ts`), que pasa por la cola local y quita la serie de la copia local del historial. Al borrar la última serie de una sesión se vuelve a la lista. Probado: dos series registradas y borradas, totales recalculados, dos DELETE 204.
 - **1.7** Copia local de lecturas en `src/lib/local-cache.ts`, aplicada en `supabase-client.ts` a planes, plan por id, ejercicios del plan, historial, favoritos y medidas: red primero y, si falla, lo último guardado. El panel deja en el teléfono los ejercicios del plan activo. Si hay una sesión a medias, el panel ofrece "Continuar · Día X (n series)".
 - **1.8** Una sesión guardada hace más de 12 h no se reanuda ni se ofrece, y se limpia.
 - **1.9** Barra de acción fija, GIF más pequeño, objetivo en una línea y pista de progresión bajo los campos. A 360×640, campos y "Completar serie" visibles sin desplazarse.

@@ -386,6 +386,7 @@ export const supabaseClient = {
       .select("id,name,category,equipment,primary_muscles,gif_url")
       .eq("category", current.category)
       .neq("id", exerciseId)
+      .order("name")
       .limit(60);
 
     if (error) {
@@ -443,22 +444,38 @@ export const supabaseClient = {
     };
 
     // 2) Persistir en plans.payload.
-    const { error: planError } = await supabase
+    //    Con `.select` se sabe si de verdad cambió una fila: un UPDATE que RLS
+    //    deja en cero filas no devuelve error y el cambio parecía guardado.
+    const { data: updated, error: planError } = await supabase
       .from("plans")
       .update({ payload })
-      .eq("id", planId);
+      .eq("id", planId)
+      .select("id");
     if (planError) {
       console.error("Error updating plan payload:", planError);
       throw planError;
     }
+    if (!updated || updated.length === 0) {
+      throw new Error("PLAN_NOT_UPDATED");
+    }
+    // La copia local del plan quedó vieja: que la próxima lectura la rehaga.
+    cacheRemove(`plan:${planId}`);
+    cacheRemove(`plan-exercises:${planId}`);
+    cacheRemove("plans");
 
     // 3) Sincronizar la fila de plan_exercises (no bloqueante: si falla, el
     //    payload ya está actualizado y la sesión funcionará igual).
+    //    `savePlan` guarda la letra por posición (A, B, C…), que puede no
+    //    coincidir con la etiqueta que devolvió el modelo en el payload.
+    const dayIndex = (currentPayload.days || []).findIndex(
+      (d: any) => d.day === dayLetter
+    );
+    const storedLetter = dayIndex >= 0 ? String.fromCharCode(65 + dayIndex) : dayLetter;
     const { error: peError } = await supabase
       .from("plan_exercises")
       .update({ exercise_name: newName, exercise_id: newExerciseId, cues: [] })
       .eq("plan_id", planId)
-      .eq("day_letter", dayLetter)
+      .eq("day_letter", storedLetter)
       .eq("block_index", blockIndex);
     if (peError) {
       console.warn("plan_exercises no se pudo sincronizar (no crítico):", peError);

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { photoThumbPath, supabaseClient } from "@/lib/supabase-client";
 import { localDay } from "@/lib/progress/streak";
+import { LoadError } from "@/components/ui/load-error";
 import {
   ArrowLeft,
   Camera,
@@ -63,8 +64,10 @@ export default function BodyPage() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const load = async () => {
+    setLoadError(false);
     try {
       const data = (await supabaseClient.getMeasurements()) as Measurement[];
       setEntries(data);
@@ -96,6 +99,7 @@ export default function BodyPage() {
       setThumbUrls(thumbs);
     } catch (e) {
       console.error("Error loading measurements", e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -333,6 +337,13 @@ export default function BodyPage() {
             </div>
           ))}
         </div>
+      ) : loadError && entries.length === 0 ? (
+        <LoadError
+          onRetry={() => {
+            setLoading(true);
+            load();
+          }}
+        />
       ) : entries.length === 0 ? (
         <div className="text-center py-14">
           <div className="cf-icon-tile bg-surface-2 border border-border mx-auto mb-4" style={{ width: 80, height: 80, borderRadius: 26 }}>

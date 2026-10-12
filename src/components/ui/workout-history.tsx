@@ -8,6 +8,7 @@ import {
 import { localDay, parseLocalDay } from "@/lib/progress/streak";
 import { bodyWeightSeries, weeklyVolume } from "@/lib/progress/trends";
 import { supabaseClient } from "@/lib/supabase-client";
+import { LoadError } from "@/components/ui/load-error";
 import i18n from "@/lib/i18n";
 import {
   Activity,
@@ -105,6 +106,7 @@ export function WorkoutHistory({
 }: WorkoutHistoryProps) {
   // Serie pendiente de confirmar su borrado (dos toques: evita borrar por error).
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const { t, i18n } = useTranslation("common");
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [allLogs, setAllLogs] = useState<WorkoutLog[]>([]);
@@ -157,6 +159,7 @@ export function WorkoutHistory({
   const achievements = useMemo(() => computeAchievements(allLogs), [allLogs]);
 
   const fetchWorkoutHistory = async () => {
+    setLoadError(false);
     try {
       const logs = await supabaseClient.getLogs();
       if (logs) {
@@ -165,6 +168,7 @@ export function WorkoutHistory({
       }
     } catch (error) {
       console.error("Error fetching workout history:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -267,6 +271,20 @@ export function WorkoutHistory({
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // ---------- No se pudo cargar (distinto de "aún no hay entrenamientos") ----------
+  if (loadError && sessions.length === 0 && !selectedSession) {
+    return (
+      <div className="container mx-auto max-w-xl px-5 py-10">
+        <LoadError
+          onRetry={() => {
+            setLoading(true);
+            fetchWorkoutHistory();
+          }}
+        />
       </div>
     );
   }

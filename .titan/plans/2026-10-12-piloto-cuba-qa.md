@@ -13,22 +13,22 @@ Actualizado: 2026-10-12. **Todo subido a `origin/main` (push del 2026-10-12, aut
 | 0.1 Usuarios no pueden ponerse Pro/admin | Hecho, en producción | Verificado 403 |
 | 0.2 Alta y recuperación de contraseña | Hecho, en producción | Alta sin confirmación de correo. Recuperación: el enlace se abre en el navegador, cambia la contraseña en la web pública y ofrece "Abrir la app". Ese botón necesita el APK recompilado; el envío real del correo no se probó (se usó un enlace generado en el servidor) |
 | 0.3 Key de RevenueCat y compra en Cuba | Decidido: no tocar | Los testers se quedan con su tier. La key de Test Store en el build sigue pendiente para cuando se prepare el APK |
-| 0.4 WebView mínimo | Pendiente | Al preparar el APK |
-| 0.5 Build limpio y `cap sync` | Parcial | `next dev` ya escribe en `.next-dev`, no en `out`. Falta el build limpio y `cap sync` al preparar el APK |
+| 0.4 WebView mínimo | Hecho en código | `minWebViewVersion: 111` y página de aviso `unsupported.html`. Entra en el APK con el próximo `cap sync`; solo se confirma en un teléfono con WebView antiguo |
+| 0.5 Build limpio y `cap sync` | Lo hace el usuario | `next dev` ya escribe en `.next-dev`, no en `out`. El APK lo genera el usuario: `npm run build` y `npx cap sync android` antes de compilar |
 | 0.6 Contraseña admin y bootstrap | Hecho | Secret de bootstrap inexistente |
 | 1.1, 1.2 Series sin pérdida ni duplicados | Hecho | Cola local |
 | 1.3 `session_id` estable | Hecho | |
 | 1.4, 1.5 Peso decimal, RPE válido | Hecho | Teclado real: dispositivo |
 | 1.6 Deshacer / corregir serie | Hecho | En la sesión se corrige la última serie; en el historial se borra cualquiera. No hay edición en el historial: se borra y ya |
 | 1.7 Entrenar sin red y continuar sesión | Hecho | |
-| 1.8 Caducidad de sesión guardada | Hecho (parcial) | Falta marca real de sesión terminada (P13) |
+| 1.8 Caducidad de sesión guardada | Hecho | Una sesión terminada antes de tiempo ya no se anuncia como "completada". No hay marca de sesión terminada en la base de datos: una sesión sigue siendo un grupo de series |
 | 1.9 Acción principal a la vista | Hecho | |
 | 1.10 Arrastre de peso y RPE | Hecho | |
 | 1.11 Descanso por reloj, wake lock, vibración | Hecho | Wake lock y vibración: dispositivo; el permiso exige recompilar |
 | 1.12 Empezar en un toque | Hecho | El calentamiento de 15 s se mantiene (decisión de producto) |
 | 1.13 Saltar ejercicio / terminar antes | Hecho | Salir con progreso ya no descarta la sesión |
-| 1.14 Botón Atrás | Hecho (parcial) | Falta en detalle del historial y cuestionario; probar en APK |
-| 1.15 Navegación oculta y teclado | Hecho (parcial) | Falta revisar menú de 6 pestañas a 360 px |
+| 1.14 Botón Atrás | Hecho | Sesión, detalle del historial, detalle de ejercicio y cuestionario. Probado con el Atrás del navegador; el botón físico, en el APK |
+| 1.15 Navegación oculta y teclado | Hecho | El menú mantiene 6 pestañas; a 360 px cada una mide 58x52 px |
 | 2.1 No expulsar al login sin red | Hecho | |
 | 2.2 Límite de tiempo | Hecho | |
 | 2.3 Error distinto de vacío | Hecho | |
@@ -42,8 +42,8 @@ Actualizado: 2026-10-12. **Todo subido a `origin/main` (push del 2026-10-12, aut
 | 3.1 Peso de los GIF | Hecho, en producción | De los 19 ejercicios sin imagen, 10 reparados; 9 no tienen ninguna y no se ofrecen en los planes |
 | 3.2 Una sola URL por imagen | Hecho | |
 | 3.3 Fotos de progreso | Hecho | Las fotos ya subidas siguen con su tamaño original |
-| 3.4 Peticiones repetidas | Hecho (parcial) | Resuelto para el historial y su detalle. Volver del detalle de un ejercicio sigue recargando la lista |
-| 3.6 Arranque web | Pendiente | Baja prioridad si el piloto es solo APK |
+| 3.4 Peticiones repetidas | Hecho | Volver del detalle de un ejercicio conserva la lista y la posición, sin peticiones |
+| 3.6 Arranque web | No se hace | El piloto es por APK (archivos locales). Un service worker añadiría el riesgo de servir versiones viejas a cambio de nada en el APK |
 | 3.7 Peso del bundle y blur | Hecho | El modo ligero solo se confirma en un teléfono modesto |
 | 3.5 Buscador de ejercicios | Hecho | |
 | 4.1 Generación que no se pierde | Hecho, en producción | Una generación real de prueba |
@@ -54,18 +54,20 @@ Actualizado: 2026-10-12. **Todo subido a `origin/main` (push del 2026-10-12, aut
 | 4.6 Validar el plan en servidor | Hecho, en producción | Incluye las restricciones físicas, aplicadas en el catálogo |
 | 4.7 Espera y cuestionario | Hecho | La pantalla de espera no se vio en vivo (habría exigido generar otro plan) |
 | 5.1 Entrada a admin en móvil | Hecho | |
-| 5.2 Actividad por usuario | Hecho, en producción | Falta crear cuentas desde el panel |
-| 5.3 Pro en bloque | Pendiente | Sin prisa: los testers se quedan como están |
-| 5.4 Orden, errores, fila compacta | Hecho (parcial) | Falta paginación |
+| 5.2 Actividad por usuario | Hecho, en producción | Incluye crear cuentas desde el panel |
+| 5.3 Pro en bloque | Hecho, en producción | Botón que da Pro a los Free de la lista que se está viendo. No se ha usado sobre los testers: siguen con su tier |
+| 5.4 Orden, errores, fila compacta | Hecho, en producción | La función lee de 1.000 en 1.000 y el panel pinta 50 cada vez |
 | 5.5 Borrado limpio, último admin, nombre | Hecho, en producción | |
 | 5.6 `execute_sql` | Comprobado | No existe en la BD; el archivo SQL sigue en `schemas/` |
-| Fase 6 | Hecha salvo lo de dispositivo | Hecho: Alta, Mi cuerpo, Planes, Historial, Legal, Táctil, Android e Idiomas. Falta: contraste a pleno sol, `targetSdk` y áreas seguras, que solo se ven en un teléfono |
+| Fase 6 | Hecha salvo lo de dispositivo | Hecho: Alta, Mi cuerpo, Planes, Historial, Legal, Táctil, Android e Idiomas. Falta: contraste a pleno sol y áreas seguras, que solo se ven en un teléfono. `targetSdk` es 35: vale para instalar el APK a mano; antes de publicar en Google Play hay que comprobar el mínimo que exija ese día |
 
 ### Siguiente por hacer, en este orden
 
-3. Resto de 3.4 (volver del detalle de un ejercicio recarga la lista).
-5. 5.3 (Pro en bloque; sin prisa, los testers conservan su tier) y crear cuentas desde el panel.
-6. Al preparar el APK: 0.4, 0.5 y la prueba en teléfono de todo lo marcado como "dispositivo".
+No queda trabajo de código pendiente del plan. Lo que falta depende del APK, que genera el usuario:
+
+1. `npm run build` y `npx cap sync android`, y compilar el APK (los cambios del manifest, el esquema `creatifit://` y el WebView mínimo solo entran así).
+2. Probar en un teléfono lo marcado como "dispositivo": teclado, pantalla encendida, vibración, botón Atrás físico, orientación, botón "Abrir la app" tras recuperar la contraseña, modo ligero, áreas seguras y contraste al sol.
+3. Key de RevenueCat de Android si se van a probar compras (hoy el build cae en Test Store).
 
 Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions que hagan falta (la app está en modo prueba); un commit por tarea y continuar sin esperar confirmación; mantener al día este plan y la memoria.
 
@@ -112,6 +114,12 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **3.7** La bandera de España era un SVG de 2.500 líneas (~100 KB): ahora son tres franjas y Ajustes baja de 27,2 a 9,8 kB. React Query estaba montado sin que ninguna pantalla lo usara: se quitó el proveedor (las dependencias siguen en `package.json`). `Providers` pone la clase `cf-lite` en teléfonos de 4 núcleos o menos, o 3 GB o menos, y `globals.css` apaga ahí el `backdrop-filter`.
 - **4.7 (espera)** `GeneratingOverlay` en `intake-form.tsx`: paso actual, barra de progreso aproximada y, pasados 30 s, aviso de conexión lenta y de que el plan no se pierde ni cuenta dos veces. Fondo opaco en vez de desenfoque.
 - **Idiomas** Las 46 claves que solo existían como texto por defecto en el código están ya en `es` y `en` (595 claves en cada idioma, sin diferencias).
+- **3.4 (ejercicios)** `exercises/page.tsx` guarda `window.scrollY` al abrir un ejercicio y lo repone al volver; el efecto de `exerciseId` ya no llama a `fetchExercises` si hay lista en memoria. El Atrás de la app usa `router.back()` cuando el detalle se abrió desde la lista, para no dejar una entrada que lo reabra. Probado: 80 tarjetas y la misma posición tras volver, 0 peticiones.
+- **1.14** Historial: al quedar la URL sin `id` se cierra el detalle. Cuestionario (`intake-form.tsx`): cada "Continuar" deja una entrada en el historial y el Atrás retrocede un paso; las respuestas se guardan en `sessionStorage` (`cf-intake-draft:<uid>`) y se borran al guardar el plan.
+- **1.15** `.cf-nav-item` con `min-height: 52px`; la barra mide 60 px.
+- **1.8** El resumen dice "Sesión terminada" si no se hicieron todas las series; el contador del inicio se llama "Entrenamientos".
+- **5.2-5.4** `admin-api`: acciones `createUser` (cuenta confirmada, con nombre y tier) y `setTierBulk` (máx. 500 ids); `list` paginado. Probado con cuentas desechables: alta, correo repetido rechazado, la cuenta nueva entra, Pro en bloque solo sobre la desechable, 403 para un usuario normal. Los tiers de los 11 usuarios reales no cambiaron.
+- **0.4** `capacitor.config.ts`: `android.minWebViewVersion: 111` y `server.errorPath: "unsupported.html"` (`public/unsupported.html`, CSS plano, con enlace a actualizar WebView y "Reintentar"). Capacitor también carga esa página si la app no llega a cargar; el texto lo distingue por la versión de WebView.
 - **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
 - **5.1** Entrada "Panel de administración" en Ajustes solo para admins y botón de volver en `/admin`.
 - **5.2 (detalle)** Tocar un usuario en `/admin` despliega su cuestionario, sus planes con los ejercicios de cada día y sus últimas 20 sesiones (acción `userDetail` de `admin-api`, solo lectura; un usuario normal recibe 403). El cuestionario sale de `payload.meta` del plan más reciente: la tabla `intake` no la escribe la app (0 filas).

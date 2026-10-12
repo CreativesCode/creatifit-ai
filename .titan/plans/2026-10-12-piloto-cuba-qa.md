@@ -4,7 +4,7 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **38 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **43 commits locales, sin push.** El build de producción (`next build`) pasa con todos los cambios (comprobado el 2026-10-12). Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
@@ -56,14 +56,15 @@ Actualizado: 2026-10-12. **38 commits locales, sin push.** Todo lo marcado como 
 | 5.2 Actividad por usuario | Hecho (parcial) | Falta ver plan y registros de un usuario, y crear cuentas |
 | 5.3 Pro en bloque | Pendiente | Sin prisa: los testers se quedan como están |
 | 5.4 Orden, errores, fila compacta | Hecho (parcial) | Falta paginación |
-| 5.5 Borrado limpio, último admin, nombre | Pendiente | |
+| 5.5 Borrado limpio, último admin, nombre | Parcial | Borrar una cuenta (el usuario o el admin) borra también sus fotos del Storage; en producción. Falta proteger al último admin y mostrar el nombre |
 | 5.6 `execute_sql` | Comprobado | No existe en la BD; el archivo SQL sigue en `schemas/` |
-| Fase 6 | Parcial | Hecho: Alta, Mi cuerpo, Táctil (papelera del plan, ayuda de RPE) y Android (orientación, backup, versión). Falta: Planes, Historial, Idiomas, Legal, contraste a pleno sol, `targetSdk` y áreas seguras |
+| Fase 6 | Casi completa | Hecho: Alta, Mi cuerpo, Planes, Historial, Legal, Táctil y Android. Falta: Idiomas (46 textos sin clave, solo afecta a la app en inglés), contraste a pleno sol, `targetSdk` y áreas seguras (dispositivo) |
 
 ### Siguiente por hacer, en este orden
 
 3. 3.7 (peso del bundle y blur en gama baja) y el resto de 3.4.
-5. Resto de la fase 6: Planes (sustituir ejercicio), Historial (RPE medio, gráfica, logros de racha), Idiomas (46 claves que faltan) y Legal.
+5. Generación (4.5 a 4.7) y admin (5.2, 5.3, resto de 5.5).
+6. Idiomas: las 46 claves que faltan; poca prioridad mientras el piloto sea en español.
 6. Al preparar el APK: 0.4, 0.5 y la prueba en teléfono de todo lo marcado como "dispositivo".
 
 Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions que hagan falta (la app está en modo prueba); un commit por tarea y continuar sin esperar confirmación; mantener al día este plan y la memoria.
@@ -111,13 +112,17 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **Alta:** los botones de registro del landing abren el registro (`/login?mode=signup`); no aceptar los términos lo dice; Términos y Privacidad son enlaces; un correo ya registrado se avisa como tal; reenviar la confirmación muestra que se envió.
 - **Mi cuerpo:** borrar un registro pide confirmación en la fila; no se guarda un registro sin datos ni foto; si guardar falla se avisa y se borra la foto recién subida.
 - **Táctil:** papelera del plan de 30 a 40 px; ayuda de RPE con zona táctil de 36 px y el texto se abre hacia arriba (antes tapaba "Completar serie"). El botón de salir de la sesión ya era de 40 px desde 1.13.
+- **Historial:** RPE medio de la sesión solo sobre las series con RPE; la cabecera de volumen suma las barras visibles y lo dice; las barras semanales parten de cero (`trend-chart.tsx`); los logros de racha usan la mejor racha en días locales; toneladas pequeñas con un decimal.
+- **Planes:** `swapPlanExercise` comprueba que el plan se actualizó de verdad (lanza `PLAN_NOT_UPDATED` si no), dirige la fila de `plan_exercises` por la letra posicional que escribe `savePlan` y descarta la copia local del plan. Sin prueba en vivo para no alterar el plan de pruebas. La política UPDATE de `plans` existe en producción.
+- **Legal:** privacidad y página de borrado mencionan medidas, fotos y favoritos; `<html lang="es">`; eliminado `public/index.html` (portada antigua que el build ya ignoraba).
+- **Borrado de cuenta:** las funciones `delete-account` y `admin-api` borran la carpeta del usuario en `progress-photos` antes de borrar el usuario; si falla, no borran la cuenta. Probado con una cuenta desechable: 2 archivos y 1 medida antes, nada después.
 - **Android:** actividad solo en vertical; `allowBackup="false"` (la copia incluía el token de sesión); versión única: Ajustes lee `package.json` (1.0.4, igual que `versionName`). **Estos cambios del manifest exigen recompilar el APK.**
 
 ### Cambios hechos en producción (Supabase `oacjsudvmgkrtcesxjsr`)
 
 - SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`.
 - Storage: carpetas nuevas `exercise-thumbs/` y `exercise-posters/` en el bucket `CreatiFit AI` (2.310 archivos WebP, ~10 MB). Los GIF originales no se tocaron.
-- Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` (sin `verify_jwt`, valida ella).
+- Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` y `delete-account` (sin `verify_jwt`, validan ellas). `admin-api` se desplegó dos veces (actividad por usuario; borrado de fotos).
 - Contraseña del admin cambiada.
 - Las pruebas de deshacer serie y de fotos crearon y borraron sus propias filas y archivos; no dejaron datos nuevos.
 - Datos de prueba: 11 series del 2026-10-12 en la cuenta de pruebas (ver al final) y un registro en `plan_generations` (`qa-idempotency-check-1`).

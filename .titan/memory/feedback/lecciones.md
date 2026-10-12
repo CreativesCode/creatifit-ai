@@ -27,3 +27,5 @@ Lecciones del plan del piloto (trabajo real del 2026-10-12, no reconstruidas):
 20. (2026-10-12) En Windows PowerShell 5.1, `Set-Content -Encoding utf8` añade BOM y puede romper archivos fuente: editar el código con las herramientas de edición, no con PowerShell.
 21. (2026-10-12) En modo oscuro `.cf-card-solid` es translúcida (5 % de blanco): una hoja o diálogo sobre contenido necesita fondo propio (`var(--surface)`). Mirar la captura, no fiarse del nombre de la clase.
 22. (2026-10-12) No reescribir los `common.json` con `JSON.parse` + `JSON.stringify`: reformatea todo el archivo y funde claves duplicadas. Insertar las claves como texto.
+23. (2026-10-12) Al insertar texto con `s.replace(cadena, ...)` se sustituye la PRIMERA aparición: una línea con poca indentación es subcadena de otra más indentada. Insertar por índice (el script `add-keys` de la sesión recorre la ruta por indentación).
+24. (2026-10-12) Antes de escribir en una página legal que algo "se borra", comprobar que el código lo borra: las fotos del Storage sobrevivían a la cuenta.

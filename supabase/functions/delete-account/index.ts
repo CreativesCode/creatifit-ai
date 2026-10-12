@@ -26,6 +26,24 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// Borra las fotos de progreso del usuario (bucket privado, carpeta {user_id}/).
+// Las tablas se limpian solas por ON DELETE CASCADE, pero los archivos del
+// Storage no: sin esto las fotos sobrevivían a la cuenta.
+// deno-lint-ignore no-explicit-any
+async function removeUserPhotos(admin: any, userId: string): Promise<string | null> {
+  const bucket = admin.storage.from("progress-photos");
+  for (let round = 0; round < 50; round++) {
+    const { data, error } = await bucket.list(userId, { limit: 1000 });
+    if (error) return error.message;
+    if (!data || data.length === 0) return null;
+    const { error: rmError } = await bucket.remove(
+      data.map((o: { name: string }) => `${userId}/${o.name}`)
+    );
+    if (rmError) return rmError.message;
+  }
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -45,6 +63,10 @@ Deno.serve(async (req: Request) => {
 
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData?.user) return json({ error: "Token inválido" }, 401);
+
+    // Primero los archivos: si fallan, la cuenta sigue existiendo y se puede reintentar.
+    const photoError = await removeUserPhotos(admin, userData.user.id);
+    if (photoError) return json({ error: photoError }, 500);
 
     const { error } = await admin.auth.admin.deleteUser(userData.user.id);
     if (error) return json({ error: error.message }, 500);

@@ -196,14 +196,17 @@ async function handle(req: Request): Promise<Response> {
       return json({ ok: true });
     }
 
-    // Eliminar la cuenta por completo. Borra auth.users -> cascada a profiles,
-    // intake, plans y workout_logs (ON DELETE CASCADE).
+    // Eliminar la cuenta por completo. Borra las fotos del Storage y luego
+    // auth.users -> cascada a profiles, intake, plans, workout_logs, medidas,
+    // favoritos y generaciones (ON DELETE CASCADE).
     case "deleteUser": {
       const userId = String(body?.userId ?? "");
       if (!userId) return json({ error: "userId requerido" }, 400);
       if (userId === callerId) {
         return json({ error: "No puedes eliminar tu propia cuenta" }, 400);
       }
+      const photoError = await removeUserPhotos(admin, userId);
+      if (photoError) return json({ error: photoError }, 500);
       const { error } = await admin.auth.admin.deleteUser(userId);
       if (error) return json({ error: error.message }, 500);
       return json({ ok: true });
@@ -212,4 +215,22 @@ async function handle(req: Request): Promise<Response> {
     default:
       return json({ error: "Acción desconocida" }, 400);
   }
+}
+
+// Borra las fotos de progreso del usuario (bucket privado, carpeta {user_id}/).
+// Las tablas se limpian solas por ON DELETE CASCADE, pero los archivos del
+// Storage no: sin esto las fotos sobrevivían a la cuenta.
+// deno-lint-ignore no-explicit-any
+async function removeUserPhotos(admin: any, userId: string): Promise<string | null> {
+  const bucket = admin.storage.from("progress-photos");
+  for (let round = 0; round < 50; round++) {
+    const { data, error } = await bucket.list(userId, { limit: 1000 });
+    if (error) return error.message;
+    if (!data || data.length === 0) return null;
+    const { error: rmError } = await bucket.remove(
+      data.map((o: { name: string }) => `${userId}/${o.name}`)
+    );
+    if (rmError) return rmError.message;
+  }
+  return null;
 }

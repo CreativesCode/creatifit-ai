@@ -43,7 +43,8 @@ Actualizado: 2026-10-12. **Todo subido a `origin/main` (push del 2026-10-12, aut
 | 3.2 Una sola URL por imagen | Hecho | |
 | 3.3 Fotos de progreso | Hecho | Las fotos ya subidas siguen con su tamaño original |
 | 3.4 Peticiones repetidas | Hecho (parcial) | Resuelto para el historial y su detalle. Volver del detalle de un ejercicio sigue recargando la lista |
-| 3.6, 3.7 Arranque web y peso del bundle | Pendiente | 3.6 es de baja prioridad si el piloto es solo APK |
+| 3.6 Arranque web | Pendiente | Baja prioridad si el piloto es solo APK |
+| 3.7 Peso del bundle y blur | Hecho | El modo ligero solo se confirma en un teléfono modesto |
 | 3.5 Buscador de ejercicios | Hecho | |
 | 4.1 Generación que no se pierde | Hecho, en producción | Una generación real de prueba |
 | 4.2 Doble toque en generar/mejorar | Hecho | |
@@ -51,20 +52,19 @@ Actualizado: 2026-10-12. **Todo subido a `origin/main` (push del 2026-10-12, aut
 | 4.4 Errores de límite y red distinguidos | Hecho | |
 | 4.5 Coste por llamada | Hecho, en producción | Como mucho 2 indicaciones cortas por ejercicio: de 1.056 a 916 tokens de salida en la prueba |
 | 4.6 Validar el plan en servidor | Hecho, en producción | Incluye las restricciones físicas, aplicadas en el catálogo |
-| 4.7 Espera y cuestionario | Parcial | El cuestionario se abre con las respuestas del último plan. Falta mejorar la pantalla de espera |
+| 4.7 Espera y cuestionario | Hecho | La pantalla de espera no se vio en vivo (habría exigido generar otro plan) |
 | 5.1 Entrada a admin en móvil | Hecho | |
 | 5.2 Actividad por usuario | Hecho, en producción | Falta crear cuentas desde el panel |
 | 5.3 Pro en bloque | Pendiente | Sin prisa: los testers se quedan como están |
 | 5.4 Orden, errores, fila compacta | Hecho (parcial) | Falta paginación |
 | 5.5 Borrado limpio, último admin, nombre | Hecho, en producción | |
 | 5.6 `execute_sql` | Comprobado | No existe en la BD; el archivo SQL sigue en `schemas/` |
-| Fase 6 | Casi completa | Hecho: Alta, Mi cuerpo, Planes, Historial, Legal, Táctil y Android. Falta: Idiomas (46 textos sin clave, solo afecta a la app en inglés), contraste a pleno sol, `targetSdk` y áreas seguras (dispositivo) |
+| Fase 6 | Hecha salvo lo de dispositivo | Hecho: Alta, Mi cuerpo, Planes, Historial, Legal, Táctil, Android e Idiomas. Falta: contraste a pleno sol, `targetSdk` y áreas seguras, que solo se ven en un teléfono |
 
 ### Siguiente por hacer, en este orden
 
-3. 3.7 (peso del bundle y blur en gama baja) y el resto de 3.4.
-5. 4.7 (pantalla de espera y cuestionario) y 5.3 (Pro en bloque; sin prisa, los testers conservan su tier).
-6. Idiomas: las 46 claves que faltan; poca prioridad mientras el piloto sea en español.
+3. Resto de 3.4 (volver del detalle de un ejercicio recarga la lista).
+5. 5.3 (Pro en bloque; sin prisa, los testers conservan su tier) y crear cuentas desde el panel.
 6. Al preparar el APK: 0.4, 0.5 y la prueba en teléfono de todo lo marcado como "dispositivo".
 
 Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions que hagan falta (la app está en modo prueba); un commit por tarea y continuar sin esperar confirmación; mantener al día este plan y la memoria.
@@ -109,6 +109,9 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **4.6 (equipo)** `generate-plan` ya no busca subcadenas en `equipment`: lee el catálogo y deja un ejercicio solo si el usuario tiene todo lo que necesita (`isAvailable`), con reglas por nombre para barra de dominadas, paralelas, rueda abdominal, comba y banco. Máquinas, poleas, landmine, TRX y gymstick exigen la opción nueva "Gimnasio completo"; "Rack de potencia" ya no abre todo el catálogo. Opciones nuevas en el cuestionario: gimnasio completo, pesa rusa, pelota. Solo peso corporal: 378 ejercicios; mancuernas y silla: 554; gimnasio completo: 1.176. No se ofrecen ejercicios sin imagen.
 - **4.6 (restricciones)** `schemas/add-exercise-movement-flags.sql`: columna `exercises.movement_flags` (`jumps`, `high_impact`, `heavy_lifting`) calculada por reglas fijas sobre el nombre, con trigger para ejercicios nuevos o renombrados. De 1.176: 34 saltos, 55 alto impacto (incluye los saltos), 92 cargas pesadas. `generate-plan` deja fuera del catálogo los ejercicios marcados con una restricción activa, así el modelo no puede elegirlos. Prueba real con saltos e impacto restringidos: 16/16 ejercicios, ninguno marcado.
 - **4.7 (cuestionario)** `intake-form.tsx` parte de las respuestas del plan más reciente (`payload.meta`) si el usuario aún no tocó nada; funciona con la copia local. La tabla `intake` sigue sin usarse: el cuestionario vive en cada plan.
+- **3.7** La bandera de España era un SVG de 2.500 líneas (~100 KB): ahora son tres franjas y Ajustes baja de 27,2 a 9,8 kB. React Query estaba montado sin que ninguna pantalla lo usara: se quitó el proveedor (las dependencias siguen en `package.json`). `Providers` pone la clase `cf-lite` en teléfonos de 4 núcleos o menos, o 3 GB o menos, y `globals.css` apaga ahí el `backdrop-filter`.
+- **4.7 (espera)** `GeneratingOverlay` en `intake-form.tsx`: paso actual, barra de progreso aproximada y, pasados 30 s, aviso de conexión lenta y de que el plan no se pierde ni cuenta dos veces. Fondo opaco en vez de desenfoque.
+- **Idiomas** Las 46 claves que solo existían como texto por defecto en el código están ya en `es` y `en` (595 claves en cada idioma, sin diferencias).
 - **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
 - **5.1** Entrada "Panel de administración" en Ajustes solo para admins y botón de volver en `/admin`.
 - **5.2 (detalle)** Tocar un usuario en `/admin` despliega su cuestionario, sus planes con los ejercicios de cada día y sus últimas 20 sesiones (acción `userDetail` de `admin-api`, solo lectura; un usuario normal recibe 403). El cuestionario sale de `payload.meta` del plan más reciente: la tabla `intake` no la escribe la app (0 filas).

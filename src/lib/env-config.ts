@@ -14,6 +14,12 @@ export const envConfig = {
 
   // App
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  // Web pública donde se completa la recuperación de contraseña. El correo se
+  // abre en el navegador del teléfono, así que tiene que ser una dirección real
+  // (nunca localhost ni la del WebView) y estar en las Redirect URLs de Supabase.
+  PUBLIC_WEB_URL: /^https:\/\/(?!localhost)/.test(process.env.NEXT_PUBLIC_APP_URL || '')
+    ? (process.env.NEXT_PUBLIC_APP_URL as string).replace(/\/+$/, '')
+    : 'https://creatifit-ai.vercel.app',
 
   // CDN/bucket público de imágenes estáticas (GIFs de ejercicios, etc.).
   // Centralizado aquí; otros consumidores leen process.env directamente.

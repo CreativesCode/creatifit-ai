@@ -4,6 +4,7 @@ import { AppIcon } from "@/components/ui/brand";
 import { CFLoader } from "@/components/ui/loader";
 import { supabase } from "@/lib/supabase-config";
 import { Check, Eye, EyeOff, Loader2, Lock } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,8 +16,10 @@ type Phase = "checking" | "ready" | "invalid" | "done";
 //  1) ?token_hash=...&type=recovery (plantilla recomendada): se verifica con
 //     verifyOtp, funciona aunque el correo se abra en otro navegador/dispositivo
 //     (no depende del code_verifier de PKCE guardado en localStorage).
-//  2) Flujo clásico (#access_token=... o ?code=...): supabase-js lo procesa al
-//     cargar vía detectSessionInUrl; esperamos a que aparezca la sesión.
+//  2) Flujo clásico con ?code=... (PKCE): supabase-js lo procesa al cargar vía
+//     detectSessionInUrl; solo vale en el navegador que pidió el enlace.
+//  3) #access_token=...&refresh_token=... (sin PKCE): es el que envía la app;
+//     se fija la sesión a mano. Ver `resetPassword` en auth-context.
 export default function ResetPasswordPage() {
   const { t } = useTranslation("common");
   const router = useRouter();
@@ -27,6 +30,17 @@ export default function ResetPasswordPage() {
   const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Enlace que abre la app instalada (esquema propio declarado en el manifest).
+  // Solo en el navegador de un Android; dentro de la app no hace falta.
+  const [openAppHref, setOpenAppHref] = useState<string | null>(null);
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
+    if (!/android/i.test(navigator.userAgent)) return;
+    const fallback = encodeURIComponent(`${window.location.origin}/login/`);
+    setOpenAppHref(
+      `intent://login#Intent;scheme=creatifit;package=com.creatifit.ai.app;S.browser_fallback_url=${fallback};end`
+    );
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +53,25 @@ export default function ResetPasswordPage() {
     if (linkError) {
       setPhase("invalid");
       return;
+    }
+
+    // 3) Enlace sin PKCE (el que envía la app): la sesión de recuperación llega
+    //    en el fragmento. Este cliente está en modo PKCE y no la recoge solo, así
+    //    que se fija a mano. Funciona en cualquier navegador.
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    if (accessToken && refreshToken) {
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error }) => {
+          if (cancelled) return;
+          // Los tokens no deben quedarse en la barra de direcciones ni en el historial.
+          window.history.replaceState(null, "", window.location.pathname);
+          setPhase(error ? "invalid" : "ready");
+        });
+      return () => {
+        cancelled = true;
+      };
     }
 
     if (tokenHash) {
@@ -147,12 +180,27 @@ export default function ResetPasswordPage() {
                 "Ya puedes seguir entrenando con tu nueva contraseña."
               )}
             </p>
-            <button
-              onClick={() => router.replace("/dashboard")}
-              className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-2"
-            >
-              {t("auth.reset.go_app", "Entrar a la app")}
-            </button>
+            {openAppHref ? (
+              <>
+                {/* En el navegador de un Android: volver a la app instalada. */}
+                <a href={openAppHref} className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-2">
+                  {t("auth.reset.open_app", "Abrir la app")}
+                </a>
+                <button
+                  onClick={() => router.replace("/dashboard")}
+                  className="text-sm text-primary font-semibold"
+                >
+                  {t("auth.reset.continue_web", "Seguir en el navegador")}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => router.replace("/dashboard")}
+                className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-2"
+              >
+                {t("auth.reset.go_app", "Entrar a la app")}
+              </button>
+            )}
           </div>
         )}
 

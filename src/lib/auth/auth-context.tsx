@@ -140,12 +140,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword: AuthContextValue["resetPassword"] = async (email) => {
-    // La página /reset-password verifica el enlace y pide la nueva contraseña.
+    // Se llama al endpoint directamente, SIN PKCE. Con PKCE (lo que hace
+    // `resetPasswordForEmail` en este cliente) el enlace solo vale en el mismo
+    // navegador que lo pidió, y aquí se pide desde la app y se abre en el
+    // navegador del teléfono: siempre salía "enlace no válido". Sin PKCE el
+    // enlace llega a /reset-password con la sesión de recuperación en la URL y
+    // funciona en cualquier dispositivo.
     // La URL debe estar en la allowlist de Redirect URLs del proyecto Supabase.
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${envConfig.APP_URL}/reset-password/`,
-    });
-    return { error: error?.message ?? null };
+    const redirectTo = `${envConfig.PUBLIC_WEB_URL}/reset-password/`;
+    try {
+      const res = await fetch(
+        `${supabaseConfig.url}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
+        {
+          method: "POST",
+          headers: { apikey: supabaseConfig.anonKey, "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }
+      );
+      if (res.ok) return { error: null };
+      const body = (await res.json().catch(() => ({}))) as { msg?: string; message?: string };
+      return { error: body.msg ?? body.message ?? `Error ${res.status}` };
+    } catch {
+      return { error: "Failed to fetch" };
+    }
   };
 
   return (

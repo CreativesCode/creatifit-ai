@@ -31,6 +31,8 @@
     },
     "reset_sent": "Te enviamos un enlace para restablecer tu contraseña.",
     "reset": {
+      "open_app": "Abrir la app",
+      "continue_web": "Seguir en el navegador",
       "checking": "Verificando el enlace…",
       "invalid_title": "Enlace no válido",
       "invalid_body": "El enlace de recuperación no es válido o ha caducado. Solicita uno nuevo desde la pantalla de inicio de sesión.",

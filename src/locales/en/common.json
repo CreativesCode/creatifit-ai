@@ -31,6 +31,8 @@
     },
     "reset_sent": "We sent you a link to reset your password.",
     "reset": {
+      "open_app": "Open the app",
+      "continue_web": "Continue in the browser",
       "checking": "Verifying the link…",
       "invalid_title": "Invalid link",
       "invalid_body": "The recovery link is invalid or has expired. Request a new one from the sign-in screen.",

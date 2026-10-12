@@ -25,7 +25,7 @@ Sustituye los puntos 5, 7 y 8 de arriba y la advertencia sobre `FREE_LIMIT_REACH
 - **Cuestionario (2026-10-12):** decisión: no se usa la tabla `intake` (0 filas); las respuestas viven en `payload.meta` de cada plan, de donde las leen el panel admin y el propio cuestionario para abrirse ya relleno. Si se quisiera editar el perfil sin generar un plan, habría que empezar a escribir `intake`.
 - **Equipo (2026-10-12):** `isAvailable` en `generate-plan` decide ejercicio a ejercicio: "Full Gym" (presente en casi todo el catálogo) se ignora, "NO EQUIPMENT" marca el peso corporal y el resto de aparatos deben estar todos cubiertos por lo que marcó el usuario (`TOKEN_NEEDS`), más reglas por nombre (`NAME_NEEDS`). Lo que no tiene equivalencia (máquinas, poleas…) exige `full_gym`. Al añadir una opción de equipo: constante en `equipment.ts`, clave en `EquipmentSchema`, traducción y entrada en `TOKEN_NEEDS`.
 - **Imágenes:** un ejercicio con `gif_url` NULL no se ofrece al modelo.
-- **Sigue pendiente:** mejorar la espera en pantalla.
+- **Espera en pantalla (2026-10-12):** `GeneratingOverlay` en `intake-form.tsx` (paso actual, barra aproximada, aviso de conexión lenta a los 30 s). No se vio en vivo. El cuestionario guarda un borrador en `sessionStorage` y el Atrás del teléfono retrocede un paso.
 
 ## Contratos y advertencias
 

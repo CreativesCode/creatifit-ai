@@ -13,8 +13,10 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 
 ## Estado a 2026-10-12
 
-- En curso: **plan de correcciones para el piloto en Cuba** (`.titan/plans/2026-10-12-piloto-cuba-qa.md`). Su sección "Progreso" dice qué está hecho, qué falta y en qué orden; leerla antes de tocar sesión, conexión, generación o admin.
-- Desde esa fecha hay **offline básico** (cola local de series y copia local de lecturas), **corrección de la última serie, saltar ejercicio y terminar antes**, **generación idempotente con registro de consumo**, **tier y admin que no se degradan sin red** y **actividad por usuario en admin**. Varias notas de septiembre que los daban por ausentes quedaron superadas; cada entrada lleva su apartado "Actualización 2026-10-12".
+- **Plan de correcciones para el piloto en Cuba: cerrado en código** (`.titan/plans/2026-10-12-piloto-cuba-qa.md`), todo en `origin/main` (commit `190ea9b` más los de memoria). Su sección "Progreso" dice qué se hizo en cada tarea; leerla antes de tocar sesión, conexión, generación o admin.
+- **Lo siguiente es del usuario:** generar el APK (`npm run build`, `npx cap sync android`, compilar) y probar en un teléfono lo marcado como "dispositivo" en el plan. Si vuelve con fallos del teléfono, empezar por ahí.
+- Edge Functions desplegadas con el código de `main`: `generate-plan`, `admin-api`, `delete-account`. La web pública (`https://creatifit-ai.vercel.app`) se despliega sola con cada push.
+- Desde esa fecha hay **offline básico** (cola local de series y copia local de lecturas), **corrección de la última serie, saltar ejercicio y terminar antes**, **generación idempotente con registro de consumo**, **tier y admin que no se degradan sin red**, **admin con actividad, detalle, alta de cuentas y Pro en bloque**, **filtro de equipo y restricciones aplicados en el servidor**, **miniaturas de ejercicios y ahorro de datos** y **recuperación de contraseña por la web pública**. Varias notas de septiembre que los daban por ausentes quedaron superadas; cada entrada lleva su apartado "Actualización 2026-10-12".
 - Verificado en navegador con perfil de teléfono contra el Supabase real. **Nada probado aún en un APK ni en un teléfono físico.**
 - La app es principalmente móvil (APK Android) y el piloto será con conexión lenta e intermitente.
 

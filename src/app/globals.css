@@ -253,7 +253,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 11px 12px calc(9px + max(0px, var(--sab)));
+  padding: 4px 6px calc(3px + max(0px, var(--sab)));
   background: rgba(255, 255, 255, 0.82);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
@@ -266,9 +266,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   flex: 1;
   max-width: 84px;
+  /* Toda la altura de la barra es zona táctil (antes solo los 30 px del icono). */
+  min-height: 52px;
   color: var(--faint);
   font-size: 10.5px;
   font-weight: 600;

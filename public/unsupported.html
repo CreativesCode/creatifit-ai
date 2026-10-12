@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CreatiFit AI</title>
+    <!-- Pagina de aviso que muestra el APK cuando el WebView del telefono es
+         demasiado antiguo para la app (o la app no pudo cargar). CSS y JS
+         planos a proposito: tiene que verse en navegadores viejos. -->
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; }
+      body {
+        background: #08060f;
+        color: #f4f2fb;
+        font-family: Roboto, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .box { max-width: 420px; margin: 0 auto; padding: 56px 24px 32px; }
+      h1 { font-size: 22px; margin: 0 0 12px; }
+      p { margin: 0 0 14px; color: #c9c4dc; }
+      ol { margin: 0 0 18px; padding-left: 22px; color: #c9c4dc; }
+      li { margin-bottom: 8px; }
+      b { color: #ffffff; }
+      .btn {
+        display: block;
+        text-align: center;
+        text-decoration: none;
+        font-weight: bold;
+        color: #ffffff;
+        background: #7c6cff;
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+      }
+      .btn.ghost { background: #1d1830; }
+      .small { font-size: 13px; color: #8f89a8; margin-top: 18px; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1 id="title">No se pudo abrir CreatiFit AI</h1>
+      <p id="lead">
+        Este tel&eacute;fono tiene una versi&oacute;n antigua del componente que usan las apps
+        para mostrar su contenido (Android System WebView).
+      </p>
+      <ol>
+        <li>Abre <b>Google Play</b> y busca <b>Android System WebView</b>.</li>
+        <li>Pulsa <b>Actualizar</b>. Si no aparece, actualiza tambi&eacute;n <b>Google Chrome</b>.</li>
+        <li>Vuelve a abrir CreatiFit AI.</li>
+      </ol>
+      <a class="btn" href="market://details?id=com.google.android.webview">Actualizar WebView</a>
+      <a class="btn ghost" href="/">Reintentar</a>
+      <p class="small" id="version"></p>
+    </div>
+    <script>
+      (function () {
+        var m = /Chrome\/(\d+)/.exec(navigator.userAgent || "");
+        var el = document.getElementById("version");
+        if (!m) return;
+        var v = parseInt(m[1], 10);
+        if (v >= 111) {
+          // El WebView es reciente: el fallo fue otro (p. ej. la app no cargo).
+          document.getElementById("lead").innerHTML =
+            "La app no termin&oacute; de cargar. Pulsa Reintentar; si sigue igual, cierra la app y vuelve a abrirla.";
+        }
+        el.innerHTML = "Versi&oacute;n de WebView en este tel&eacute;fono: " + v + ". Se necesita la 111 o posterior.";
+      })();
+    </script>
+  </body>
+</html>

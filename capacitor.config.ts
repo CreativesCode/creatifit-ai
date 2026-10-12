@@ -6,6 +6,9 @@ const config: CapacitorConfig = {
   webDir: "out",
   server: {
     androidScheme: "https",
+    // Página de aviso (CSS plano) cuando el WebView es más antiguo que
+    // `android.minWebViewVersion` o la app no llega a cargar.
+    errorPath: "unsupported.html",
   },
   plugins: {
     // Configuración para inyectar variables de entorno
@@ -24,6 +27,8 @@ const config: CapacitorConfig = {
     },
   },
   android: {
+    // Tailwind 4 necesita Chrome/WebView 111: por debajo la app sale sin estilos.
+    minWebViewVersion: 111,
     buildOptions: {
       keystorePath: undefined,
       keystoreAlias: undefined,

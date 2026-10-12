@@ -20,6 +20,15 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 - Verificado en navegador con perfil de teléfono contra el Supabase real. **Nada probado aún en un APK ni en un teléfono físico.**
 - La app es principalmente móvil (APK Android) y el piloto será con conexión lenta e intermitente.
 
+## Plan manual + relleno con IA (PRP-001) — en curso desde 2026-10-12
+
+- Plan y avance: `.titan/plans/prp-plan-manual-relleno-ia.md`, sección "Progreso". **Fases 1 a 5 (editor manual) hechas en código y con commit en `main` local, sin push.** Fases 6 a 8 (relleno con IA y cuestionario corto para mejorar planes manuales) sin empezar.
+- **Nada de esto está aplicado en el Supabase real.** Falta, en este orden: `schemas/backfill-plan-generations-legacy.sql`, `schemas/add-save-plan-structure.sql`, desplegar `generate-plan` y `admin-api`. El usuario no ha confirmado que la autorización de despliegue del piloto valga para este plan: preguntarlo antes de aplicar.
+- **No hacer push a `main` antes de aplicar el SQL:** el push publica la web, y sin `save_plan_structure` falla cambiar un ejercicio y guardar desde el editor.
+- Decisiones del usuario: planes manuales ilimitados en Free; solo se limita lo que usa IA; rellenar un día gasta una generación; el selector de ejercicios no funciona sin conexión (lo dice); un plan con entrenamientos se edita en sitio; "Mejorar plan" en un plan manual pedirá el cuestionario la primera vez.
+- Reglas nuevas del código: el cupo de IA se cuenta solo sobre `plan_generations` (`countAiGenerations`), nunca sobre filas de `plans`; días y ejercicios de un plan se escriben solo con `supabaseClient.savePlanStructure`; un plan manual es una fila normal con `payload.meta.source = "manual"` (`isManualPlan`).
+- Verificado: SQL en un Postgres local desechable; editor, selector, borrador y botón Atrás en navegador a 360 px contra el Supabase real (`.titan/qa/2026-10-12-plan-manual/`). **Sin verificar: guardar un plan de verdad, y todo en APK o teléfono.**
+
 ## Entradas por tarea
 
 | Memoria | Cuándo leer |
@@ -39,6 +48,7 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 | [Inventario](reference/inventario.json) | Rutas, hashes y clase de revisión |
 | [Credenciales de prueba](reference/credenciales.local.md) | Acceso admin y uso del CLI de Supabase. **Archivo local, fuera de git**: solo existe en el equipo donde se creó |
 | [Plan del piloto en Cuba](../plans/2026-10-12-piloto-cuba-qa.md) | QA general de octubre 2026: qué se corrigió y qué falta |
+| [Plan manual + relleno con IA](../plans/prp-plan-manual-relleno-ia.md) | Editor de planes, cupo de IA, guardado de la estructura de un plan |
 
 ## Al retomar
 

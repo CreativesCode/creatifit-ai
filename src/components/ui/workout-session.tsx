@@ -9,6 +9,13 @@ import {
   type NewPR,
 } from "@/lib/progress/records";
 import { supabaseClient } from "@/lib/supabase-client";
+import { useAuth } from "@/lib/auth/auth-context";
+import {
+  enqueueWorkoutLog,
+  flushOutbox,
+  newId,
+  usePendingWorkoutLogs,
+} from "@/lib/workout-outbox";
 import { formatReps } from "@/lib/plan-display";
 import { playRestEndCue } from "@/lib/feedback";
 import {
@@ -215,6 +222,10 @@ interface PersistedSession {
 const sessionStorageKey = (planId: string, day: string) =>
   `cf-workout-session:${planId}:${day}`;
 
+// Topes de lo que se puede registrar en una serie (evita valores imposibles por error de tecleo)
+const MAX_REPS = 200;
+const MAX_WEIGHT_KG = 500;
+
 /* ====================== SESIÓN · CALENTAMIENTO ====================== */
 function WarmupStep({
   warmupTime,
@@ -287,26 +298,52 @@ function WarmupStep({
 }
 
 /* ====================== SESIÓN · EJERCICIO ====================== */
+// Convierte lo tecleado en número; vacío o no numérico → undefined.
+const parseNumericText = (text: string): number | undefined => {
+  if (text === "") return undefined;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : undefined;
+};
+
 function ExerciseLogField({
   label,
   value,
   onChange,
   placeholder,
-  step,
-  min,
-  max,
+  decimal,
   info,
 }: {
   label: string;
   value: number | "";
   onChange: (v: string) => void;
   placeholder?: string;
-  step?: string;
-  min?: string;
-  max?: string;
+  // Permite decimales (peso). La coma se acepta y se normaliza a punto.
+  decimal?: boolean;
   info?: string;
 }) {
   const [showInfo, setShowInfo] = useState(false);
+  // Texto propio del campo: un input controlado por número no deja escribir "62,".
+  const [text, setText] = useState(value === "" ? "" : String(value));
+  useEffect(() => {
+    setText((prev) =>
+      parseNumericText(prev) === (value === "" ? undefined : value)
+        ? prev
+        : value === ""
+          ? ""
+          : String(value)
+    );
+  }, [value]);
+
+  const handleChange = (raw: string) => {
+    let clean = raw.replace(",", ".").replace(decimal ? /[^0-9.]/g : /[^0-9]/g, "");
+    const dot = clean.indexOf(".");
+    if (dot !== -1) {
+      clean = clean.slice(0, dot + 1) + clean.slice(dot + 1).replace(/\./g, "");
+    }
+    setText(clean);
+    onChange(clean);
+  };
+
   return (
     <div className="cf-card-solid flex-1 relative" style={{ padding: "11px 12px", borderRadius: 14 }}>
       <div className="cf-muted text-[10.5px] font-semibold mb-1 flex items-center gap-1">
@@ -325,13 +362,13 @@ function ExerciseLogField({
         )}
       </div>
       <input
-        type="number"
-        inputMode="numeric"
-        step={step}
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        type="text"
+        inputMode={decimal ? "decimal" : "numeric"}
+        pattern={decimal ? "[0-9]*[.,]?[0-9]*" : "[0-9]*"}
+        autoComplete="off"
+        value={text}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={(e) => e.target.select()}
         placeholder={placeholder}
         className="cf-num bg-transparent outline-none w-full"
         style={{
@@ -509,23 +546,27 @@ function ExerciseStep({
         <ExerciseLogField
           label={t("session.reps", "Reps")}
           value={currentLog.actualReps ?? ""}
-          min="0"
-          max="50"
           placeholder="0"
-          onChange={(v) =>
+          onChange={(v) => {
+            const n = parseNumericText(v);
             onLogChange({
               ...currentLog,
-              actualReps: v === "" ? undefined : parseInt(v) || 0,
-            })
-          }
+              actualReps: n === undefined ? undefined : Math.min(MAX_REPS, n),
+            });
+          }}
         />
         <ExerciseLogField
           label={t("session.weight_kg", "Peso kg")}
           value={currentLog.weight ?? ""}
-          min="0"
-          step="0.5"
+          decimal
           placeholder="0"
-          onChange={(v) => onLogChange({ ...currentLog, weight: parseFloat(v) || undefined })}
+          onChange={(v) => {
+            const n = parseNumericText(v);
+            onLogChange({
+              ...currentLog,
+              weight: n ? Math.min(MAX_WEIGHT_KG, n) : undefined,
+            });
+          }}
         />
         <ExerciseLogField
           label={t("session.rpe", "RPE")}
@@ -534,10 +575,15 @@ function ExerciseStep({
             "Esfuerzo percibido (1–10): qué tan dura sentiste la serie. 10 = al fallo, no podías una rep más; 8 = te quedaban ~2."
           )}
           value={currentLog.rpe ?? ""}
-          min="1"
-          max="10"
           placeholder="8"
-          onChange={(v) => onLogChange({ ...currentLog, rpe: parseFloat(v) || undefined })}
+          onChange={(v) => {
+            // La columna rpe es INTEGER con CHECK 1–10: fuera de eso falla la serie entera.
+            const n = parseNumericText(v);
+            onLogChange({
+              ...currentLog,
+              rpe: n ? Math.min(10, Math.max(1, Math.round(n))) : undefined,
+            });
+          }}
         />
       </div>
 
@@ -676,6 +722,7 @@ function CompletedStep({
   workoutLogs,
   newPRs,
   newAchievements,
+  pendingSync,
   onComplete,
   onExit,
   t,
@@ -685,6 +732,7 @@ function CompletedStep({
   workoutLogs: WorkoutLog[];
   newPRs: NewPR[];
   newAchievements: Achievement[];
+  pendingSync: number;
   planDay: PlanDay;
   onComplete: () => void;
   onExit: () => void;
@@ -815,6 +863,30 @@ function CompletedStep({
         </div>
       )}
 
+      {/* series aún sin sincronizar */}
+      {pendingSync > 0 && (
+        <div
+          className="cf-card flex items-center gap-3 mb-4"
+          style={{ padding: "13px 16px", borderRadius: 18, border: "1px solid var(--border-2)" }}
+        >
+          <Clock size={18} className="shrink-0" style={{ color: "var(--amber)" }} />
+          <div className="flex-1 text-[12.5px] cf-txt2 leading-snug">
+            {t(
+              "session.pending_sync_detail",
+              "{{count}} series guardadas en el teléfono. Se enviarán solas cuando haya conexión.",
+              { count: pendingSync }
+            )}
+          </div>
+          <button
+            className="cf-btn cf-btn-ghost shrink-0"
+            style={{ padding: "8px 12px", fontSize: 12.5 }}
+            onClick={() => void flushOutbox()}
+          >
+            {t("session.pending_sync_retry", "Reintentar")}
+          </button>
+        </div>
+      )}
+
       {/* motivación */}
       <div
         className="cf-card flex items-center gap-3.5 mb-5"
@@ -878,6 +950,10 @@ export function WorkoutSession({
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   // Indica si ya intentamos restaurar el estado persistido (evita re-restaurar)
   const [restored, setRestored] = useState(false);
+  const { user } = useAuth();
+  // Series guardadas en el dispositivo que el servidor aún no confirmó
+  const pendingSync = usePendingWorkoutLogs();
+  const lastCompletedSetRef = useRef<string | null>(null);
 
   const currentExercise = planDay.blocks[currentExerciseIndex];
   const totalSets = planDay.blocks.reduce((total, block) => total + block.sets, 0);
@@ -964,13 +1040,16 @@ export function WorkoutSession({
         setCurrentSetIndex(saved.currentSetIndex);
         setIsLongRest(saved.isLongRest);
         setWorkoutLogs(saved.workoutLogs ?? []);
-        setSessionId(saved.sessionId);
+        // Conservar el session_id: uno nuevo partiría el entrenamiento en dos sesiones.
+        setSessionId(saved.sessionId || newId());
         setIsPaused(true);
         setToast(t("session.resumed_notice", "Se restauró tu sesión anterior"));
+        return;
       }
     } catch {
       // estado corrupto: ignorar y empezar limpio
     }
+    setSessionId(newId());
   }, [restored, planId, planDay.day, t]);
 
   // Persistir estado de la sesión (excepto cuando ya está completada)
@@ -1113,13 +1192,6 @@ export function WorkoutSession({
     };
   }, []);
 
-  // Generar session_id único al iniciar el entrenamiento
-  useEffect(() => {
-    if (!sessionId) {
-      setSessionId(crypto.randomUUID());
-    }
-  }, [sessionId]);
-
   // Pre-llenar repeticiones (máximo del rango) y peso (sugerido por la progresión)
   // al cambiar de ejercicio/serie. Usa ?? para no pisar lo que el usuario ya escribió.
   useEffect(() => {
@@ -1172,8 +1244,12 @@ export function WorkoutSession({
     setIsPaused(false);
   }, [currentExercise.rest_sec]);
 
-  const handleCompleteSet = async () => {
-    if (!currentLog.actualReps) return;
+  const handleCompleteSet = () => {
+    if (!currentLog.actualReps || !sessionId || !user) return;
+    // Un segundo toque sobre la misma serie no debe registrarla dos veces.
+    const setKey = `${currentExerciseIndex}:${currentSetIndex}`;
+    if (lastCompletedSetRef.current === setKey) return;
+    lastCompletedSetRef.current = setKey;
 
     const newLog: WorkoutLog = {
       exerciseName: currentExercise.name,
@@ -1188,35 +1264,30 @@ export function WorkoutSession({
 
     setWorkoutLogs((prev) => [...prev, newLog]);
 
-    try {
-      await supabaseClient.saveLog({
-        exercise_name: newLog.exerciseName,
-        set_index: newLog.setIndex,
-        target_reps: newLog.targetReps,
-        actual_reps: newLog.actualReps,
-        weight: newLog.weight,
-        rpe: newLog.rpe,
-        notes: newLog.notes,
-        plan_day_id: planDay.day,
-        // Plan desde el que se inició este entrenamiento. Permite atribuir el log
-        // al plan con precisión (ver "Mejorar plan" en plans/page.tsx).
-        plan_id: planId,
-        session_id: sessionId,
-        timestamp: new Date().toISOString(),
-      });
-    } catch {
-      // Guardado fallido: avisar de forma no bloqueante y continuar
-      setToast(
-        t(
-          "session.save_error",
-          "No se pudo guardar tu última serie. Puedes continuar; lo reintentaremos."
-        )
-      );
-    }
+    // La serie queda en el dispositivo y se envía en segundo plano: la sesión
+    // avanza sin esperar a la red y nada se pierde si no hay conexión.
+    enqueueWorkoutLog(user.id, {
+      id: newId(),
+      exercise_name: newLog.exerciseName,
+      set_index: newLog.setIndex,
+      target_reps: newLog.targetReps,
+      actual_reps: newLog.actualReps,
+      weight: newLog.weight,
+      rpe: newLog.rpe,
+      notes: newLog.notes,
+      plan_day_id: planDay.day,
+      // Plan desde el que se inició este entrenamiento. Permite atribuir el log
+      // al plan con precisión (ver "Mejorar plan" en plans/page.tsx).
+      plan_id: planId,
+      session_id: sessionId,
+      timestamp: new Date().toISOString(),
+    });
 
-    setCurrentLog({});
+    const sameExercise = currentSetIndex + 1 < currentExercise.sets;
+    // Dentro del mismo ejercicio se arrastran peso y RPE: lo habitual es repetirlos.
+    setCurrentLog(sameExercise ? { weight: newLog.weight, rpe: newLog.rpe } : {});
 
-    if (currentSetIndex + 1 < currentExercise.sets) {
+    if (sameExercise) {
       setCurrentSetIndex(currentSetIndex + 1);
       handleStartRest();
     } else {
@@ -1347,6 +1418,14 @@ export function WorkoutSession({
                   {completedSets}/{totalSets}
                 </span>
               </div>
+              {pendingSync > 0 && (
+                <div className="cf-muted text-[11.5px] font-semibold flex items-center gap-1.5 -mt-2 mb-3">
+                  <Clock size={12} />
+                  {t("session.pending_sync", "{{count}} series por sincronizar", {
+                    count: pendingSync,
+                  })}
+                </div>
+              )}
             </div>
 
             <ExerciseStep
@@ -1393,6 +1472,7 @@ export function WorkoutSession({
             workoutLogs={workoutLogs}
             newPRs={newPRs}
             newAchievements={newAchievements}
+            pendingSync={pendingSync}
             planDay={planDay}
             onComplete={handleShowHistory}
             onExit={handleCompletedExit}

@@ -316,17 +316,6 @@ export const supabaseClient = {
     return data;
   },
 
-  async saveLog(logData: any) {
-    const { data, error } = await supabase
-      .from("workout_logs")
-      .insert([logData])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  },
-
   // Devuelve ejercicios "similares" para sustituir a uno dado: misma categoría y,
   // si es posible, compatibles con el mismo equipamiento que el ejercicio actual
   // (que ya fue elegido acorde al equipo del plan). Si el filtro por equipo deja

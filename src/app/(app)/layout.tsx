@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { BottomNavigation } from "@/components/ui/bottom-navigation";
 import { SideNav } from "@/components/ui/side-nav";
 import { AuthGate } from "@/components/auth/auth-gate";
+import { startOutboxSync } from "@/lib/workout-outbox";
 
 // Raíces de tab: si el back button se pulsa estando aquí (y sin historial
 // propio), permitimos minimizar/salir la app en vez de navegar.
@@ -87,6 +88,10 @@ function useAndroidBackButton() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   useAndroidBackButton();
+  // Enviar las series que quedaron guardadas en el dispositivo sin conexión.
+  useEffect(() => {
+    startOutboxSync();
+  }, []);
 
   return (
     <AuthGate>

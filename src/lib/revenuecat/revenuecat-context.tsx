@@ -146,6 +146,9 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
   }, [isNative]);
 
   // 2) Sincronizar identidad: logIn al iniciar sesión, logOut al cerrarla.
+  // Depende también de `ready`: si la sesión se resolvió antes de que terminara
+  // `configure`, este efecto salía sin hacer nada y no volvía a ejecutarse, con
+  // lo que RevenueCat se quedaba con un usuario anónimo.
   useEffect(() => {
     if (!isNative || !configuredRef.current) return;
     const currentId = user?.id ?? null;
@@ -172,7 +175,7 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
     return () => {
       cancelled = true;
     };
-  }, [isNative, user?.id]);
+  }, [isNative, ready, user?.id]);
 
   const refreshDbTier = useCallback(() => refreshProfileFlags(true), []);
 

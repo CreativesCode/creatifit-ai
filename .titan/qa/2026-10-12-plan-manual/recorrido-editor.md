@@ -60,8 +60,30 @@ Aplicados el backfill, `save_plan_structure`, `generate-plan` v14 y `admin-api` 
 
 Fallo encontrado y corregido: la hoja "Cambiar ejercicio" ofrecía ejercicios que el día ya tenía y permitía duplicarlos.
 
+## Rellenar con IA (fases 6 a 8, `generate-plan` v16)
+
+Cuenta admin (Free, sin generaciones al empezar), navegador a 360 px.
+
+| Paso | Resultado |
+|---|---|
+| `/plans?new=1` | Abre el editor de plan nuevo |
+| "Rellenar este día con IA" en un plan sin perfil | Abre "Datos para la IA" |
+| Enviar el cuestionario vacío | Rechazado con el aviso de rangos y equipo |
+| Cuestionario con 31 años, 78,5 kg, 176 cm, intermedio, mancuernas y banco | Pasa a las opciones del relleno |
+| Fuerza, zona Pecho, 4 ejercicios, nota corta, "Generar" | Pantalla de espera; resultado en 8 s |
+| Resultado | 4 ejercicios en el día, los 4 de `Chest` y compatibles con mancuernas, banco o peso corporal; 1.355 + 238 tokens |
+| Segundo relleno | Va directo a las opciones (el perfil se conserva), ofrece añadir o reemplazar, y al generar muestra el mensaje de límite sin llamar a la IA; el día no cambia |
+| Guardar | El plan guarda el perfil en `payload.meta` (edad, peso 78.5, altura, nivel, equipo) con `source = manual` |
+| Repetir el mismo `requestId` por la API | 200 con `reused: true`, sin tokens nuevos |
+| Otro relleno por la API | 402 `FREE_LIMIT_REACHED` |
+| Objetivo inventado por la API | 400 `INVALID_FILL` |
+| 7 días × 8 ejercicios de Cardio solo con rodillo | 422 `NOT_ENOUGH_EXERCISES` (35 disponibles); fila `failed`, no gasta cupo |
+
+Observación: el nombre del día salió "Cuerpo Superior + Núcleo" para un día solo de pecho. Se añadió al prompt que el nombre diga lo que el día entrena; ese ajuste no se pudo comprobar con otra generación.
+
 ## Sin probar
 
+- Rellenar el plan entero, la generación de plan completo tras el cambio, "Mejorar plan" sobre un plan manual, recuperar un relleno tras un corte de red y el paywall nativo: la cuenta de prueba agotó su única generación.
 - Entrenar el plan manual hasta el final y verlo en el historial.
 - Editar un plan de IA y que conserve su cuestionario al guardarlo.
 - Generar con IA teniendo un plan manual, y que una cuenta antigua con plan previo a `plan_generations` siga bloqueada (exige una generación real o la sesión de un tester).

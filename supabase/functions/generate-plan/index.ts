@@ -419,6 +419,7 @@ function buildUserPrompt(intake: Intake, fill?: FillShape): string {
 
 Every exercise in the AVAILABLE EXERCISES list already belongs to the target muscle groups.
 Order the exercises sensibly (compound movements first). Return the JSON with "weeks": 8.
+Each day's "focus" must name what that day actually trains (the target muscle groups), not a generic split.
 Remember: reference exercises ONLY by their number from the AVAILABLE EXERCISES list.`;
   }
   return `Create a ${intake.weeks}-week training plan for:

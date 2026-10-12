@@ -20,15 +20,17 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 - Verificado en navegador con perfil de teléfono contra el Supabase real. **Nada probado aún en un APK ni en un teléfono físico.**
 - La app es principalmente móvil (APK Android) y el piloto será con conexión lenta e intermitente.
 
-## Plan manual + relleno con IA (PRP-001) — en curso desde 2026-10-12
+## Plan manual + relleno con IA (PRP-001) — implementado el 2026-10-12
 
-- Plan y avance: `.titan/plans/prp-plan-manual-relleno-ia.md`, sección "Progreso". **Fases 1 a 5 (editor manual) hechas en código y con commit en `main` local, sin push.** Fases 6 a 8 (relleno con IA y cuestionario corto para mejorar planes manuales) sin empezar.
-- **Aplicado en el Supabase real el 2026-10-12** con autorización expresa del usuario para este plan: backfill de generaciones (12 planes antiguos), `save_plan_structure`, `generate-plan` v14 y `admin-api` v10. Las fases 6 a 8 volverán a tocar `generate-plan`: esa autorización cubrió "los cambios necesarios" de entonces; confirmar antes de desplegar lo nuevo.
-- **Falta el push:** la web pública sigue con el cliente anterior (compatible con lo aplicado). El editor manual no llega a los usuarios hasta el push y, en el teléfono, hasta un APK nuevo.
+- Plan y avance: `.titan/plans/prp-plan-manual-relleno-ia.md`, sección "Progreso". **Las 9 fases están hechas:** editor manual, selector del catálogo, "Rellenar con IA" (día o plan entero) y cuestionario corto para usar IA en planes manuales.
+- **Aplicado en el Supabase real el 2026-10-12** con autorización del usuario: backfill de generaciones (12 planes antiguos), `save_plan_structure`, `generate-plan` v16 (con modo `fill`) y `admin-api` v10.
+- **En el teléfono llega con un APK nuevo**, que genera el usuario (`npm run build`, `npx cap sync android`, compilar). Nada de esto está probado en APK.
+- Al tocar la IA: un relleno es una llamada a `generate-plan` con `mode: "fill"` y gasta una generación; su id pendiente vive en `cf-pending-fill:<uid>:<planId>` y solo se libera con el resultado ya en el borrador. El perfil para la IA de un plan está en `payload.meta` (`profileFromMeta`); no generar nunca con valores por defecto si falta: pedir `AiProfileForm`. Las zonas son los valores exactos de `exercises.category` (`src/lib/constants/exercise-categories.ts`, con espejo en la Edge Function).
+- La cuenta admin (Free) gastó su única generación en las pruebas: para probar más IA hace falta otra cuenta o darle Pro.
 - `scripts/run-sql.ps1` lee el SQL sin codificación y estropea los acentos; para archivos con acentos enviar en UTF-8.
 - Decisiones del usuario: planes manuales ilimitados en Free; solo se limita lo que usa IA; rellenar un día gasta una generación; el selector de ejercicios no funciona sin conexión (lo dice); un plan con entrenamientos se edita en sitio; "Mejorar plan" en un plan manual pedirá el cuestionario la primera vez.
 - Reglas nuevas del código: el cupo de IA se cuenta solo sobre `plan_generations` (`countAiGenerations`), nunca sobre filas de `plans`; días y ejercicios de un plan se escriben solo con `supabaseClient.savePlanStructure`; un plan manual es una fila normal con `payload.meta.source = "manual"` (`isManualPlan`).
-- Verificado en navegador a 360 px contra el Supabase real (`.titan/qa/2026-10-12-plan-manual/`): crear, guardar, editar, recargar, cambiar un ejercicio y arrancar la sesión de un plan manual, con `payload` y `plan_exercises` iguales en la BD. **Sin verificar: generar con IA teniendo un plan manual, cuentas antiguas bloqueadas, y todo en APK o teléfono.**
+- Verificado en navegador a 360 px contra el Supabase real (`.titan/qa/2026-10-12-plan-manual/`): crear, guardar, editar, recargar, cambiar un ejercicio y arrancar la sesión de un plan manual; y con una generación real, el cuestionario corto, el relleno de un día, el límite Free y la reutilización del `requestId`. **Sin verificar con llamada real: rellenar el plan entero, la generación de plan completo tras el cambio, "Mejorar plan" sobre un plan manual y recuperar un relleno tras un corte. Y todo en APK o teléfono.**
 
 ## Entradas por tarea
 

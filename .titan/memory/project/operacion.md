@@ -36,7 +36,9 @@ Las instrucciones Prisma db:generate/db:push/db:seed del README no existen en lo
 - **Storage:** las subidas en lote van con la service key leída de la Management API en memoria (nunca a disco ni a `.env.local`). El plan gratuito corta con 429 por encima de ~3 subidas simultáneas.
 - **Secrets presentes:** `OPENAI_API_KEY`, `MODEL_NAME`, `REVENUECAT_WEBHOOK_AUTH` y los `SUPABASE_*` de plataforma. No existe `ADMIN_BOOTSTRAP_SECRET`.
 - **Proyecto pausado:** el 2026-10-12 el host no resolvía en DNS porque el proyecto estaba pausado; lo restauró el usuario desde el dashboard. El workflow keep-alive no lo evitó: revisar si se está ejecutando.
-- **Desarrollo local:** el puerto 3000 puede estar ocupado por otro proyecto; `npx next dev -p 3100` funciona. `next dev` escribe en `out`, la carpeta que empaqueta Capacitor: hacer build limpio antes de `cap sync`.
+- **Desarrollo local:** el puerto 3000 puede estar ocupado por otro proyecto; `npx next dev -p 3100` funciona. Desde el 2026-10-12 `next dev` escribe en `.next-dev` (ignorada por git) y ya no en `out`, la carpeta que empaqueta Capacitor; aun así, hacer build limpio antes de `cap sync`. El indicador de Next en desarrollo tapa la esquina inferior izquierda (la pestaña Planes) en las pruebas automáticas.
+- **Versión:** una sola fuente, `package.json` (`NEXT_PUBLIC_APP_VERSION` en `next.config.ts`, lo que muestra Ajustes). Al subirla, cambiar también `versionName` y `versionCode` en `android/app/build.gradle`.
+- **Android (2026-10-12):** actividad en vertical, `allowBackup="false"`, permiso `VIBRATE` y `adjustResize`. Ninguno de estos cambios está en un APK todavía.
 - **Pruebas en navegador:** Playwright con `channel: "chrome"` y perfil `devices["Pixel 5"]`, instalado fuera del repo. No hay suite automatizada en el proyecto; las comprobaciones de ese día fueron scripts sueltos.
 - **Cuentas de prueba:** `robert.cabrer92@gmail.com` (usuario, `pro_annual`) y `admin@creatifitai.com`. Evitar generar planes en las pruebas: cada generación cuesta.
 

@@ -4,7 +4,7 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **33 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **38 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
@@ -14,7 +14,7 @@ Actualizado: 2026-10-12. **33 commits locales, sin push.** Todo lo marcado como 
 | 0.2 Alta y recuperación de contraseña | **Decidido: sin confirmación de correo. Falta que el usuario lo desactive en el panel de Supabase** | El token de esta máquina recibe 403 al cambiar la configuración de Auth. Authentication > Sign In / Providers > Email > desactivar "Confirm email". La app ya entra directa cuando el alta devuelve sesión. Recuperar contraseña desde el APK sigue sin resolver |
 | 0.3 Key de RevenueCat y compra en Cuba | Decidido: no tocar | Los testers se quedan con su tier. La key de Test Store en el build sigue pendiente para cuando se prepare el APK |
 | 0.4 WebView mínimo | Pendiente | Al preparar el APK |
-| 0.5 Build limpio y `cap sync` | Pendiente | Al preparar el APK |
+| 0.5 Build limpio y `cap sync` | Parcial | `next dev` ya escribe en `.next-dev`, no en `out`. Falta el build limpio y `cap sync` al preparar el APK |
 | 0.6 Contraseña admin y bootstrap | Hecho | Secret de bootstrap inexistente |
 | 1.1, 1.2 Series sin pérdida ni duplicados | Hecho | Cola local |
 | 1.3 `session_id` estable | Hecho | |
@@ -58,12 +58,12 @@ Actualizado: 2026-10-12. **33 commits locales, sin push.** Todo lo marcado como 
 | 5.4 Orden, errores, fila compacta | Hecho (parcial) | Falta paginación |
 | 5.5 Borrado limpio, último admin, nombre | Pendiente | |
 | 5.6 `execute_sql` | Comprobado | No existe en la BD; el archivo SQL sigue en `schemas/` |
-| Fase 6 | Pendiente | |
+| Fase 6 | Parcial | Hecho: Alta, Mi cuerpo, Táctil (papelera del plan, ayuda de RPE) y Android (orientación, backup, versión). Falta: Planes, Historial, Idiomas, Legal, contraste a pleno sol, `targetSdk` y áreas seguras |
 
 ### Siguiente por hacer, en este orden
 
 3. 3.7 (peso del bundle y blur en gama baja) y el resto de 3.4.
-5. Fase 6.
+5. Resto de la fase 6: Planes (sustituir ejercicio), Historial (RPE medio, gráfica, logros de racha), Idiomas (46 claves que faltan) y Legal.
 6. Al preparar el APK: 0.4, 0.5 y la prueba en teléfono de todo lo marcado como "dispositivo".
 
 Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions que hagan falta (la app está en modo prueba); un commit por tarea y continuar sin esperar confirmación; mantener al día este plan y la memoria.
@@ -105,6 +105,13 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
 - **5.1** Entrada "Panel de administración" en Ajustes solo para admins y botón de volver en `/admin`.
 - **5.2, 5.4** Función SQL `admin_user_activity()` (`schemas/add-admin-user-activity.sql`, solo `service_role`) y `admin-api` desplegada: último entreno, sesiones, series, último acceso, planes y generaciones por usuario; tarjeta "Activos 7 días"; orden por alta, entreno reciente o inactividad; mensaje de red en español con límite de 20 s. Dato del 2026-10-12: de 11 usuarios solo 1 entrenó en los últimos 7 días (la cuenta de pruebas); los demás no entran desde junio.
+
+### Fase 6, lo hecho
+
+- **Alta:** los botones de registro del landing abren el registro (`/login?mode=signup`); no aceptar los términos lo dice; Términos y Privacidad son enlaces; un correo ya registrado se avisa como tal; reenviar la confirmación muestra que se envió.
+- **Mi cuerpo:** borrar un registro pide confirmación en la fila; no se guarda un registro sin datos ni foto; si guardar falla se avisa y se borra la foto recién subida.
+- **Táctil:** papelera del plan de 30 a 40 px; ayuda de RPE con zona táctil de 36 px y el texto se abre hacia arriba (antes tapaba "Completar serie"). El botón de salir de la sesión ya era de 40 px desde 1.13.
+- **Android:** actividad solo en vertical; `allowBackup="false"` (la copia incluía el token de sesión); versión única: Ajustes lee `package.json` (1.0.4, igual que `versionName`). **Estos cambios del manifest exigen recompilar el APK.**
 
 ### Cambios hechos en producción (Supabase `oacjsudvmgkrtcesxjsr`)
 

@@ -24,6 +24,7 @@ Comentario “pasarela futura” de `plans-config.ts` está obsoleto: RevenueCat
 
 - El enforcement de la tabla de arriba cambió: Free cuenta generaciones reales (borrar un plan ya no devuelve cupo) y **Pro sí tiene tope en servidor: 30 cada 30 días**. El párrafo "Pendiente" de abajo quedó resuelto.
 - Un usuario ya no puede cambiar su propio `tier` ni `is_admin` desde el cliente (ver datos-seguridad).
+- Admin (detalle): al tocar un usuario se ven su cuestionario, sus planes y sus últimas sesiones (`userDetail`). El único administrador no puede eliminarse.
 - Admin: la lista incluye actividad por usuario; se llega desde Ajustes en móvil. La cuenta admin cambió de contraseña y el secret de bootstrap no existe en el proyecto.
 - Decisión del usuario: durante el piloto los testers conservan su tier; no se toca la compra. Google Play no cobra en Cuba, así que Pro solo llegaría por asignación manual desde admin.
 - El tier de BD se relee al volver a primer plano y al recuperar conexión, y un fallo de lectura conserva el último valor conocido (`src/lib/profile-flags.ts`): un Pro concedido desde admin llega sin reiniciar la app.

@@ -19,7 +19,9 @@ Sustituye los puntos 5, 7 y 8 de arriba y la advertencia sobre `FREE_LIMIT_REACH
 - **Cliente (`src/lib/ai/openai.ts`):** guarda el id pendiente en el dispositivo ligado a la huella del cuestionario, lo reutiliza si el usuario reintenta la misma petición y lo borra al guardar el plan. Ante red caída reintenta con el mismo id hasta ~2 min. `savePlan` trata un plan ya existente (23505) como guardado.
 - **Límites:** Free 1 generación (cuenta también los planes anteriores a la tabla); Pro 30 cada 30 días (`PRO_LIMIT_REACHED`, 429). Las `pending` de menos de 3 min cuentan, para que dos peticiones simultáneas no pasen a la vez.
 - **Coste:** modelo desplegado `gpt-4o-mini`; `max_tokens` 4096; timeout 75 s sin reintento (solo se reintenta si OpenAI rechaza con 429/5xx). Prueba real: 12 s, 2.401 tokens de entrada y 1.056 de salida, 16/16 ejercicios resueltos.
-- **Sigue pendiente:** validar en servidor los 4 días y las restricciones, ordenar el catálogo que se envía al modelo, reducir los cues y mejorar la espera en pantalla.
+- **Catálogo (2026-10-12, sustituye el punto 3 de arriba):** se leen todos los ejercicios compatibles con el equipo (por páginas) y se envía al modelo una muestra de 150 repartida entre categorías, con semilla en el `requestId`. Antes eran las primeras 150 filas sin orden y los planes repetían siempre los mismos ejercicios.
+- **Validación (2026-10-12, sustituye el punto 6):** `resolvePlan` descarta refs inventadas y ejercicios repetidos en el día, acota series/reps/descanso, limita a 2 indicaciones cortas, descarta días con menos de 3 ejercicios, rechaza planes con menos de 2 días y etiqueta los días A, B, C por posición (resuelve la discrepancia con `savePlan`). `meta` incluye `days` y `days_returned`.
+- **Sigue pendiente:** las restricciones físicas (saltos, impacto, cargas) no se validan porque el catálogo no tiene ese dato; mejorar la espera en pantalla; la tabla `intake` no se escribe nunca (el cuestionario vive en `payload.meta` de cada plan).
 
 ## Contratos y advertencias
 

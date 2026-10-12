@@ -4,7 +4,7 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **43 commits locales, sin push.** El build de producción (`next build`) pasa con todos los cambios (comprobado el 2026-10-12). Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **46 commits locales, sin push.** El build de producción (`next build`) pasa con todos los cambios (comprobado el 2026-10-12). Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
@@ -49,21 +49,21 @@ Actualizado: 2026-10-12. **43 commits locales, sin push.** El build de producci�
 | 4.2 Doble toque en generar/mejorar | Hecho | |
 | 4.3 Límites sobre generaciones reales | Hecho, en producción | Free 1, Pro 30 cada 30 días |
 | 4.4 Errores de límite y red distinguidos | Hecho | |
-| 4.5 Coste por llamada | Parcial | `max_tokens` y sin reintento tras timeout. Modelo desplegado: `gpt-4o-mini`. Falta reducir los cues |
-| 4.6 Validar el plan en servidor | Pendiente | |
+| 4.5 Coste por llamada | Hecho, en producción | Como mucho 2 indicaciones cortas por ejercicio: de 1.056 a 916 tokens de salida en la prueba |
+| 4.6 Validar el plan en servidor | Hecho, en producción | No valida las restricciones físicas (saltos, impacto): el catálogo no tiene ese dato |
 | 4.7 Espera y cuestionario | Pendiente | |
 | 5.1 Entrada a admin en móvil | Hecho | |
-| 5.2 Actividad por usuario | Hecho (parcial) | Falta ver plan y registros de un usuario, y crear cuentas |
+| 5.2 Actividad por usuario | Hecho, en producción | Falta crear cuentas desde el panel |
 | 5.3 Pro en bloque | Pendiente | Sin prisa: los testers se quedan como están |
 | 5.4 Orden, errores, fila compacta | Hecho (parcial) | Falta paginación |
-| 5.5 Borrado limpio, último admin, nombre | Parcial | Borrar una cuenta (el usuario o el admin) borra también sus fotos del Storage; en producción. Falta proteger al último admin y mostrar el nombre |
+| 5.5 Borrado limpio, último admin, nombre | Hecho, en producción | |
 | 5.6 `execute_sql` | Comprobado | No existe en la BD; el archivo SQL sigue en `schemas/` |
 | Fase 6 | Casi completa | Hecho: Alta, Mi cuerpo, Planes, Historial, Legal, Táctil y Android. Falta: Idiomas (46 textos sin clave, solo afecta a la app en inglés), contraste a pleno sol, `targetSdk` y áreas seguras (dispositivo) |
 
 ### Siguiente por hacer, en este orden
 
 3. 3.7 (peso del bundle y blur en gama baja) y el resto de 3.4.
-5. Generación (4.5 a 4.7) y admin (5.2, 5.3, resto de 5.5).
+5. 4.7 (pantalla de espera y cuestionario) y 5.3 (Pro en bloque; sin prisa, los testers conservan su tier).
 6. Idiomas: las 46 claves que faltan; poca prioridad mientras el piloto sea en español.
 6. Al preparar el APK: 0.4, 0.5 y la prueba en teléfono de todo lo marcado como "dispositivo".
 
@@ -103,8 +103,11 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **3.3** `src/lib/image-compress.ts` reduce la foto en el teléfono (1280 px, JPEG) y genera una miniatura de 240 px; `uploadProgressPhoto` sube ambas (`p2-<ts>-<bytes>.jpg` y `.thumb.jpg`) con caché de un año. `getPhotoUrls` firma todas en una sola petición y reutiliza cada URL firmada durante 24 h, guardada por usuario. La lista usa la miniatura; la foto completa solo se pide para el "antes y después". Medido: 1,78 MB pasan a 264 KB más 19 KB; segunda visita, cero peticiones de firma y foto servida desde la caché del teléfono. Borrar un registro borra también la miniatura.
 - **3.5** El esqueleto de carga de Ejercicios va solo en la zona de resultados; el campo de búsqueda no se desmonta y conserva el foco al escribir. El campo es de tipo búsqueda para que el teclado muestre la tecla Buscar.
 - **4.1, 4.3, 4.4, 4.5** Tabla `plan_generations` (`schemas/add-plan-generations.sql`) y función `generate-plan`: el teléfono envía un `requestId` (que es el id del plan); un reintento con el mismo id devuelve el plan guardado sin llamar a OpenAI; un id en curso recibe 409 y el cliente espera. El cliente (`src/lib/ai/openai.ts`) guarda el id pendiente por cuestionario y `savePlan` tolera el reintento de un plan ya guardado. Prueba real: 12 s, 16/16 ejercicios; repetida, 0,8 s y `reused`; id en curso, 409; 2.401 + 1.056 tokens.
+- **4.5, 4.6** `generate-plan`: el catálogo que ve el modelo ya no son las primeras 150 filas sin orden, sino 150 ejercicios repartidos entre categorías, con semilla en el `requestId` (antes los planes repetían siempre los ejercicios del principio del catálogo). `resolvePlan` valida la respuesta: descarta ejercicios inventados o repetidos en el día, acota series (1-6), repeticiones (1-50) y descanso (15-300 s), deja 2 indicaciones de 90 caracteres como mucho, descarta días con menos de 3 ejercicios válidos, rechaza un plan con menos de 2 días y etiqueta los días A, B, C por posición. Sin llamadas extra a OpenAI. Prueba real: 12 s, 4 días de 4 ejercicios, 16/16, 2.423 + 916 tokens.
 - **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
 - **5.1** Entrada "Panel de administración" en Ajustes solo para admins y botón de volver en `/admin`.
+- **5.2 (detalle)** Tocar un usuario en `/admin` despliega su cuestionario, sus planes con los ejercicios de cada día y sus últimas 20 sesiones (acción `userDetail` de `admin-api`, solo lectura; un usuario normal recibe 403). El cuestionario sale de `payload.meta` del plan más reciente: la tabla `intake` no la escribe la app (0 filas).
+- **5.5** El único administrador no puede eliminarse desde el panel ni borrando su propia cuenta; la lista muestra el nombre cuando existe.
 - **5.2, 5.4** Función SQL `admin_user_activity()` (`schemas/add-admin-user-activity.sql`, solo `service_role`) y `admin-api` desplegada: último entreno, sesiones, series, último acceso, planes y generaciones por usuario; tarjeta "Activos 7 días"; orden por alta, entreno reciente o inactividad; mensaje de red en español con límite de 20 s. Dato del 2026-10-12: de 11 usuarios solo 1 entrenó en los últimos 7 días (la cuenta de pruebas); los demás no entran desde junio.
 
 ### Fase 6, lo hecho
@@ -125,6 +128,7 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` y `delete-account` (sin `verify_jwt`, validan ellas). `admin-api` se desplegó dos veces (actividad por usuario; borrado de fotos).
 - Contraseña del admin cambiada.
 - Las pruebas de deshacer serie y de fotos crearon y borraron sus propias filas y archivos; no dejaron datos nuevos.
+- Segunda generación real de prueba (`qa-validation-check-1`); no guardó ningún plan en la cuenta.
 - Datos de prueba: 11 series del 2026-10-12 en la cuenta de pruebas (ver al final) y un registro en `plan_generations` (`qa-idempotency-check-1`).
 
 ## Cómo se probó

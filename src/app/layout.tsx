@@ -1,24 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { ThemeProvider } from "@/app/providers/ThemeProvider";
 import LanguageProvider from "@/app/providers/LanguageProvider";
 import { NavigationLoader } from "@/components/ui/navigation-loader";
 
+// Las fuentes van en el repo (src/app/fonts, subconjunto latino, fuente
+// variable) y no se piden a Google Fonts al compilar: con `next/font/google` el
+// build fallaba en cuanto la máquina que compila no llegaba a Google.
+
 // Cuerpo de texto — pesos realmente usados: 400 (base), 500 (font-medium),
 // 600 (font-semibold), 700 (font-bold / cf-btn). 800 no se usa (D-PERF-7).
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const jakarta = localFont({
+  src: "./fonts/plus-jakarta-sans-latin.woff2",
+  weight: "400 700",
+  style: "normal",
+  display: "swap",
   variable: "--font-body",
 });
 
 // Display / títulos / números — usados: 600 (cf-h2) y 700 (font-bold, cf-h1,
 // cf-num). 400/500 no se referencian (D-PERF-7).
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["600", "700"],
+const spaceGrotesk = localFont({
+  src: "./fonts/space-grotesk-latin.woff2",
+  weight: "600 700",
+  style: "normal",
+  display: "swap",
   variable: "--font-display",
 });
 

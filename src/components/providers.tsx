@@ -1,35 +1,25 @@
-'use client'
+"use client";
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { useState } from 'react'
-import { AuthProvider } from '@/lib/auth/auth-context'
-import { RevenueCatProvider } from '@/lib/revenuecat/revenuecat-context'
+import { useEffect } from "react";
+import { AuthProvider } from "@/lib/auth/auth-context";
+import { RevenueCatProvider } from "@/lib/revenuecat/revenuecat-context";
 
-// Las devtools solo se montan en desarrollo: no deben acabar en el bundle del .apk.
-const isDev = process.env.NODE_ENV !== 'production'
+// Teléfono modesto: pocos núcleos o poca memoria. En ellos el desenfoque de fondo
+// de tarjetas y barra (backdrop-filter) se recalcula en cada fotograma del scroll
+// y lo hace ir a tirones; la clase `cf-lite` lo apaga (ver globals.css).
+function isLowEndDevice(): boolean {
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  return (nav.hardwareConcurrency ?? 8) <= 4 || (nav.deviceMemory ?? 8) <= 3;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000, // 1 minute
-            refetchOnWindowFocus: false,
-          },
-        },
-      })
-  )
+  useEffect(() => {
+    if (isLowEndDevice()) document.documentElement.classList.add("cf-lite");
+  }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RevenueCatProvider>
-          {children}
-        </RevenueCatProvider>
-      </AuthProvider>
-      {isDev && <ReactQueryDevtools initialIsOpen={false} />}
-    </QueryClientProvider>
-  )
+    <AuthProvider>
+      <RevenueCatProvider>{children}</RevenueCatProvider>
+    </AuthProvider>
+  );
 }

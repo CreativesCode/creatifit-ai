@@ -766,3 +766,13 @@ a.cf-card:focus-visible {
     rgba(240, 70, 156, 0.2)
   );
 }
+
+/* Modo ligero para teléfonos modestos (clase puesta por Providers según núcleos
+   y memoria). Sin desenfoque de fondo: es lo más caro al desplazar una lista. Las
+   superficies translúcidas pasan a opacas para que el texto siga leyéndose. */
+.cf-lite {
+  --glass-blur: none;
+}
+.cf-lite .cf-nav {
+  background: var(--surface);
+}

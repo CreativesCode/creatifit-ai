@@ -148,22 +148,36 @@ async function handle(req: Request): Promise<Response> {
         .order("created_at", { ascending: false });
       if (error) return json({ error: error.message }, 500);
 
-      // Conteo de planes por usuario (una sola consulta + agregado en memoria).
-      const { data: plans, error: plansErr } = await admin
-        .from("plans")
-        .select("user_id");
-      if (plansErr) return json({ error: plansErr.message }, 500);
+      // Actividad por usuario agregada en la BD (planes, sesiones, último entreno,
+      // generaciones y último acceso): una fila por usuario, sin traer tablas enteras.
+      const { data: activity, error: activityErr } = await admin.rpc("admin_user_activity");
+      if (activityErr) return json({ error: activityErr.message }, 500);
 
-      const counts: Record<string, number> = {};
-      for (const p of plans ?? []) {
-        const uid = (p as { user_id: string }).user_id;
-        if (uid) counts[uid] = (counts[uid] ?? 0) + 1;
-      }
+      type Activity = {
+        user_id: string;
+        plan_count: number;
+        session_count: number;
+        set_count: number;
+        last_workout: string | null;
+        generation_count: number;
+        last_sign_in: string | null;
+      };
+      const byUser = new Map<string, Activity>(
+        ((activity ?? []) as Activity[]).map((a) => [a.user_id, a])
+      );
 
-      const users = (profiles ?? []).map((p) => ({
-        ...p,
-        plan_count: counts[(p as { id: string }).id] ?? 0,
-      }));
+      const users = (profiles ?? []).map((p) => {
+        const a = byUser.get((p as { id: string }).id);
+        return {
+          ...p,
+          plan_count: Number(a?.plan_count ?? 0),
+          session_count: Number(a?.session_count ?? 0),
+          set_count: Number(a?.set_count ?? 0),
+          last_workout: a?.last_workout ?? null,
+          generation_count: Number(a?.generation_count ?? 0),
+          last_sign_in: a?.last_sign_in ?? null,
+        };
+      });
       return json({ users });
     }
 

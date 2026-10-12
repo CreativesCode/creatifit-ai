@@ -17,6 +17,12 @@ export interface AdminUser {
   is_admin: boolean;
   created_at: string;
   plan_count: number;
+  // Actividad (seguimiento del piloto)
+  session_count: number;
+  set_count: number;
+  last_workout: string | null;
+  generation_count: number;
+  last_sign_in: string | null;
 }
 
 async function callAdmin<T = unknown>(
@@ -29,15 +35,27 @@ async function callAdmin<T = unknown>(
   const token = session?.access_token;
   if (!token) throw new Error("No autenticado");
 
-  const res = await fetch(FN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      apikey: envConfig.SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify({ action, ...payload }),
-  });
+  // Con límite de tiempo y mensaje legible: sin red el panel mostraba
+  // "Failed to fetch" o se quedaba cargando.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  let res: Response;
+  try {
+    res = await fetch(FN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        apikey: envConfig.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ action, ...payload }),
+      signal: controller.signal,
+    });
+  } catch {
+    throw new Error("Sin conexión con el servidor. Revisa tu red e inténtalo de nuevo.");
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {

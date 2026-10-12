@@ -35,6 +35,16 @@ function isPro(tier: Tier) {
   return tier === "pro_monthly" || tier === "pro_annual";
 }
 
+// "hoy", "ayer", "hace 5 d"… para leer la actividad de un vistazo.
+function fmtAgo(iso: string | null) {
+  if (!iso) return "nunca";
+  const days = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
+  if (Number.isNaN(days)) return "—";
+  if (days <= 0) return "hoy";
+  if (days === 1) return "ayer";
+  return `hace ${days} d`;
+}
+
 function fmtDate(iso: string) {
   try {
     return new Date(iso).toLocaleDateString("es-ES", {
@@ -58,6 +68,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"recent" | "active" | "inactive">("recent");
 
   // Redirige a login si no hay sesión.
   useEffect(() => {
@@ -134,19 +145,32 @@ export default function AdminPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
-        u.email.toLowerCase().includes(q) ||
-        (u.name ?? "").toLowerCase().includes(q)
-    );
-  }, [users, query]);
+    const list = q
+      ? users.filter(
+          (u) =>
+            u.email.toLowerCase().includes(q) ||
+            (u.name ?? "").toLowerCase().includes(q)
+        )
+      : [...users];
+    const time = (iso: string | null) => (iso ? Date.parse(iso) : 0);
+    if (sort === "active") {
+      list.sort((a, b) => time(b.last_workout) - time(a.last_workout));
+    } else if (sort === "inactive") {
+      // Primero quien nunca entrenó, luego quien lleva más tiempo sin hacerlo.
+      list.sort((a, b) => time(a.last_workout) - time(b.last_workout));
+    }
+    return list;
+  }, [users, query, sort]);
 
   const stats = useMemo(() => {
     const total = users.length;
     const pro = users.filter((u) => isPro(u.tier)).length;
     const plans = users.reduce((s, u) => s + u.plan_count, 0);
-    return { total, pro, free: total - pro, plans };
+    const weekAgo = Date.now() - 7 * 86400000;
+    const active = users.filter(
+      (u) => u.last_workout && Date.parse(u.last_workout) > weekAgo
+    ).length;
+    return { total, pro, active, plans };
   }, [users]);
 
   // ── Estados de carga / acceso ──────────────────────────────────────────────
@@ -211,7 +235,7 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           <StatCard icon={Users} label="Usuarios" value={stats.total} />
           <StatCard icon={Crown} label="Pro" value={stats.pro} highlight />
-          <StatCard icon={Users} label="Free" value={stats.free} />
+          <StatCard icon={Dumbbell} label="Activos 7 días" value={stats.active} />
           <StatCard icon={Users} label="Planes" value={stats.plans} />
         </div>
 
@@ -222,8 +246,18 @@ export default function AdminPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por email o nombre…"
-            className="flex-1 bg-transparent outline-none text-[14px]"
+            className="flex-1 min-w-0 bg-transparent outline-none text-[14px]"
           />
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as typeof sort)}
+            aria-label="Ordenar"
+            className="bg-surface-2 border border-border rounded-lg text-[12.5px] font-semibold px-2 py-1.5 outline-none shrink-0"
+          >
+            <option value="recent">Alta reciente</option>
+            <option value="active">Entrenó hace poco</option>
+            <option value="inactive">Sin actividad</option>
+          </select>
         </div>
 
         {error && (
@@ -273,37 +307,24 @@ export default function AdminPage() {
                       )}
                     </div>
                     <div className="cf-muted text-[11.5px] mt-0.5">
-                      Registrado {fmtDate(u.created_at)}
+                      Alta {fmtDate(u.created_at)} · acceso {fmtAgo(u.last_sign_in)}
+                    </div>
+                    {/* actividad: lo que hace falta para seguir el piloto */}
+                    <div
+                      className="text-[11.5px] font-semibold mt-0.5"
+                      style={{ color: u.last_workout ? "var(--txt-2)" : "var(--muted)" }}
+                    >
+                      {u.last_workout
+                        ? `Entrenó ${fmtAgo(u.last_workout)} · ${u.session_count} ${
+                            u.session_count === 1 ? "sesión" : "sesiones"
+                          } · ${u.set_count} series`
+                        : "Aún no ha entrenado"}
+                      {" · "}
+                      {u.plan_count} {u.plan_count === 1 ? "plan" : "planes"}
+                      {u.generation_count > 0 && ` (${u.generation_count} gen.)`}
                     </div>
                   </div>
                 </div>
-
-                {/* planes generados */}
-                <span
-                  className="text-[11.5px] font-bold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1.5 self-start sm:self-auto"
-                  style={{
-                    background: u.plan_count > 0 ? "var(--surface-2)" : "transparent",
-                    border: "1px solid var(--border)",
-                    color: u.plan_count > 0 ? "var(--txt)" : "var(--muted)",
-                  }}
-                  title="Planes generados"
-                >
-                  <Dumbbell size={12} />
-                  {u.plan_count} {u.plan_count === 1 ? "plan" : "planes"}
-                </span>
-
-                {/* tier badge */}
-                <span
-                  className="text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1 self-start sm:self-auto"
-                  style={
-                    isPro(u.tier)
-                      ? { background: "var(--grad-brand)", color: "#fff" }
-                      : { background: "var(--surface-2)", color: "var(--muted)" }
-                  }
-                >
-                  {isPro(u.tier) && <Crown size={11} />}
-                  {TIER_LABEL[u.tier]}
-                </span>
 
                 {/* acciones */}
                 <div className="flex items-center gap-2 shrink-0">

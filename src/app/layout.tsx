@@ -42,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       {/* Sin `capacitor-app` en el body: el padding de safe-area lo aplica cada
           shell (.safe-top/.safe-bottom). Tenerlo aquí Y en los shells duplicaba
           el inset y generaba scroll fantasma en todas las páginas. */}

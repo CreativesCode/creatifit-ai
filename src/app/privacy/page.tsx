@@ -28,6 +28,7 @@ export default function PrivacyPage() {
           <><strong>Datos de cuenta:</strong> tu correo electrónico y, opcionalmente, tu nombre. La contraseña se guarda cifrada (gestionada por nuestro proveedor de autenticación, nunca la vemos).</>,
           <><strong>Datos de fitness que tú introduces:</strong> objetivo, nivel, edad, peso, altura, equipo disponible, pasos diarios y notas. Sirven para generar tu plan.</>,
           <><strong>Planes y registros de entreno:</strong> los planes generados y lo que registras en cada sesión (series, repeticiones, peso, RPE, notas).</>,
+          <><strong>Medidas y fotos de progreso (opcionales):</strong> el peso, las medidas corporales y las fotos que decidas guardar en “Mi cuerpo”. Las fotos se almacenan en un espacio privado al que solo accede tu cuenta; no se usan para generar planes ni se envían a ningún proveedor de IA.</>,
           <><strong>Datos de suscripción:</strong> el estado de tu suscripción (Free/Pro). Los pagos los procesan Google Play y RevenueCat; <strong>no almacenamos datos de tu tarjeta</strong>.</>,
           <><strong>Datos técnicos básicos:</strong> registros de error e identificadores técnicos necesarios para el funcionamiento y la seguridad.</>,
         ]}
@@ -58,7 +59,7 @@ export default function PrivacyPage() {
       </LegalP>
       <LegalUl
         items={[
-          <><strong>Supabase:</strong> alojamiento, base de datos y autenticación.</>,
+          <><strong>Supabase:</strong> alojamiento, base de datos, autenticación y almacenamiento de tus fotos de progreso.</>,
           <><strong>OpenAI:</strong> generación de planes con IA (ver punto 4).</>,
           <><strong>RevenueCat y Google Play:</strong> gestión de suscripciones y pagos.</>,
         ]}
@@ -71,7 +72,8 @@ export default function PrivacyPage() {
       <LegalH2>6. Conservación</LegalH2>
       <LegalP>
         Conservamos tus datos mientras tengas una cuenta activa. Cuando eliminas tu cuenta,
-        borramos tu perfil, tu cuestionario, tus planes y tus registros de entreno. Puede
+        borramos tu perfil, tu cuestionario, tus planes, tus registros de entreno, tus
+        medidas corporales y tus fotos de progreso. Puede
         permanecer información mínima cuando una ley nos obligue a conservarla.
       </LegalP>
 

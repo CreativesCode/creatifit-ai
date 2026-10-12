@@ -33,3 +33,9 @@ void i18n.use(initReactI18next).init({
 });
 
 export default i18n;
+
+// El HTML se genera con lang="es"; si el idioma elegido es otro, se corrige al
+// cargar (lectores de pantalla y traducción automática del navegador lo usan).
+if (typeof document !== "undefined") {
+  document.documentElement.lang = prefer();
+}

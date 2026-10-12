@@ -42,6 +42,8 @@ export default function AccountDeletionPage() {
           "Tu cuestionario de fitness (objetivo, nivel, edad, peso, altura, equipo).",
           "Todos tus planes generados.",
           "Todo tu historial de entrenamiento (series, repeticiones, peso, RPE).",
+          "Tus medidas corporales y tus fotos de progreso.",
+          "Tus ejercicios favoritos.",
         ]}
       />
 

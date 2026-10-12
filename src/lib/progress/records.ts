@@ -13,7 +13,7 @@ export interface LogEntry {
   created_at?: string; // fallback
 }
 
-import { localDay } from "./streak";
+import { computeStreak, localDay, todayLocal } from "./streak";
 
 export type RecordType ="weight" | "e1rm" | "reps";
 
@@ -175,12 +175,20 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
 
 export function computeAchievements(logs: LogEntry[]): Achievement[] {
   const stats = computeStats(logs);
+  // Los logros de racha usan la MEJOR racha, no la última: con la última, un
+  // logro ya conseguido volvía a bloquearse tras un descanso. Las series de la
+  // sesión en curso llegan sin fecha y cuentan como de hoy.
+  const now = new Date().toISOString();
+  const bestStreak = computeStreak(
+    logs.map((l) => (l.timestamp || l.created_at ? l : { ...l, timestamp: now })),
+    todayLocal()
+  ).longest;
   const valueFor = (metric: Achievement["metric"]) =>
     metric === "sessions"
       ? stats.totalSessions
       : metric === "tonnage"
         ? stats.totalVolume
-        : stats.dayStreak;
+        : bestStreak;
   return ACHIEVEMENT_DEFS.map((def) => {
     const current = valueFor(def.metric);
     return {

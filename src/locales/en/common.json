@@ -601,6 +601,8 @@
     }
   },
   "workout_history": {
+    "volume_recent": "Volume · last {{count}} sessions",
+    "recent_sessions": "Recent sessions",
     "delete_set": {
       "label": "Delete set",
       "confirm": "Delete",

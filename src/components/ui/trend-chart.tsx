@@ -46,7 +46,10 @@ export function TrendChart({
 
   const values = points.map((p) => p.value);
   const max = Math.max(...values);
-  const min = Math.min(...values);
+  // Las barras parten de cero: con la escala mínimo-máximo la semana más floja
+  // salía sin barra y el progreso parecía mucho mayor de lo real. La línea (peso
+  // corporal) sí usa mínimo-máximo para que se aprecien cambios pequeños.
+  const min = variant === "bar" ? 0 : Math.min(...values);
   const span = max - min || 1;
   const last = values[values.length - 1];
   const first = values[0];

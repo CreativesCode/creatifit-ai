@@ -33,8 +33,12 @@ const shortDay = (dateString: string) =>
     day: "numeric",
     month: "short",
   });
-const fmtMetric = (n: number, metric: string) =>
-  metric === "tonnage" ? `${Math.round(n / 1000)}t` : `${n}`;
+// Toneladas con un decimal por debajo de 10 t ("0t/1t" no decía nada).
+const fmtMetric = (n: number, metric: string) => {
+  if (metric !== "tonnage") return `${n}`;
+  const tons = n / 1000;
+  return `${tons >= 10 || Number.isInteger(tons) ? Math.round(tons) : tons.toFixed(1)}t`;
+};
 
 interface WorkoutLog {
   id: string;
@@ -88,11 +92,15 @@ function buildSessions(logs: WorkoutLog[]): WorkoutSession[] {
     session.logs.push(log);
     session.totalSets++;
     session.totalVolume += log.actual_reps * (log.weight || 0);
-    if (log.rpe) {
-      const currentTotal = session.avgRPE * (session.logs.length - 1);
-      session.avgRPE = (currentTotal + log.rpe) / session.logs.length;
-    }
   });
+  // RPE medio solo sobre las series que lo tienen: dividir entre todas daba una
+  // cifra más baja que la real y distinta a la del detalle.
+  for (const session of sessionMap.values()) {
+    const rated = session.logs.filter((l) => l.rpe);
+    session.avgRPE = rated.length
+      ? rated.reduce((sum, l) => sum + (l.rpe || 0), 0) / rated.length
+      : 0;
+  }
   return Array.from(sessionMap.values()).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
@@ -442,7 +450,6 @@ export function WorkoutHistory({
   const globalAvgRPE = rpeSessions.length
     ? rpeSessions.reduce((sum, s) => sum + s.avgRPE, 0) / rpeSessions.length
     : 0;
-  const totalVolume = sessions.reduce((sum, s) => sum + s.totalVolume, 0);
 
   return (
     <div className="container mx-auto max-w-xl lg:max-w-6xl px-4 lg:px-6 pt-4 lg:pt-8">
@@ -456,10 +463,15 @@ export function WorkoutHistory({
         <div className="flex justify-between items-start mb-4">
           <div>
             <div className="cf-muted text-[12px] font-semibold">
-              {t("workout_history.session_summary.volume", "Volumen")} · {recent.length}
+              {t("workout_history.volume_recent", "Volumen · últimas {{count}} sesiones", {
+                count: recent.length,
+              })}
             </div>
             <div className="flex items-baseline gap-1.5 mt-1">
-              <span className="cf-num text-[27px]">{(totalVolume / 1000).toFixed(1)}</span>
+              {/* La cifra es la de las barras que se ven, no la histórica. */}
+              <span className="cf-num text-[27px]">
+                {(recent.reduce((sum, s) => sum + s.totalVolume, 0) / 1000).toFixed(1)}
+              </span>
               <span className="cf-num text-[14px] text-muted">t</span>
             </div>
           </div>
@@ -615,7 +627,7 @@ export function WorkoutHistory({
 
       {/* session list */}
       <div className="cf-h2 text-[15px] mb-3">
-        {t("workout_history.session_summary.exercises_performed", "Sesiones recientes")}
+        {t("workout_history.recent_sessions", "Sesiones recientes")}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {sessions.map((session) => (
@@ -636,7 +648,8 @@ export function WorkoutHistory({
                 {t("plan.day", "Día")} {session.planDayId}
               </div>
               <div className="cf-muted text-[11.5px] font-semibold mt-0.5">
-                {formatShort(session.date)} · {session.totalSets} series ·{" "}
+                {formatShort(session.date)} · {session.totalSets}{" "}
+                {t("workout_history.session_summary.series", "series")} ·{" "}
                 {session.totalVolume.toFixed(0)} kg
               </div>
             </div>

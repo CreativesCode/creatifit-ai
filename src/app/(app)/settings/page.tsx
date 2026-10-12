@@ -420,7 +420,7 @@ export default function SettingsPage() {
         <Row
           icon={Heart}
           label={t("settings.about.developed_by", "Acerca de")}
-          sub={`CreatiFit AI · v1.0.3`}
+          sub={`CreatiFit AI · v${process.env.NEXT_PUBLIC_APP_VERSION ?? ""}`}
           right={<FileText size={16} className="text-faint" />}
           last
         />

@@ -3,6 +3,7 @@ import { CFLoader } from "@/components/ui/loader";
 import { ExerciseDetailView } from "@/components/ui/exercise-detail-view";
 import { supabaseClient } from "@/lib/supabase-client";
 import { LoadError } from "@/components/ui/load-error";
+import { exerciseImageSrc } from "@/lib/exercise-media";
 import {
   ChevronRight,
   Dumbbell,
@@ -58,9 +59,7 @@ export default function ExercisesPage() {
   const [onlyFavs, setOnlyFavs] = useState(false);
 
   const exerciseId = searchParams.get("id");
-  const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
-  const imgUrl = (gif?: string) =>
-    gif ? `${EXERCISE_IMAGES_BASE_URL}/${gif}` : "/placeholder-exercise.svg";
+  const imgUrl = exerciseImageSrc;
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 

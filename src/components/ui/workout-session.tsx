@@ -23,6 +23,7 @@ import {
   setSessionActive,
 } from "@/lib/session-resume";
 import { playRestEndCue } from "@/lib/feedback";
+import { exerciseImageUrl } from "@/lib/exercise-media";
 import {
   Activity,
   Check,
@@ -46,15 +47,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
-// URL base para las imágenes de ejercicios desde Supabase Storage
-const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
-
-const buildImageUrl = (gifUrl: string) => {
-  if (!gifUrl || !EXERCISE_IMAGES_BASE_URL) return null;
-  const cleanBase = EXERCISE_IMAGES_BASE_URL.replace(/\/$/, "");
-  const cleanFileName = gifUrl.replace(/^\//, "");
-  return `${cleanBase}/${cleanFileName}`;
-};
+const buildImageUrl = exerciseImageUrl;
 
 const formatTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);

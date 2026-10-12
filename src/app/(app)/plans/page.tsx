@@ -36,6 +36,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { exerciseImageSrc } from "@/lib/exercise-media";
 
 interface ExerciseBlock {
   name: string;
@@ -119,11 +120,7 @@ export default function PlansPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayParam]);
 
-  const EXERCISE_IMAGES_BASE_URL = process.env.NEXT_PUBLIC_STATICS_IMAGES;
-  const buildImageUrl = (gif?: string | null) => {
-    if (!gif || !EXERCISE_IMAGES_BASE_URL) return "/placeholder-exercise.svg";
-    return `${EXERCISE_IMAGES_BASE_URL.replace(/\/$/, "")}/${gif.replace(/^\//, "")}`;
-  };
+  const buildImageUrl = exerciseImageSrc;
 
   useEffect(() => {
     if (planId) {

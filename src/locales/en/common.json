@@ -14,7 +14,11 @@
       "invalid_credentials": "Invalid email or password",
       "not_confirmed": "Confirm your email before signing in",
       "already_registered": "This email is already registered",
-      "rate_limit": "Too many attempts. Please wait and try again"
+      "rate_limit": "Too many attempts. Please wait and try again",
+      "network": "No connection, or it is too slow. Check your network and try again",
+      "invalid_email": "That email is not valid",
+      "signup_disabled": "Sign-up is not available right now",
+      "generic": "Could not complete that. Please try again"
     },
     "confirm": {
       "title": "Check your email",
@@ -283,6 +287,10 @@
       "auto": "Auto"
     },
     "coming_soon": "Coming soon",
+    "delete_account": {
+      "network_error": "No connection: your account was not deleted. Try again when you are online.",
+      "generic_error": "The account could not be deleted"
+    },
     "data_saver": {
       "title": "Data saver",
       "desc": "Shows a still image and downloads the animation only when tapped"

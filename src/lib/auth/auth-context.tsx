@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase, supabaseConfig } from "../supabase-config";
 import { setCacheUser } from "../local-cache";
+import { clearUserLocalData } from "../local-data";
 import { envConfig } from "../env-config";
 
 interface AuthContextValue {
@@ -23,11 +24,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+const SIGN_OUT_WAIT_MS = 3000;
+
+const storedSessionKey = () =>
+  `sb-${new URL(supabaseConfig.url).hostname.split(".")[0]}-auth-token`;
+
 // Sesión que auth-js persiste en localStorage (clave sb-<ref>-auth-token).
 function readStoredSession(): Session | null {
   try {
-    const ref = new URL(supabaseConfig.url).hostname.split(".")[0];
-    const raw = window.localStorage.getItem(`sb-${ref}-auth-token`);
+    const raw = window.localStorage.getItem(storedSessionKey());
     const parsed = raw ? (JSON.parse(raw) as Session) : null;
     return parsed?.user?.id && parsed.refresh_token ? parsed : null;
   } catch {
@@ -101,8 +106,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null, needsConfirmation };
   };
 
+  // Cerrar sesión funciona siempre, también sin red: auth-js no borra la sesión
+  // si no consigue avisar al servidor, y el botón parecía no hacer nada. Se le
+  // da un margen corto y después se cierra en el teléfono pase lo que pase.
   const signOut: AuthContextValue["signOut"] = async () => {
-    await supabase.auth.signOut();
+    const uid = session?.user.id ?? readStoredSession()?.user.id ?? null;
+    await Promise.race([
+      supabase.auth.signOut().catch(() => null),
+      new Promise((resolve) => setTimeout(resolve, SIGN_OUT_WAIT_MS)),
+    ]);
+    try {
+      window.localStorage.removeItem(storedSessionKey());
+    } catch {
+      /* almacenamiento bloqueado: el estado en memoria se limpia igual */
+    }
+    if (uid) clearUserLocalData(uid);
+    setCacheUser(null);
+    setSession(null);
   };
 
   const resendConfirmation: AuthContextValue["resendConfirmation"] = async (email) => {

@@ -3,7 +3,11 @@
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
-import { deleteOwnAccount } from "@/lib/account/delete-account";
+import {
+  AccountDeletionNetworkError,
+  deleteOwnAccount,
+} from "@/lib/account/delete-account";
+import { clearUserLocalData } from "@/lib/local-data";
 import { useIsAdmin } from "@/lib/admin/use-is-admin";
 import { setDataSaver, useDataSaver } from "@/lib/data-saver";
 import {
@@ -152,11 +156,23 @@ export default function SettingsPage() {
     setDeleting(true);
     setDeleteError(null);
     try {
+      const uid = user?.id;
       await deleteOwnAccount();
+      // La cuenta ya no existe: tampoco deben quedar series pendientes de enviar.
+      if (uid) clearUserLocalData(uid, true);
       await signOut();
       router.replace("/welcome");
     } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "No se pudo eliminar la cuenta");
+      setDeleteError(
+        e instanceof AccountDeletionNetworkError
+          ? t(
+              "settings.delete_account.network_error",
+              "Sin conexión: tu cuenta no se ha eliminado. Inténtalo de nuevo cuando tengas red."
+            )
+          : e instanceof Error
+            ? e.message
+            : t("settings.delete_account.generic_error", "No se pudo eliminar la cuenta")
+      );
       setDeleting(false);
     }
   };

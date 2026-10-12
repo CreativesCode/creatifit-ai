@@ -459,5 +459,20 @@ function translateAuthError(msg: string, t: (k: string) => string): string {
   if (m.includes("email not confirmed")) return t("auth.errors.not_confirmed");
   if (m.includes("already registered") || m.includes("already been registered")) return t("auth.errors.already_registered");
   if (m.includes("rate limit") || m.includes("too many")) return t("auth.errors.rate_limit");
-  return msg;
+  if (
+    m.includes("failed to fetch") ||
+    m.includes("load failed") ||
+    m.includes("network") ||
+    m.includes("fetch") ||
+    m.includes("timeout") ||
+    m.includes("timed out") ||
+    m.includes("abort")
+  )
+    return t("auth.errors.network");
+  if (m.includes("password should be") || m.includes("weak password")) return t("auth.errors.password_short");
+  if (m.includes("invalid email") || m.includes("unable to validate email") || m.includes("invalid format"))
+    return t("auth.errors.invalid_email");
+  if (m.includes("signups not allowed") || m.includes("signup is disabled")) return t("auth.errors.signup_disabled");
+  // Nunca mostrar el texto crudo del servidor (suele venir en inglés).
+  return t("auth.errors.generic");
 }

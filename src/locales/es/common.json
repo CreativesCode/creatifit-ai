@@ -14,7 +14,11 @@
       "invalid_credentials": "Correo o contraseña incorrectos",
       "not_confirmed": "Confirma tu correo antes de iniciar sesión",
       "already_registered": "Este correo ya está registrado",
-      "rate_limit": "Demasiados intentos. Espera un momento e inténtalo de nuevo"
+      "rate_limit": "Demasiados intentos. Espera un momento e inténtalo de nuevo",
+      "network": "No hay conexión o es muy lenta. Revisa tu red e inténtalo de nuevo",
+      "invalid_email": "El correo no es válido",
+      "signup_disabled": "El registro no está disponible en este momento",
+      "generic": "No se pudo completar. Inténtalo de nuevo"
     },
     "confirm": {
       "title": "Revisa tu correo",
@@ -283,6 +287,10 @@
       "auto": "Auto"
     },
     "coming_soon": "Próximamente",
+    "delete_account": {
+      "network_error": "Sin conexión: tu cuenta no se ha eliminado. Inténtalo de nuevo cuando tengas red.",
+      "generic_error": "No se pudo eliminar la cuenta"
+    },
     "data_saver": {
       "title": "Ahorro de datos",
       "desc": "Muestra una imagen fija y descarga la animación solo al tocarla"

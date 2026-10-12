@@ -4,14 +4,14 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **46 commits locales, sin push.** El build de producción (`next build`) pasa con todos los cambios (comprobado el 2026-10-12). Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **50 commits locales, sin push.** El build de producción (`next build`) pasa con todos los cambios (comprobado el 2026-10-12). Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
 | Tarea | Estado | Nota |
 |---|---|---|
 | 0.1 Usuarios no pueden ponerse Pro/admin | Hecho, en producción | Verificado 403 |
-| 0.2 Alta y recuperación de contraseña | **Decidido: sin confirmación de correo. Falta que el usuario lo desactive en el panel de Supabase** | El token de esta máquina recibe 403 al cambiar la configuración de Auth. Authentication > Sign In / Providers > Email > desactivar "Confirm email". La app ya entra directa cuando el alta devuelve sesión. Recuperar contraseña desde el APK sigue sin resolver |
+| 0.2 Alta y recuperación de contraseña | Alta: hecho, en producción. Recuperación: pendiente | El usuario desactivó "Confirm email" el 2026-10-12. Probado con una cuenta desechable: el alta devuelve sesión, crea el perfil con nombre y un correo repetido responde "ya registrado". Recuperar contraseña desde el APK sigue sin resolver (el enlace abre la web) |
 | 0.3 Key de RevenueCat y compra en Cuba | Decidido: no tocar | Los testers se quedan con su tier. La key de Test Store en el build sigue pendiente para cuando se prepare el APK |
 | 0.4 WebView mínimo | Pendiente | Al preparar el APK |
 | 0.5 Build limpio y `cap sync` | Parcial | `next dev` ya escribe en `.next-dev`, no en `out`. Falta el build limpio y `cap sync` al preparar el APK |
@@ -50,8 +50,8 @@ Actualizado: 2026-10-12. **46 commits locales, sin push.** El build de producci�
 | 4.3 Límites sobre generaciones reales | Hecho, en producción | Free 1, Pro 30 cada 30 días |
 | 4.4 Errores de límite y red distinguidos | Hecho | |
 | 4.5 Coste por llamada | Hecho, en producción | Como mucho 2 indicaciones cortas por ejercicio: de 1.056 a 916 tokens de salida en la prueba |
-| 4.6 Validar el plan en servidor | Hecho, en producción | No valida las restricciones físicas (saltos, impacto): el catálogo no tiene ese dato |
-| 4.7 Espera y cuestionario | Pendiente | |
+| 4.6 Validar el plan en servidor | Hecho, en producción | Incluye las restricciones físicas, aplicadas en el catálogo |
+| 4.7 Espera y cuestionario | Parcial | El cuestionario se abre con las respuestas del último plan. Falta mejorar la pantalla de espera |
 | 5.1 Entrada a admin en móvil | Hecho | |
 | 5.2 Actividad por usuario | Hecho, en producción | Falta crear cuentas desde el panel |
 | 5.3 Pro en bloque | Pendiente | Sin prisa: los testers se quedan como están |
@@ -104,9 +104,12 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **3.5** El esqueleto de carga de Ejercicios va solo en la zona de resultados; el campo de búsqueda no se desmonta y conserva el foco al escribir. El campo es de tipo búsqueda para que el teclado muestre la tecla Buscar.
 - **4.1, 4.3, 4.4, 4.5** Tabla `plan_generations` (`schemas/add-plan-generations.sql`) y función `generate-plan`: el teléfono envía un `requestId` (que es el id del plan); un reintento con el mismo id devuelve el plan guardado sin llamar a OpenAI; un id en curso recibe 409 y el cliente espera. El cliente (`src/lib/ai/openai.ts`) guarda el id pendiente por cuestionario y `savePlan` tolera el reintento de un plan ya guardado. Prueba real: 12 s, 16/16 ejercicios; repetida, 0,8 s y `reused`; id en curso, 409; 2.401 + 1.056 tokens.
 - **4.5, 4.6** `generate-plan`: el catálogo que ve el modelo ya no son las primeras 150 filas sin orden, sino 150 ejercicios repartidos entre categorías, con semilla en el `requestId` (antes los planes repetían siempre los ejercicios del principio del catálogo). `resolvePlan` valida la respuesta: descarta ejercicios inventados o repetidos en el día, acota series (1-6), repeticiones (1-50) y descanso (15-300 s), deja 2 indicaciones de 90 caracteres como mucho, descarta días con menos de 3 ejercicios válidos, rechaza un plan con menos de 2 días y etiqueta los días A, B, C por posición. Sin llamadas extra a OpenAI. Prueba real: 12 s, 4 días de 4 ejercicios, 16/16, 2.423 + 916 tokens.
+- **4.6 (restricciones)** `schemas/add-exercise-movement-flags.sql`: columna `exercises.movement_flags` (`jumps`, `high_impact`, `heavy_lifting`) calculada por reglas fijas sobre el nombre, con trigger para ejercicios nuevos o renombrados. De 1.176: 34 saltos, 55 alto impacto (incluye los saltos), 92 cargas pesadas. `generate-plan` deja fuera del catálogo los ejercicios marcados con una restricción activa, así el modelo no puede elegirlos. Prueba real con saltos e impacto restringidos: 16/16 ejercicios, ninguno marcado.
+- **4.7 (cuestionario)** `intake-form.tsx` parte de las respuestas del plan más reciente (`payload.meta`) si el usuario aún no tocó nada; funciona con la copia local. La tabla `intake` sigue sin usarse: el cuestionario vive en cada plan.
 - **4.2** Bloqueo inmediato en "Generar plan" (`intake-form.tsx`) y "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes.
 - **5.1** Entrada "Panel de administración" en Ajustes solo para admins y botón de volver en `/admin`.
 - **5.2 (detalle)** Tocar un usuario en `/admin` despliega su cuestionario, sus planes con los ejercicios de cada día y sus últimas 20 sesiones (acción `userDetail` de `admin-api`, solo lectura; un usuario normal recibe 403). El cuestionario sale de `payload.meta` del plan más reciente: la tabla `intake` no la escribe la app (0 filas).
+- **5.5 (nombre)** `schemas/add-profile-name-from-signup.sql`: el trigger de alta copia `full_name` a `profiles.name` (antes solo el correo) y se rellenaron los 9 perfiles que lo tenían en los metadatos.
 - **5.5** El único administrador no puede eliminarse desde el panel ni borrando su propia cuenta; la lista muestra el nombre cuando existe.
 - **5.2, 5.4** Función SQL `admin_user_activity()` (`schemas/add-admin-user-activity.sql`, solo `service_role`) y `admin-api` desplegada: último entreno, sesiones, series, último acceso, planes y generaciones por usuario; tarjeta "Activos 7 días"; orden por alta, entreno reciente o inactividad; mensaje de red en español con límite de 20 s. Dato del 2026-10-12: de 11 usuarios solo 1 entrenó en los últimos 7 días (la cuenta de pruebas); los demás no entran desde junio.
 
@@ -123,12 +126,13 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 
 ### Cambios hechos en producción (Supabase `oacjsudvmgkrtcesxjsr`)
 
-- SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`.
+- SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`, `add-exercise-movement-flags.sql`, `add-profile-name-from-signup.sql`.
+- Auth: confirmación de correo desactivada por el usuario (`mailer_autoconfirm = true`).
 - Storage: carpetas nuevas `exercise-thumbs/` y `exercise-posters/` en el bucket `CreatiFit AI` (2.310 archivos WebP, ~10 MB). Los GIF originales no se tocaron.
 - Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` y `delete-account` (sin `verify_jwt`, validan ellas). `admin-api` se desplegó dos veces (actividad por usuario; borrado de fotos).
 - Contraseña del admin cambiada.
 - Las pruebas de deshacer serie y de fotos crearon y borraron sus propias filas y archivos; no dejaron datos nuevos.
-- Segunda generación real de prueba (`qa-validation-check-1`); no guardó ningún plan en la cuenta.
+- Generaciones reales de prueba: `qa-idempotency-check-1`, `qa-validation-check-1` y `qa-constraints-check-1` (tres en total); ninguna guardó un plan en la cuenta. Dos cuentas desechables de alta creadas y eliminadas.
 - Datos de prueba: 11 series del 2026-10-12 en la cuenta de pruebas (ver al final) y un registro en `plan_generations` (`qa-idempotency-check-1`).
 
 ## Cómo se probó

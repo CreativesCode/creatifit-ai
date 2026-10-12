@@ -334,6 +334,52 @@ export function PlanEditor({
         </div>
       )}
 
+      {/* estado del guardado: arriba, junto al botón Guardar */}
+      {(problem || storageFull) && (
+        <div
+          className="cf-card flex items-start gap-2.5 mb-3"
+          style={{ padding: "12px 14px", borderRadius: 14 }}
+          role="alert"
+        >
+          {problem === "offline" ? (
+            <WifiOff size={17} className="shrink-0 mt-0.5 text-muted" />
+          ) : (
+            <AlertTriangle size={17} className="shrink-0 mt-0.5" style={{ color: "#ef4444" }} />
+          )}
+          <div className="flex-1 text-[13px] leading-snug">
+            {problem === "empty_day" &&
+              t(
+                "plans.editor.problem_empty_day",
+                "Cada día necesita al menos un ejercicio. Añade alguno a este día o quítalo."
+              )}
+            {problem === "no_days" &&
+              t("plans.editor.problem_no_days", "El plan necesita al menos un día.")}
+            {problem === "offline" &&
+              t(
+                "plans.editor.problem_offline",
+                "Sin conexión: no se pudo guardar. Tus cambios siguen en este teléfono y se guardarán al volver la conexión."
+              )}
+            {problem === "error" &&
+              t("plans.editor.problem_error", "No se pudo guardar el plan. Inténtalo de nuevo.")}
+            {!problem &&
+              storageFull &&
+              t(
+                "plans.editor.problem_storage",
+                "No queda espacio en el teléfono para conservar el borrador. Guarda antes de salir."
+              )}
+            {(problem === "offline" || problem === "error") && (
+              <button
+                className="cf-btn cf-btn-ghost cf-btn-sm mt-2"
+                disabled={saving}
+                onClick={save}
+              >
+                {t("plans.retry", "Reintentar")}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* nombre y duración */}
       <div className="cf-card mb-4" style={{ padding: 14, borderRadius: 18 }}>
         {isManual ? (
@@ -442,52 +488,6 @@ export function PlanEditor({
             }));
           }}
         />
-      )}
-
-      {/* estado del guardado */}
-      {(problem || storageFull) && (
-        <div
-          className="cf-card flex items-start gap-2.5 mt-4"
-          style={{ padding: "12px 14px", borderRadius: 14 }}
-          role="alert"
-        >
-          {problem === "offline" ? (
-            <WifiOff size={17} className="shrink-0 mt-0.5 text-muted" />
-          ) : (
-            <AlertTriangle size={17} className="shrink-0 mt-0.5" style={{ color: "#ef4444" }} />
-          )}
-          <div className="flex-1 text-[13px] leading-snug">
-            {problem === "empty_day" &&
-              t(
-                "plans.editor.problem_empty_day",
-                "Cada día necesita al menos un ejercicio. Añade alguno a este día o quítalo."
-              )}
-            {problem === "no_days" &&
-              t("plans.editor.problem_no_days", "El plan necesita al menos un día.")}
-            {problem === "offline" &&
-              t(
-                "plans.editor.problem_offline",
-                "Sin conexión: no se pudo guardar. Tus cambios siguen en este teléfono y se guardarán al volver la conexión."
-              )}
-            {problem === "error" &&
-              t("plans.editor.problem_error", "No se pudo guardar el plan. Inténtalo de nuevo.")}
-            {!problem &&
-              storageFull &&
-              t(
-                "plans.editor.problem_storage",
-                "No queda espacio en el teléfono para conservar el borrador. Guarda antes de salir."
-              )}
-            {(problem === "offline" || problem === "error") && (
-              <button
-                className="cf-btn cf-btn-ghost cf-btn-sm mt-2"
-                disabled={saving}
-                onClick={save}
-              >
-                {t("plans.retry", "Reintentar")}
-              </button>
-            )}
-          </div>
-        </div>
       )}
 
       {/* salir con cambios sin guardar */}

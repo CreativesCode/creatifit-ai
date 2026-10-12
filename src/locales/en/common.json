@@ -497,7 +497,7 @@
     "objective_name": "{{objective}} Plan",
     "no_plans": {
       "title": "You don't have plans yet",
-      "description": "Create your first personalized training plan with AI",
+      "description": "Create your first plan: with AI or by picking the exercises yourself",
       "create_first": "Create My First Plan"
     },
     "plan_details": {

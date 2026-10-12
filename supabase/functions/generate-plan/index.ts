@@ -115,6 +115,82 @@ interface Intake {
   language?: string;
   // Id de la petición (lo genera el cliente) para reintentos idempotentes.
   requestId?: string;
+  // Modo relleno (editor de planes): ver parseFill.
+  mode?: string;
+}
+
+// RELLENO ("Rellenar con IA" del editor de planes). En vez de un plan completo
+// de 4 días se piden `days` días de `blocks` ejercicios, sacados solo de los
+// grupos musculares `zones` y sin repetir los ejercicios de `exclude`. Comparte
+// con la generación normal la autenticación, los límites, la idempotencia y el
+// filtro de equipo y restricciones. Todo lo que llega del cliente se valida
+// contra listas cerradas: acaba en el prompt.
+interface FillShape {
+  scope: "day" | "plan";
+  days: number;
+  blocks: number;
+  zones: string[];
+  exclude: string[];
+}
+
+const OBJECTIVES = [
+  "fat_loss", "muscle_gain", "body_recomposition", "strength", "power", "endurance",
+  "mobility", "rehabilitation", "sports_performance", "functional_fitness", "general_health",
+];
+const LEVELS = ["beginner", "intermediate", "advanced"];
+const GENDERS = ["male", "female", "other"];
+// Valores exactos de exercises.category (espejo de src/lib/constants/exercise-categories.ts).
+const CATEGORIES = ["Chest", "Back / Wing", "Leg", "Hips", "Abs / Core", "Cardio", "General"];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const FILL_NOTE_MAX = 200;
+
+// Valida la petición de relleno y deja `intake` solo con valores permitidos.
+// Devuelve la forma pedida, o un texto con el motivo del rechazo.
+// deno-lint-ignore no-explicit-any
+function parseFill(body: any, intake: Intake): FillShape | string {
+  if (body.scope !== "day" && body.scope !== "plan") return "scope";
+  if (!OBJECTIVES.includes(String(body.objective))) return "objective";
+  if (!LEVELS.includes(String(body.level))) return "level";
+  if (!body.equipment || typeof body.equipment !== "object" || Array.isArray(body.equipment)) {
+    return "equipment";
+  }
+  const int = (value: unknown, min: number, max: number, fallback: number) => {
+    const n = Math.round(Number(value));
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+  };
+  const zones = Array.isArray(body.zones)
+    ? CATEGORIES.filter((category) => body.zones.includes(category))
+    : [];
+  const exclude = Array.isArray(body.exclude)
+    ? body.exclude.filter((id: unknown) => typeof id === "string" && UUID_RE.test(id)).slice(0, 120)
+    : [];
+
+  intake.gender = GENDERS.includes(String(body.gender)) ? String(body.gender) : "other";
+  intake.age = int(body.age, 16, 80, 30);
+  intake.weightKg = int(body.weightKg, 30, 200, 70);
+  intake.heightCm = int(body.heightCm, 120, 250, 170);
+  intake.stepsDay = undefined;
+  intake.notes =
+    typeof body.note === "string" && body.note.trim()
+      ? body.note.replace(/\s+/g, " ").trim().slice(0, FILL_NOTE_MAX)
+      : undefined;
+  // Solo claves booleanas: nada de texto libre dentro de equipo o restricciones.
+  const flags = (source: unknown) =>
+    Object.fromEntries(
+      Object.entries((source ?? {}) as Record<string, unknown>)
+        .filter(([key, value]) => /^[a-z_]{1,40}$/.test(key) && value === true)
+        .map(([key]) => [key, true])
+    );
+  intake.equipment = flags(body.equipment);
+  intake.constraints = flags(body.constraints);
+
+  return {
+    scope: body.scope,
+    days: body.scope === "day" ? 1 : int(body.days, 2, 7, 3),
+    blocks: int(body.blocks, 1, 8, 5),
+    zones,
+    exclude,
+  };
 }
 
 // Idioma en el que el modelo debe escribir el texto legible (focus + cues).
@@ -203,7 +279,8 @@ async function fetchExercises(
   supabase: SupabaseClient,
   equipment: Record<string, boolean> | undefined,
   seed: string,
-  constraints?: Record<string, boolean>
+  constraints?: Record<string, boolean>,
+  fill?: FillShape
 ): Promise<DbExercise[]> {
   // Restricciones físicas activas (saltos, alto impacto, cargas pesadas). Los
   // ejercicios marcados con alguna de ellas (columna movement_flags, ver
@@ -230,6 +307,18 @@ async function fetchExercises(
 
   const owned = equipment ?? {};
   let rows = all.filter((exercise) => isAvailable(exercise, owned));
+  if (fill) {
+    // Relleno: solo las zonas pedidas y sin lo que el día ya tiene. Aquí no hay
+    // red de seguridad: caer a "todo el peso corporal" ignoraría la zona, así
+    // que si no alcanza se devuelve lo que haya y el llamador avisa al usuario.
+    const excluded = new Set(fill.exclude);
+    rows = rows.filter(
+      (exercise) =>
+        !excluded.has(exercise.id) &&
+        (fill.zones.length === 0 || fill.zones.includes((exercise.category || "").trim()))
+    );
+    return balancedSample(rows, CATALOG_SIZE, seed);
+  }
   // Red de seguridad: con muy poco donde elegir, se usa todo el peso corporal.
   if (rows.length < MIN_CATALOG) {
     rows = all.filter((exercise) => /no equipment/i.test(String(exercise.equipment || "")));
@@ -237,7 +326,7 @@ async function fetchExercises(
   return balancedSample(rows, CATALOG_SIZE, seed);
 }
 
-function buildSystemPrompt(intake: Intake, exercises: DbExercise[]): string {
+function buildSystemPrompt(intake: Intake, exercises: DbExercise[], fill?: FillShape): string {
   // Lista numerada: el modelo referencia ejercicios por su número (`ref`), nunca por
   // nombre libre. Esto elimina la posibilidad de que invente ejercicios inexistentes.
   const exerciseList = exercises
@@ -271,6 +360,13 @@ function buildSystemPrompt(intake: Intake, exercises: DbExercise[]): string {
 
   const lang = languageName(intake.language);
 
+  // Regla 2: el plan completo son 4 días; el relleno pide una forma exacta.
+  const shapeRule = !fill
+    ? `Produce 4 days labelled "A", "B", "C", "D", each with a distinct focus and 4-6 blocks.`
+    : fill.days === 1
+      ? `Produce exactly 1 day labelled "A" with exactly ${fill.blocks} blocks.`
+      : `Produce exactly ${fill.days} days labelled "A", "B", "C"…, each with a distinct focus and exactly ${fill.blocks} blocks. Do not use the same exercise in two different days.`;
+
   return `You are an expert personal fitness trainer. Create a personalized training plan based on the user's data.
 
 You MUST respond ONLY with valid JSON. No prose, no markdown — just the JSON object.
@@ -297,7 +393,7 @@ RESPONSE FORMAT (follow EXACTLY):
 
 CRITICAL RULES:
 1. Every "ref" MUST be a number that exists in the AVAILABLE EXERCISES list. Never invent exercises or names.
-2. Produce 4 days labelled "A", "B", "C", "D", each with a distinct focus and 4-6 blocks.
+2. ${shapeRule}
 3. Pick exercises that match the user's equipment, level, objective and the RPN ranges above.
 4. Use the RPN sets/reps/rest ranges; vary within them to fit each exercise.
 5. Provide 1-2 very short form cues per block (max 8 words each).
@@ -305,7 +401,26 @@ CRITICAL RULES:
 7. Write the "focus" text and ALL "cues" in ${lang}. Do NOT translate or modify exercise names — they are resolved from the reference list by number.`;
 }
 
-function buildUserPrompt(intake: Intake): string {
+function buildUserPrompt(intake: Intake, fill?: FillShape): string {
+  if (fill) {
+    const zones = fill.zones.length > 0 ? fill.zones.join(", ") : "full body";
+    const what =
+      fill.days === 1
+        ? `ONE training day with exactly ${fill.blocks} exercises`
+        : `${fill.days} training days with exactly ${fill.blocks} exercises each`;
+    return `Build ${what} for:
+- Objective: ${intake.objective}
+- Fitness level: ${intake.level}
+- Gender: ${intake.gender || "not specified"}
+- Age: ${intake.age}
+- Weight: ${intake.weightKg}kg
+- Height: ${intake.heightCm}cm
+- Target muscle groups: ${zones}
+
+Every exercise in the AVAILABLE EXERCISES list already belongs to the target muscle groups.
+Order the exercises sensibly (compound movements first). Return the JSON with "weeks": 8.
+Remember: reference exercises ONLY by their number from the AVAILABLE EXERCISES list.`;
+  }
   return `Create a ${intake.weeks}-week training plan for:
 - Objective: ${intake.objective}
 - Fitness level: ${intake.level}
@@ -409,10 +524,14 @@ const MIN_DAYS = 2;
 // - los días con menos de MIN_BLOCKS_PER_DAY ejercicios válidos se descartan;
 // - los días se etiquetan A, B, C… por posición, que es como los guarda la app
 //   (el modelo a veces devolvía "Day 1", "Lunes" o etiquetas repetidas).
-function resolvePlan(raw: any, exercises: DbExercise[]) {
+function resolvePlan(raw: any, exercises: DbExercise[], fill?: FillShape) {
   const days = Array.isArray(raw?.days) ? raw.days : [];
   let total = 0;
   let matched = 0;
+  // En el relleno vale un día con un solo ejercicio, y no se repite ninguno
+  // entre días; nunca se devuelve más de lo pedido.
+  const minBlocks = fill ? 1 : MIN_BLOCKS_PER_DAY;
+  const usedInPlan = new Set<string>();
 
   const usableDays = days
     .map((day: any) => {
@@ -427,7 +546,9 @@ function resolvePlan(raw: any, exercises: DbExercise[]) {
               ? exercises[ref - 1]
               : undefined;
           if (!exercise || seen.has(exercise.id)) return null;
+          if (fill && (usedInPlan.has(exercise.id) || seen.size >= fill.blocks)) return null;
           seen.add(exercise.id);
+          usedInPlan.add(exercise.id);
 
           matched++;
           const reps = Array.isArray(block?.reps) ? block.reps : [];
@@ -449,8 +570,8 @@ function resolvePlan(raw: any, exercises: DbExercise[]) {
 
       return { focus: String(day?.focus || "").slice(0, 80), blocks: resolvedBlocks };
     })
-    .filter((day: { blocks: unknown[] }) => day.blocks.length >= MIN_BLOCKS_PER_DAY)
-    .slice(0, 7);
+    .filter((day: { blocks: unknown[] }) => day.blocks.length >= minBlocks)
+    .slice(0, fill ? fill.days : 7);
 
   const resolvedDays = usableDays.map(
     (day: { focus: string; blocks: unknown[] }, index: number) => ({
@@ -504,6 +625,20 @@ Deno.serve(async (req: Request) => {
         status: 400,
         headers: jsonHeaders,
       });
+    }
+
+    // Relleno: validación estricta. `fill` queda sin definir en la generación
+    // de plan completo, que sigue exactamente igual que antes.
+    let fill: FillShape | undefined;
+    if (intake.mode === "fill") {
+      const parsedFill = parseFill(intake, intake);
+      if (typeof parsedFill === "string") {
+        return new Response(JSON.stringify({ error: "INVALID_FILL", field: parsedFill }), {
+          status: 400,
+          headers: jsonHeaders,
+        });
+      }
+      fill = parsedFill;
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -651,8 +786,19 @@ Deno.serve(async (req: Request) => {
       supabase,
       intake.equipment,
       requestId,
-      intake.constraints
+      intake.constraints,
+      fill
     );
+
+    // Relleno: zona + equipo pueden dejar muy poco donde elegir. Se avisa antes
+    // de llamar a la IA; una generación fallida no gasta cupo.
+    if (fill && exercises.length < fill.days * fill.blocks) {
+      await failGeneration("not enough exercises for the requested zones");
+      return new Response(
+        JSON.stringify({ error: "NOT_ENOUGH_EXERCISES", available: exercises.length }),
+        { status: 422, headers: jsonHeaders }
+      );
+    }
 
     if (exercises.length === 0) {
       await failGeneration("no exercises matched equipment");
@@ -666,8 +812,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // 2) + 3) Llamar a OpenAI con la lista inyectada.
-    const systemPrompt = buildSystemPrompt(intake, exercises);
-    const userPrompt = buildUserPrompt(intake);
+    const systemPrompt = buildSystemPrompt(intake, exercises, fill);
+    const userPrompt = buildUserPrompt(intake, fill);
 
     let ai: AiResult;
     try {
@@ -695,10 +841,10 @@ Deno.serve(async (req: Request) => {
     }
 
     // 4) Resolver refs -> ejercicios reales.
-    const { plan, matched, total, daysReturned } = resolvePlan(parsed, exercises);
+    const { plan, matched, total, daysReturned } = resolvePlan(parsed, exercises, fill);
     if (!plan.weeks) plan.weeks = intake.weeks || 8;
 
-    if (matched === 0 || plan.days.length < MIN_DAYS) {
+    if (matched === 0 || plan.days.length < (fill ? 1 : MIN_DAYS)) {
       console.error("Plan no utilizable tras validar", {
         total,
         matched,
@@ -714,7 +860,13 @@ Deno.serve(async (req: Request) => {
 
     // Guardar el resultado ANTES de responder: si la respuesta no llega al
     // teléfono, el reintento con el mismo requestId lo recupera de aquí.
-    const meta = { matched, total, days: plan.days.length, days_returned: daysReturned };
+    const meta = {
+      matched,
+      total,
+      days: plan.days.length,
+      days_returned: daysReturned,
+      ...(fill ? { mode: "fill", scope: fill.scope, zones: fill.zones } : {}),
+    };
     await supabase
       .from("plan_generations")
       .update({

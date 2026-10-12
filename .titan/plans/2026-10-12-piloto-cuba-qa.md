@@ -4,14 +4,14 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **24 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **26 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
 | Tarea | Estado | Nota |
 |---|---|---|
 | 0.1 Usuarios no pueden ponerse Pro/admin | Hecho, en producción | Verificado 403 |
-| 0.2 Alta y recuperación de contraseña | **Espera decisión del usuario** | A: quitar confirmación de correo. B: mantenerla con SMTP propio y URL pública |
+| 0.2 Alta y recuperación de contraseña | **Decidido: sin confirmación de correo. Falta que el usuario lo desactive en el panel de Supabase** | El token de esta máquina recibe 403 al cambiar la configuración de Auth. Authentication > Sign In / Providers > Email > desactivar "Confirm email". La app ya entra directa cuando el alta devuelve sesión. Recuperar contraseña desde el APK sigue sin resolver |
 | 0.3 Key de RevenueCat y compra en Cuba | Decidido: no tocar | Los testers se quedan con su tier. La key de Test Store en el build sigue pendiente para cuando se prepare el APK |
 | 0.4 WebView mínimo | Pendiente | Al preparar el APK |
 | 0.5 Build limpio y `cap sync` | Pendiente | Al preparar el APK |
@@ -39,7 +39,7 @@ Actualizado: 2026-10-12. **24 commits locales, sin push.** Todo lo marcado como 
 | 2.8 Fechas en día local | Hecho | |
 | 2.9 Cerrar sesión sin red, claves por usuario | Pendiente | |
 | 2.10 RevenueCat usuario anónimo | Pendiente | |
-| 3.1 Peso de los GIF | Pendiente | La más larga: exige reprocesar los archivos guardados |
+| 3.1 Peso de los GIF | Hecho, en producción | 19 ejercicios del catálogo apuntan a un GIF que no existe en Storage |
 | 3.2 Una sola URL por imagen | Hecho | |
 | 3.3 Fotos de progreso | Hecho | Las fotos ya subidas siguen con su tamaño original |
 | 3.4, 3.6, 3.7 Resto de consumo | Pendiente | |
@@ -61,7 +61,6 @@ Actualizado: 2026-10-12. **24 commits locales, sin push.** Todo lo marcado como 
 
 ### Siguiente por hacer, en este orden
 
-1. 3.1 (GIF): el mayor consumo de datos. Exige reprocesar los archivos guardados en Storage; **espera confirmación del usuario**.
 2. Resto de 1.6: editar o borrar series desde el historial.
 3. 2.9 y 2.10 (cerrar sesión sin red, RevenueCat anónimo), restos de 2.3 y 2.5.
 4. 3.4, 3.6 y 3.7.
@@ -93,6 +92,7 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **2.5** Banda "Sin conexión / conexión inestable · mostrando datos guardados" (`connection-banner.tsx`).
 - **2.6** `src/lib/profile-flags.ts`: tier e `is_admin` en un almacén único que parte del último valor conocido en el teléfono, no degrada a Free ni a "no admin" por un fallo de lectura, y relee al volver a primer plano (como mucho una vez por minuto) y al recuperar conexión. Lo usan `revenuecat-context.tsx`, `use-is-admin.ts` y `/admin`, que ofrece reintentar en vez de "Acceso denegado" si no pudo leer el perfil. Antes eran tres lecturas separadas de `profiles`; ahora una.
 - **2.8** Historial, fecha por defecto de Mi cuerpo, logros, racha de logros, volumen semanal y progreso de fuerza usan el día local (`localDay` de `streak.ts`).
+- **3.1** `scripts/build-exercise-thumbs.mjs` genera del primer fotograma de cada GIF una miniatura de 160 px (`exercise-thumbs/`, ~2 KB) y una imagen fija de 480 px (`exercise-posters/`, ~7 KB), con caché de un año, sin tocar los GIF. Subidas 1.155 de 1.174. Las listas (Ejercicios, días del plan, alternativas, "a continuación") usan la miniatura con `ExerciseThumb`, que cae al GIF si falta. Sesión y detalle usan `ExerciseAnimation`: con "Ahorro de datos" (Ajustes; por defecto activo solo si el teléfono pide ahorro o la conexión es 2G/3G) muestran la imagen fija y bajan el GIF al tocar "Ver animación". Medido: primera pantalla de Ejercicios de 3,2 MB a 35 KB; tras desplazar, de 8 MB a 76 KB; primer ejercicio de la sesión de 688 KB a 6 KB con ahorro activo.
 - **3.2** `src/lib/exercise-media.ts` es el único constructor de la URL de imagen; lo usan ejercicios, detalle, planes y sesión. Comprobado: 56 imágenes pedidas, ninguna con doble barra ni repetida.
 - **3.3** `src/lib/image-compress.ts` reduce la foto en el teléfono (1280 px, JPEG) y genera una miniatura de 240 px; `uploadProgressPhoto` sube ambas (`p2-<ts>-<bytes>.jpg` y `.thumb.jpg`) con caché de un año. `getPhotoUrls` firma todas en una sola petición y reutiliza cada URL firmada durante 24 h, guardada por usuario. La lista usa la miniatura; la foto completa solo se pide para el "antes y después". Medido: 1,78 MB pasan a 264 KB más 19 KB; segunda visita, cero peticiones de firma y foto servida desde la caché del teléfono. Borrar un registro borra también la miniatura.
 - **3.5** El esqueleto de carga de Ejercicios va solo en la zona de resultados; el campo de búsqueda no se desmonta y conserva el foco al escribir. El campo es de tipo búsqueda para que el teclado muestre la tecla Buscar.
@@ -104,6 +104,7 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 ### Cambios hechos en producción (Supabase `oacjsudvmgkrtcesxjsr`)
 
 - SQL aplicados: `harden-profiles-privileges.sql`, `add-plan-generations.sql`, `add-admin-user-activity.sql`.
+- Storage: carpetas nuevas `exercise-thumbs/` y `exercise-posters/` en el bucket `CreatiFit AI` (2.310 archivos WebP, ~10 MB). Los GIF originales no se tocaron.
 - Funciones desplegadas: `generate-plan` (con `verify_jwt`), `admin-api` (sin `verify_jwt`, valida ella).
 - Contraseña del admin cambiada.
 - Las pruebas de deshacer serie y de fotos crearon y borraron sus propias filas y archivos; no dejaron datos nuevos.

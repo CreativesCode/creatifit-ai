@@ -52,7 +52,8 @@ Sustituye lo dicho arriba sobre la sesión donde choque.
 - **Corregir y saltar:** "Corregir la serie anterior" (en el descanso y en la hoja de opciones "⋯") borra la última serie y vuelve a ella con sus valores. La misma hoja permite "Saltar este ejercicio" y "Terminar aquí".
 - **Sin conexión:** planes, ejercicios del plan, historial, favoritos y medidas se ven desde la última copia guardada, con una banda que lo avisa. Generar o mejorar un plan, comprar y el panel admin exigen red.
 - **Fechas:** historial, Mi cuerpo, logros, volumen semanal y progreso de fuerza usan el día local.
-- **Ejercicios:** el campo de búsqueda conserva el foco mientras cargan los resultados.
+- **Ejercicios:** el campo de búsqueda conserva el foco mientras cargan los resultados. Las listas muestran miniaturas fijas; la animación solo se ve en el detalle y en la sesión.
+- **Ahorro de datos** (Ajustes): en detalle y sesión muestra una imagen fija con "Ver animación". Sin elección del usuario se activa solo si el teléfono pide ahorro de datos o informa 2G/3G.
 - **Admin:** se entra desde Ajustes (solo admins) y el panel muestra actividad por usuario.
 
 Fuentes: `src/app/**/page.tsx`, `src/components/forms/intake-form.tsx`, `src/components/ui/workout-session.tsx`, `src/lib/ai/improve-plan.ts`, `src/lib/progress/*`, `src/lib/validators/schemas.ts`, `docs/PLAN-ENGAGEMENT-FEATURES.md`.

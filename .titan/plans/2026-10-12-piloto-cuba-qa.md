@@ -4,7 +4,7 @@ Fecha de la auditoría: 2026-10-12. Estado: **en ejecución**; el avance está e
 
 ## Progreso
 
-Actualizado: 2026-10-12. **28 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
+Actualizado: 2026-10-12. **33 commits locales, sin push.** Todo lo marcado como hecho está verificado en navegador con perfil de teléfono contra el Supabase real, **no en un APK ni en un teléfono físico**.
 
 ### Estado por tarea
 
@@ -31,18 +31,19 @@ Actualizado: 2026-10-12. **28 commits locales, sin push.** Todo lo marcado como 
 | 1.15 Navegación oculta y teclado | Hecho (parcial) | Falta revisar menú de 6 pestañas a 360 px |
 | 2.1 No expulsar al login sin red | Hecho | |
 | 2.2 Límite de tiempo | Hecho | |
-| 2.3 Error distinto de vacío | Hecho (parcial) | Falta historial y Mi cuerpo |
+| 2.3 Error distinto de vacío | Hecho | |
 | 2.4 Reintentar funciona | Hecho | |
-| 2.5 Errores legibles y banda sin conexión | Hecho (parcial) | Falta traducir los errores del login |
+| 2.5 Errores legibles y banda sin conexión | Hecho | |
 | 2.6 Tier y refresco al volver | Hecho | La parte de RevenueCat nativo solo se confirma en dispositivo |
-| 2.7 Descargas repetidas del historial | Parcial | Hay copia local, pero sigue siendo red primero en cada visita |
+| 2.7 Descargas repetidas del historial | Hecho | Una descarga compartida durante 60 s, paginada. No es sincronización incremental: cada descarga trae el historial entero |
 | 2.8 Fechas en día local | Hecho | |
-| 2.9 Cerrar sesión sin red, claves por usuario | Pendiente | |
-| 2.10 RevenueCat usuario anónimo | Pendiente | |
+| 2.9 Cerrar sesión sin red, claves por usuario | Hecho | |
+| 2.10 RevenueCat usuario anónimo | Hecho en código | Solo se confirma en dispositivo |
 | 3.1 Peso de los GIF | Hecho, en producción | 19 ejercicios del catálogo apuntan a un GIF que no existe en Storage |
 | 3.2 Una sola URL por imagen | Hecho | |
 | 3.3 Fotos de progreso | Hecho | Las fotos ya subidas siguen con su tamaño original |
-| 3.4, 3.6, 3.7 Resto de consumo | Pendiente | |
+| 3.4 Peticiones repetidas | Hecho (parcial) | Resuelto para el historial y su detalle. Volver del detalle de un ejercicio sigue recargando la lista |
+| 3.6, 3.7 Arranque web y peso del bundle | Pendiente | 3.6 es de baja prioridad si el piloto es solo APK |
 | 3.5 Buscador de ejercicios | Hecho | |
 | 4.1 Generación que no se pierde | Hecho, en producción | Una generación real de prueba |
 | 4.2 Doble toque en generar/mejorar | Hecho | |
@@ -61,8 +62,7 @@ Actualizado: 2026-10-12. **28 commits locales, sin push.** Todo lo marcado como 
 
 ### Siguiente por hacer, en este orden
 
-3. 2.9 y 2.10 (cerrar sesión sin red, RevenueCat anónimo), restos de 2.3 y 2.5.
-4. 3.4, 3.6 y 3.7.
+3. 3.7 (peso del bundle y blur en gama baja) y el resto de 3.4.
 5. Fase 6.
 6. Al preparar el APK: 0.4, 0.5 y la prueba en teléfono de todo lo marcado como "dispositivo".
 
@@ -90,8 +90,13 @@ Autorizaciones vigentes del usuario (2026-10-12): desplegar las Edge Functions q
 - **2.2** `src/lib/supabase-config.ts`: 15 s por petición, 120 s para Edge Functions y Storage.
 - **2.3, 2.4** Componente `LoadError` con "Reintentar" en inicio, planes, ejercicios y sesión; el reintento limpia el error.
 - **2.5** Banda "Sin conexión / conexión inestable · mostrando datos guardados" (`connection-banner.tsx`).
+- **2.3 (resto)** Historial y Mi cuerpo muestran `LoadError` con "Reintentar" cuando la carga falla y no hay nada guardado, en vez de "aún no hay entrenamientos" o "añade tu primer registro".
+- **2.5 (resto)** `translateAuthError` (`auth-screen.tsx`) traduce sin conexión, contraseña débil, correo inválido y registro desactivado, y nunca muestra el texto crudo del servidor.
 - **2.6** `src/lib/profile-flags.ts`: tier e `is_admin` en un almacén único que parte del último valor conocido en el teléfono, no degrada a Free ni a "no admin" por un fallo de lectura, y relee al volver a primer plano (como mucho una vez por minuto) y al recuperar conexión. Lo usan `revenuecat-context.tsx`, `use-is-admin.ts` y `/admin`, que ofrece reintentar en vez de "Acceso denegado" si no pudo leer el perfil. Antes eran tres lecturas separadas de `profiles`; ahora una.
+- **2.7, 3.4** `supabase-client.ts`: `getLogs` pide solo las columnas usadas y por páginas de 1.000 (antes se truncaba en silencio). Las llamadas comparten una descarga durante 60 s, que se descarta si cambia la cola de series. Al resultado se le suman las series aún en el teléfono y se le quitan los borrados pendientes, así el historial cuadra sin red. El detalle de una sesión sale de esa lista. Medido: inicio, historial, detalle y planes seguidos hacen 1 petición de historial (antes hasta 5).
 - **2.8** Historial, fecha por defecto de Mi cuerpo, logros, racha de logros, volumen semanal y progreso de fuerza usan el día local (`localDay` de `streak.ts`).
+- **2.9** `signOut` (`auth-context.tsx`) da 3 s al servidor y después cierra en el teléfono pase lo que pase. `src/lib/local-data.ts` borra al cerrar sesión la copia local, el tier guardado, la sesión a medias y la generación pendiente de esa cuenta; las series sin enviar se conservan para cuando vuelva a entrar. Eliminar la cuenta sin red avisa de que no se eliminó. Probado sin red: cierre en 2,9 s y sin claves de la cuenta en el teléfono.
+- **2.10** El efecto de identidad de RevenueCat depende también de `ready`.
 - **3.1** `scripts/build-exercise-thumbs.mjs` genera del primer fotograma de cada GIF una miniatura de 160 px (`exercise-thumbs/`, ~2 KB) y una imagen fija de 480 px (`exercise-posters/`, ~7 KB), con caché de un año, sin tocar los GIF. Subidas 1.155 de 1.174. Las listas (Ejercicios, días del plan, alternativas, "a continuación") usan la miniatura con `ExerciseThumb`, que cae al GIF si falta. Sesión y detalle usan `ExerciseAnimation`: con "Ahorro de datos" (Ajustes; por defecto activo solo si el teléfono pide ahorro o la conexión es 2G/3G) muestran la imagen fija y bajan el GIF al tocar "Ver animación". Medido: primera pantalla de Ejercicios de 3,2 MB a 35 KB; tras desplazar, de 8 MB a 76 KB; primer ejercicio de la sesión de 688 KB a 6 KB con ahorro activo.
 - **3.2** `src/lib/exercise-media.ts` es el único constructor de la URL de imagen; lo usan ejercicios, detalle, planes y sesión. Comprobado: 56 imágenes pedidas, ninguna con doble barra ni repetida.
 - **3.3** `src/lib/image-compress.ts` reduce la foto en el teléfono (1280 px, JPEG) y genera una miniatura de 240 px; `uploadProgressPhoto` sube ambas (`p2-<ts>-<bytes>.jpg` y `.thumb.jpg`) con caché de un año. `getPhotoUrls` firma todas en una sola petición y reutiliza cada URL firmada durante 24 h, guardada por usuario. La lista usa la miniatura; la foto completa solo se pide para el "antes y después". Medido: 1,78 MB pasan a 264 KB más 19 KB; segunda visita, cero peticiones de firma y foto servida desde la caché del teléfono. Borrar un registro borra también la miniatura.

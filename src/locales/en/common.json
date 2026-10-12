@@ -130,6 +130,9 @@
     "generating": "Generating Your Plan..."
   },
   "equipment": {
+    "full_gym": "Full gym (machines and cables)",
+    "kettlebell": "Kettlebell",
+    "exercise_ball": "Exercise ball",
     "none": "No Equipment (Bodyweight Only)",
     "wall": "Wall",
     "chair": "Chair/Stool",

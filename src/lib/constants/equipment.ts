@@ -127,6 +127,24 @@ export const EQUIPMENT_OPTIONS: EquipmentOption[] = [
     description: "Plataforma vibratoria",
   },
   {
+    key: "full_gym",
+    label: "Full Gym",
+    category: "specialized",
+    description: "Gimnasio completo: máquinas, poleas y todo lo demás",
+  },
+  {
+    key: "kettlebell",
+    label: "Kettlebell",
+    category: "weight",
+    description: "Pesa rusa",
+  },
+  {
+    key: "exercise_ball",
+    label: "Exercise Ball",
+    category: "specialized",
+    description: "Pelota de ejercicio (fitball)",
+  },
+  {
     key: "power_rack",
     label: "Power Rack",
     category: "specialized",

@@ -24,6 +24,9 @@ export const EquipmentSchema = z.object({
   bench: z.boolean().optional(),
   incline_bench: z.boolean().optional(),
   dip_bars: z.boolean().optional(),
+  full_gym: z.boolean().optional(),
+  kettlebell: z.boolean().optional(),
+  exercise_ball: z.boolean().optional(),
 });
 
 // Restricciones / lesiones reutilizable (intake + generación de plan).

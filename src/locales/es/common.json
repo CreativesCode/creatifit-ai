@@ -130,6 +130,9 @@
     "generating": "Generando Tu Plan..."
   },
   "equipment": {
+    "full_gym": "Gimnasio completo (máquinas y poleas)",
+    "kettlebell": "Pesa rusa (kettlebell)",
+    "exercise_ball": "Pelota de ejercicio",
     "none": "Sin Equipamiento (Solo Peso Corporal)",
     "wall": "Pared",
     "chair": "Silla/Taburete",

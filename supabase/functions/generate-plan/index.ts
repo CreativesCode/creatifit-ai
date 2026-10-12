@@ -38,32 +38,67 @@ const corsHeaders = {
 // columna `equipment` (texto libre) de la tabla `exercises`. Ej. de valores reales:
 // "Full Gym, NO EQUIPMENT", "Dumbbells, Full Gym", "Full Gym, Resistance Band"...
 // Casi todo el catálogo es kind="strength", así que NO filtramos por kind.
-const EQUIPMENT_TERMS: Record<string, string> = {
-  // Peso corporal / casero -> ejercicios marcados como "NO EQUIPMENT"
-  none: "NO EQUIPMENT",
-  wall: "NO EQUIPMENT",
-  chair: "NO EQUIPMENT",
-  table: "NO EQUIPMENT",
-  yoga_mat: "NO EQUIPMENT",
-  pushup_handles: "NO EQUIPMENT",
-  jump_rope: "NO EQUIPMENT",
-  ab_wheel: "NO EQUIPMENT",
-  pullup_bar: "NO EQUIPMENT",
-  dip_bars: "NO EQUIPMENT",
-  vibration_platform: "NO EQUIPMENT",
-  // Con equipamiento -> término que aparece en la columna
-  resistance_band: "Resistance Band",
-  resistance_tubes: "Resistance Band",
-  dumbbells: "Dumbbell",
-  barbell: "Barbell",
-  weight_plates: "Plate",
-  ez_bar: "Barbell",
-  trap_bar: "Barbell",
-  power_rack: "Full Gym",
-  bench: "Bench",
-  incline_bench: "Bench",
-  foam_roller: "Foam Roller",
+// EQUIPAMIENTO
+// La columna `equipment` del catálogo es una lista separada por comas, por
+// ejemplo "Barbell, Bench, Full Gym". "Full Gym" está en casi todas las filas
+// (significa "se puede hacer en un gimnasio completo") y "NO EQUIPMENT" marca el
+// peso corporal; el resto son los aparatos que el ejercicio NECESITA.
+// Un ejercicio se ofrece solo si el usuario tiene todo lo que necesita. Cada
+// aparato del catálogo se cubre con cualquiera de estas opciones del cuestionario;
+// los que no aparecen aquí (Machine, Cable, Landmine, TRX, Gymstick…) solo están
+// disponibles con "Gimnasio completo".
+const TOKEN_NEEDS: Record<string, string[]> = {
+  dumbbells: ["dumbbells"],
+  dumbbell: ["dumbbells"],
+  barbell: ["barbell", "ez_bar", "trap_bar"],
+  bench: ["bench", "incline_bench"],
+  "resistance band": ["resistance_band", "resistance_tubes"],
+  plate: ["weight_plates"],
+  "weight plate": ["weight_plates"],
+  "foam roller": ["foam_roller"],
+  kettlebell: ["kettlebell"],
+  "exercise ball": ["exercise_ball"],
 };
+
+// Aparatos que el catálogo no declara pero que el nombre delata (dominadas,
+// fondos, rueda abdominal…). Se exige alguno de los indicados.
+const NAME_NEEDS: [RegExp, string[]][] = [
+  [/\b(pull-?ups?|chin-?ups?|muscle-?ups?|dead hang|hanging|back lever|human flag|around the bar)\b/i, ["pullup_bar"]],
+  // Fondos en barras o anillas; los de silla, banco o suelo no piden nada especial.
+  [/\b(parallel bar|straight bar|korean|impossible|ring)\b.*\bdips?\b/i, ["dip_bars"]],
+  [/\bab wheel\b/i, ["ab_wheel"]],
+  [/\bjump rope\b/i, ["jump_rope"]],
+  [/\bpush-?up bars\b/i, ["pushup_handles"]],
+  [/\bbench\b/i, ["bench", "incline_bench", "chair"]],
+];
+
+function isAvailable(exercise: DbExercise, equipment: Record<string, boolean>): boolean {
+  if (equipment.full_gym) return true;
+  const has = (keys: string[]) => keys.some((key) => equipment[key] === true);
+  const raw = String(exercise.equipment || "")
+    .split(",")
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+  const bodyweight = raw.includes("no equipment");
+  const needed = raw.filter((token) => token !== "full gym" && token !== "no equipment");
+
+  // Si el catálogo lo marca también como peso corporal, el aparato es opcional.
+  if (!bodyweight) {
+    for (const token of needed) {
+      const options = TOKEN_NEEDS[token];
+      if (!options || !has(options)) return false;
+    }
+  }
+  let nameRule = false;
+  for (const [pattern, options] of NAME_NEEDS) {
+    if (!pattern.test(exercise.name)) continue;
+    nameRule = true;
+    if (!has(options)) return false;
+  }
+  // Solo "Full Gym", sin aparato concreto ni pista en el nombre: es de gimnasio.
+  if (needed.length === 0 && !bodyweight && !nameRule) return false;
+  return true;
+}
 
 interface Intake {
   weeks?: number;
@@ -103,18 +138,6 @@ interface DbExercise {
 
 // deno-lint-ignore no-explicit-any
 type SupabaseClient = any;
-
-// Términos de equipamiento a buscar en la columna `equipment`. Siempre incluimos
-// "NO EQUIPMENT" para garantizar una base de ejercicios de peso corporal.
-function equipmentTerms(equipment?: Record<string, boolean>): string[] {
-  const terms = new Set<string>(["NO EQUIPMENT"]);
-  if (equipment) {
-    for (const [key, enabled] of Object.entries(equipment)) {
-      if (enabled && EQUIPMENT_TERMS[key]) terms.add(EQUIPMENT_TERMS[key]);
-    }
-  }
-  return Array.from(terms);
-}
 
 const CATALOG_SIZE = 150;
 const MOVEMENT_FLAGS = ["jumps", "high_impact", "heavy_lifting"] as const;
@@ -171,9 +194,11 @@ function balancedSample(rows: DbExercise[], size: number, seed: string): DbExerc
   return out;
 }
 
-// Obtiene ejercicios reales de la BD que casen con el equipamiento del usuario
-// y devuelve una muestra equilibrada. La API corta en 1000 filas por petición,
-// así que se lee por páginas.
+const MIN_CATALOG = 24;
+
+// Lee el catálogo (por páginas: la API corta en 1000 filas), deja solo lo que el
+// usuario puede hacer con su equipo y sus restricciones, y devuelve una muestra
+// equilibrada entre grupos musculares.
 async function fetchExercises(
   supabase: SupabaseClient,
   equipment: Record<string, boolean> | undefined,
@@ -185,31 +210,30 @@ async function fetchExercises(
   // schemas/add-exercise-movement-flags.sql) no entran en el catálogo, así que
   // el modelo no puede elegirlos: ya no depende de que haga caso al prompt.
   const avoid = MOVEMENT_FLAGS.filter((flag) => constraints?.[flag] === true);
-  const terms = equipmentTerms(equipment);
-  const orFilter = terms.map((t) => `equipment.ilike.%${t}%`).join(",");
 
-  const readAll = async (filtered: boolean): Promise<DbExercise[]> => {
-    const all: DbExercise[] = [];
-    for (let from = 0; from < 5000; from += 1000) {
-      let query = supabase
-        .from("exercises")
-        .select("id,name,equipment,primary_muscles,category");
-      if (filtered) query = query.or(orFilter);
-      if (avoid.length > 0) query = query.not("movement_flags", "ov", `{${avoid.join(",")}}`);
-      const { data, error } = await query.order("id").range(from, from + 999);
-      if (error) {
-        console.error("exercises query error:", error);
-        break;
-      }
-      all.push(...((data ?? []) as DbExercise[]));
-      if (!data || data.length < 1000) break;
+  const all: DbExercise[] = [];
+  for (let from = 0; from < 5000; from += 1000) {
+    let query = supabase
+      .from("exercises")
+      .select("id,name,equipment,primary_muscles,category")
+      // Sin imagen no se ofrece: el usuario no vería cómo se hace.
+      .not("gif_url", "is", null);
+    if (avoid.length > 0) query = query.not("movement_flags", "ov", `{${avoid.join(",")}}`);
+    const { data, error } = await query.order("id").range(from, from + 999);
+    if (error) {
+      console.error("exercises query error:", error);
+      break;
     }
-    return all;
-  };
+    all.push(...((data ?? []) as DbExercise[]));
+    if (!data || data.length < 1000) break;
+  }
 
-  let rows = await readAll(true);
-  // Respaldo: catálogo completo (no debería hacer falta).
-  if (rows.length === 0) rows = await readAll(false);
+  const owned = equipment ?? {};
+  let rows = all.filter((exercise) => isAvailable(exercise, owned));
+  // Red de seguridad: con muy poco donde elegir, se usa todo el peso corporal.
+  if (rows.length < MIN_CATALOG) {
+    rows = all.filter((exercise) => /no equipment/i.test(String(exercise.equipment || "")));
+  }
   return balancedSample(rows, CATALOG_SIZE, seed);
 }
 

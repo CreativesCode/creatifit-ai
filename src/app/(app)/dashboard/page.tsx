@@ -2,9 +2,11 @@
 
 import { StatTile } from "@/components/ui/stat-tile";
 import { StreakCard } from "@/components/ui/streak-card";
+import { LoadError } from "@/components/ui/load-error";
 import { Mark } from "@/components/ui/brand";
 import { useAuth } from "@/lib/auth/auth-context";
-import { supabaseClient } from "@/lib/supabase-client";
+import { getExerciseCount, supabaseClient } from "@/lib/supabase-client";
+import { cacheRead } from "@/lib/local-cache";
 import { planTitle } from "@/lib/plan-display";
 import {
   computeStreak,
@@ -25,7 +27,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface RecentPlan {
@@ -58,6 +60,7 @@ export default function DashboardPage() {
     recentPlans: [],
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [today, setToday] = useState("");
   const [streak, setStreak] = useState<StreakInfo | null>(null);
 
@@ -74,12 +77,14 @@ export default function DashboardPage() {
     );
   }, [i18n.language]);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
+      setLoading(true);
+      setLoadError(false);
       try {
-        const [plansData, exercisesData, logs] = await Promise.all([
+        const [plansData, exerciseCount, logs] = await Promise.all([
           supabaseClient.getPlans(),
-          supabaseClient.getExercises(1, 1),
+          // Solo alimenta un contador: su fallo no debe tumbar el panel.
+          getExerciseCount().catch(() => null),
           supabaseClient.getLogs(),
         ]);
 
@@ -90,6 +95,13 @@ export default function DashboardPage() {
           if (log.session_id) sessionIds.add(log.session_id);
         });
 
+        // Dejar en el dispositivo los ejercicios del plan activo (una sola vez) para
+        // poder empezar a entrenar sin conexión.
+        const activeId = plansData?.[0]?.id;
+        if (activeId && !cacheRead(`plan-exercises:${activeId}`)) {
+          void supabaseClient.getPlanExercises(activeId).catch(() => undefined);
+        }
+
         // Racha viva anclada a hoy (días locales). Mismos logs que ya pedimos.
         setStreak(computeStreak(logs || [], todayLocal()));
 
@@ -98,17 +110,20 @@ export default function DashboardPage() {
           totalPlans: plansData?.length || 0,
           totalSessions: sessionIds.size,
           recentPlans: plansData?.slice(0, 3) || [],
-          totalExercises: exercisesData?.count || 0,
+          totalExercises: exerciseCount ?? prev.totalExercises,
         }));
       } catch (error) {
         console.error("💥 [DASHBOARD] Error fetching dashboard data:", error);
+        // Fallo de carga ≠ cuenta vacía: no mostrar "crea tu primer plan".
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   if (loading) {
     return (
@@ -181,7 +196,9 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 lg:flex lg:flex-col lg:gap-4">
 
       {/* ---------- Hero: plan activo / sesión de hoy ---------- */}
-      {activePlan ? (
+      {loadError ? (
+        <LoadError onRetry={fetchDashboardData} />
+      ) : activePlan ? (
         <div className="cf-card relative overflow-hidden mb-4 lg:mb-0" style={{ padding: 18, borderRadius: 24 }}>
           <div
             className="absolute pointer-events-none"

@@ -2,6 +2,7 @@
 import { CFLoader } from "@/components/ui/loader";
 import { ExerciseDetailView } from "@/components/ui/exercise-detail-view";
 import { supabaseClient } from "@/lib/supabase-client";
+import { LoadError } from "@/components/ui/load-error";
 import {
   ChevronRight,
   Dumbbell,
@@ -114,6 +115,7 @@ export default function ExercisesPage() {
 
   const fetchExercises = async (page = 1, append = false) => {
     try {
+      setError(null);
       if (append) setLoadingMore(true);
       else setLoading(true);
 
@@ -144,6 +146,7 @@ export default function ExercisesPage() {
 
   const fetchExercise = async (id: string) => {
     try {
+      setError(null);
       setLoading(true);
       const exerciseData = await supabaseClient.getExerciseById(id);
       if (exerciseData) setSelectedExercise(exerciseData);
@@ -343,16 +346,10 @@ export default function ExercisesPage() {
   // ---------- Error ----------
   if (error) {
     return (
-      <div className="container mx-auto max-w-xl px-5 py-10 text-center">
-        <p className="text-danger mb-4">Error: {error}</p>
-        <button
-          className="cf-btn cf-btn-ghost"
-          onClick={() =>
-            exerciseId ? fetchExercise(exerciseId) : fetchExercises()
-          }
-        >
-          {t("exercises.retry")}
-        </button>
+      <div className="container mx-auto max-w-xl px-5 py-10">
+        <LoadError
+          onRetry={() => (exerciseId ? fetchExercise(exerciseId) : fetchExercises())}
+        />
       </div>
     );
   }

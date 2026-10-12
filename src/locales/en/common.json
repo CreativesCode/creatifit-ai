@@ -222,6 +222,7 @@
     "pending_sync": "{{count}} sets waiting to sync",
     "pending_sync_detail": "{{count}} sets saved on your phone. They'll be sent automatically once you're back online.",
     "pending_sync_retry": "Retry",
+    "load_error": "We couldn't load your plan. Check your connection and try again.",
     "exit_confirm_title": "Leave session?",
     "exit_confirm_body": "You have unsaved progress in this session. If you leave now, your current session state will be discarded.",
     "exit_confirm_leave": "Leave",
@@ -239,7 +240,12 @@
     "delete": "Delete",
     "back": "Back",
     "next": "Next",
-    "previous": "Previous"
+    "previous": "Previous",
+    "retry": "Retry",
+    "load_error_title": "We couldn't load your data",
+    "load_error_body": "This looks like a connection problem. Your data is still saved; please try again.",
+    "offline_banner": "Offline · showing saved data",
+    "cached_banner": "Unstable connection · showing saved data"
   },
   "settings": {
     "account": {

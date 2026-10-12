@@ -102,8 +102,24 @@ export default function SessionPage() {
     return (
       <div className="container mx-auto max-w-xl px-5 py-10 text-center">
         <p className="text-danger mb-4">
-          {error ? `Error: ${error}` : t("plans.no_plans.title", "Plan no encontrado")}
+          {error
+            ? t(
+                "session.load_error",
+                "No pudimos cargar tu plan. Revisa tu conexión e inténtalo de nuevo."
+              )
+            : t("plans.no_plans.title", "Plan no encontrado")}
         </p>
+        {error && planId && (
+          <button
+            className="cf-btn cf-btn-primary mb-3"
+            onClick={() => {
+              setError(null);
+              fetchPlan(planId);
+            }}
+          >
+            {t("common.retry", "Reintentar")}
+          </button>
+        )}
         <button className="cf-btn cf-btn-ghost" onClick={() => router.replace("/plans")}>
           {t("plans.plan_details.back_to_plans", "Volver a Planes")}
         </button>

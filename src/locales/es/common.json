@@ -222,6 +222,7 @@
     "pending_sync": "{{count}} series por sincronizar",
     "pending_sync_detail": "{{count}} series guardadas en el teléfono. Se enviarán solas cuando haya conexión.",
     "pending_sync_retry": "Reintentar",
+    "load_error": "No pudimos cargar tu plan. Revisa tu conexión e inténtalo de nuevo.",
     "exit_confirm_title": "¿Salir de la sesión?",
     "exit_confirm_body": "Tienes progreso sin terminar en esta sesión. Si sales ahora, se descartará el estado actual.",
     "exit_confirm_leave": "Salir",
@@ -239,7 +240,12 @@
     "delete": "Eliminar",
     "back": "Atrás",
     "next": "Siguiente",
-    "previous": "Anterior"
+    "previous": "Anterior",
+    "retry": "Reintentar",
+    "load_error_title": "No pudimos cargar tus datos",
+    "load_error_body": "Parece un problema de conexión. Tus datos siguen guardados; inténtalo de nuevo.",
+    "offline_banner": "Sin conexión · mostrando datos guardados",
+    "cached_banner": "Conexión inestable · mostrando datos guardados"
   },
   "settings": {
     "account": {

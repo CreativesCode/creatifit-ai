@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { BottomNavigation } from "@/components/ui/bottom-navigation";
+import { ConnectionBanner } from "@/components/ui/connection-banner";
 import { SideNav } from "@/components/ui/side-nav";
 import { AuthGate } from "@/components/auth/auth-gate";
 import { startOutboxSync } from "@/lib/workout-outbox";
@@ -113,6 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
              trae su propia cabecera (como en el diseño de docs). */}
           <div className="flex-1 flex flex-col min-w-0">
             <main className="flex-1 safe-left safe-right pb-24 lg:pb-8">
+              <ConnectionBanner />
               {children}
             </main>
             {/* Bottom-nav solo en móvil */}

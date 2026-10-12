@@ -1,5 +1,6 @@
 "use client";
 import { supabaseClient } from "@/lib/supabase-client";
+import { LoadError } from "@/components/ui/load-error";
 import {
   ExerciseDetailView,
   type ExerciseDetailData,
@@ -194,6 +195,7 @@ export default function PlansPage() {
 
   const fetchPlans = async () => {
     try {
+      setError(null);
       setLoading(true);
       const plansData = await supabaseClient.getPlans();
       setPlans(plansData || []);
@@ -207,6 +209,7 @@ export default function PlansPage() {
 
   const fetchPlan = async (id: string) => {
     try {
+      setError(null);
       setLoading(true);
       const planData = await supabaseClient.getPlanById(id);
       setSelectedPlan(planData);
@@ -592,14 +595,8 @@ export default function PlansPage() {
   // ---------- Error ----------
   if (error) {
     return (
-      <div className="container mx-auto max-w-xl px-5 py-10 text-center">
-        <p className="text-danger mb-4">Error: {error}</p>
-        <button
-          className="cf-btn cf-btn-ghost"
-          onClick={planId ? () => fetchPlan(planId!) : fetchPlans}
-        >
-          {t("plans.retry")}
-        </button>
+      <div className="container mx-auto max-w-xl px-5 py-10">
+        <LoadError onRetry={planId ? () => fetchPlan(planId!) : fetchPlans} />
       </div>
     );
   }

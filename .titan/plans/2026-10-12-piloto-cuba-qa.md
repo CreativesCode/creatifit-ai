@@ -13,6 +13,15 @@ Hecho el 2026-10-12 (sin commitear):
 - **1.10** Peso y RPE se arrastran entre series del mismo ejercicio; el campo se selecciona al enfocarlo.
 - **2.8 (parcial)** Historial y fecha por defecto de Mi cuerpo usan el día local. Falta `records.ts` y `trends.ts` (logros y volumen semanal siguen en UTC).
 
+- **2.2** Límite de tiempo global en el cliente Supabase (`src/lib/supabase-config.ts`): 15 s, y 120 s para Edge Functions y Storage.
+- **2.1** Arranque con la sesión guardada en el dispositivo (`auth-context.tsx`): sin red y con el token caducado ya no se manda al login; solo se cierra sesión si auth-js borró el token.
+- **1.7 (parcial) y 2.7 (parcial)** Copia local de lecturas en `src/lib/local-cache.ts`, aplicada en `supabase-client.ts` a planes, plan por id, ejercicios del plan, historial, favoritos y medidas: red primero y, si falla, lo último guardado. El panel deja en el teléfono los ejercicios del plan activo, así que la sesión arranca sin conexión. Falta la tarjeta "Continuar entrenamiento" de 1.7 y reducir las descargas repetidas de 2.7 (sigue siendo red primero en cada visita).
+- **2.3** Fallo de carga distinto de cuenta vacía: componente `LoadError` con "Reintentar" en inicio, planes, ejercicios y sesión. Falta historial y Mi cuerpo, que sin copia local siguen mostrando "sin datos".
+- **2.4** "Reintentar" limpia el error en Planes y Ejercicios.
+- **2.5 (parcial)** Banda "Sin conexión / conexión inestable · mostrando datos guardados" (`connection-banner.tsx`). Falta traducir los errores de red del login y de admin.
+
+Verificado en navegador con Supabase bloqueado: sin copia local aparece "No pudimos cargar tus datos" en vez de "Crea tu primer plan" y Reintentar recupera; con copia local se ven panel y plan y la sesión arranca; con el token caducado el panel aparece en ~5 s desde la copia y 40 s después el usuario sigue dentro; al volver la red se quita la banda.
+
 Verificado en navegador con perfil de teléfono: doble toque = 1 fila; serie registrada con Supabase bloqueado, sincronizada al volver; mismo `session_id` tras recargar; "62,5" guardado como 62.50. Falta probarlo en un teléfono real.
 
 ## Cómo se probó

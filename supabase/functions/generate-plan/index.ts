@@ -78,6 +78,8 @@ interface Intake {
   stepsDay?: number;
   notes?: string;
   language?: string;
+  // Id de la petición (lo genera el cliente) para reintentos idempotentes.
+  requestId?: string;
 }
 
 // Idioma en el que el modelo debe escribir el texto legible (focus + cues).
@@ -221,13 +223,21 @@ Return the plan as JSON with 4 days (A/B/C/D) that repeat across the ${intake.we
 Remember: reference exercises ONLY by their number from the AVAILABLE EXERCISES list.`;
 }
 
-// Llama a OpenAI con timeout y un reintento ante errores transitorios (429/5xx).
+interface AiResult {
+  text: string;
+  promptTokens: number | null;
+  completionTokens: number | null;
+}
+
+// Llama a OpenAI con timeout. Reintenta una vez SOLO si OpenAI rechazó la petición
+// (429/5xx, no facturada). Un timeout no se reintenta: la primera llamada puede
+// haberse completado y cobrado, y repetirla duplicaría el coste.
 async function callOpenAI(
   apiKey: string,
   model: string,
   systemPrompt: string,
   userPrompt: string
-): Promise<string> {
+): Promise<AiResult> {
   const body = JSON.stringify({
     model,
     messages: [
@@ -236,12 +246,14 @@ async function callOpenAI(
     ],
     response_format: { type: "json_object" },
     temperature: 0.3,
+    // Un plan de 4 días ronda los 2.000 tokens: tope para acotar el coste.
+    max_tokens: 4096,
   });
 
   let lastError = "";
   for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
+    const timeout = setTimeout(() => controller.abort(), 75000);
     try {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -255,9 +267,17 @@ async function callOpenAI(
 
       if (res.ok) {
         const completion = await res.json();
-        const text = completion.choices?.[0]?.message?.content;
+        const choice = completion.choices?.[0];
+        const text = choice?.message?.content;
         if (!text) throw new Error("Empty response from AI");
-        return text;
+        if (choice.finish_reason === "length") {
+          throw new Error("AI response truncated (max_tokens)");
+        }
+        return {
+          text,
+          promptTokens: completion.usage?.prompt_tokens ?? null,
+          completionTokens: completion.usage?.completion_tokens ?? null,
+        };
       }
 
       // 429 / 5xx -> reintentar; 4xx -> abortar.
@@ -265,6 +285,7 @@ async function callOpenAI(
       if (res.status !== 429 && res.status < 500) break;
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
+      break;
     } finally {
       clearTimeout(timeout);
     }
@@ -372,6 +393,10 @@ Deno.serve(async (req: Request) => {
     //    barrera real. Límite Free = 1 generación de por vida (espejo de
     //    src/lib/config/plans-config.ts). Pro (mensual/anual) = ilimitado.
     const FREE_PLAN_LIMIT = 1;
+    // Tope Pro: 30 generaciones cada 30 días (espejo de plans-config.ts).
+    const PRO_MONTHLY_LIMIT = 30;
+    // Una generación "pending" más antigua que esto se da por abandonada.
+    const PENDING_WINDOW_MS = 3 * 60 * 1000;
     const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     const { data: userData, error: userErr } = await supabase.auth.getUser(token);
     const userId = userData?.user?.id;
@@ -390,12 +415,56 @@ Deno.serve(async (req: Request) => {
     const tier = profile?.tier ?? "free";
     const isPro = tier === "pro_monthly" || tier === "pro_annual";
 
+    // IDEMPOTENCIA. El cliente envía un requestId (el id que tendrá el plan). Si
+    // la respuesta se perdió por la red y reintenta con el mismo id, devolvemos
+    // el plan ya generado sin volver a llamar (ni pagar) a OpenAI.
+    const requestId =
+      typeof intake.requestId === "string" && intake.requestId.length <= 64
+        ? intake.requestId
+        : crypto.randomUUID();
+
+    const { data: existing } = await supabase
+      .from("plan_generations")
+      .select("id, status, plan, meta, created_at")
+      .eq("user_id", userId)
+      .eq("request_id", requestId)
+      .maybeSingle();
+
+    if (existing?.status === "ok" && existing.plan) {
+      return new Response(
+        JSON.stringify({ plan: existing.plan, meta: existing.meta, requestId, reused: true }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    const isRecent = (iso: string) => Date.parse(iso) > Date.now() - PENDING_WINDOW_MS;
+    if (existing?.status === "pending" && isRecent(existing.created_at)) {
+      // Otra petición con este id sigue generando: el cliente espera y reintenta.
+      return new Response(JSON.stringify({ error: "GENERATION_IN_PROGRESS" }), {
+        status: 409,
+        headers: jsonHeaders,
+      });
+    }
+
+    // LÍMITES sobre generaciones reales (no sobre los planes que queden guardados:
+    // borrar un plan no devuelve cupo). Las pendientes recientes cuentan para que
+    // dos peticiones simultáneas no pasen a la vez.
+    const { data: history } = await supabase
+      .from("plan_generations")
+      .select("status, created_at")
+      .eq("user_id", userId)
+      .neq("request_id", requestId);
+    const counted = (history ?? []).filter(
+      (g: { status: string; created_at: string }) =>
+        g.status === "ok" || (g.status === "pending" && isRecent(g.created_at))
+    );
+
     if (!isPro) {
-      const { count } = await supabase
+      // Los planes creados antes de existir plan_generations también consumen cupo.
+      const { count: planCount } = await supabase
         .from("plans")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
-      if ((count ?? 0) >= FREE_PLAN_LIMIT) {
+      if (Math.max(counted.length, planCount ?? 0) >= FREE_PLAN_LIMIT) {
         return new Response(
           JSON.stringify({
             error: "FREE_LIMIT_REACHED",
@@ -405,12 +474,56 @@ Deno.serve(async (req: Request) => {
           { status: 402, headers: jsonHeaders }
         );
       }
+    } else {
+      const monthAgo = Date.now() - 30 * 86400000;
+      const thisMonth = counted.filter(
+        (g: { created_at: string }) => Date.parse(g.created_at) > monthAgo
+      );
+      if (thisMonth.length >= PRO_MONTHLY_LIMIT) {
+        return new Response(
+          JSON.stringify({
+            error: "PRO_LIMIT_REACHED",
+            message: "Has alcanzado el límite mensual de generaciones.",
+          }),
+          { status: 429, headers: jsonHeaders }
+        );
+      }
     }
+
+    // Reservar la generación ANTES de llamar a OpenAI. La clave única
+    // (user_id, request_id) hace que un doble envío simultáneo solo pase una vez.
+    let generationId: string;
+    if (existing) {
+      generationId = existing.id;
+      await supabase
+        .from("plan_generations")
+        .update({ status: "pending", error: null, created_at: new Date().toISOString() })
+        .eq("id", generationId);
+    } else {
+      const { data: reserved, error: reserveErr } = await supabase
+        .from("plan_generations")
+        .insert({ user_id: userId, request_id: requestId, status: "pending", model })
+        .select("id")
+        .single();
+      if (reserveErr || !reserved) {
+        return new Response(JSON.stringify({ error: "GENERATION_IN_PROGRESS" }), {
+          status: 409,
+          headers: jsonHeaders,
+        });
+      }
+      generationId = reserved.id;
+    }
+    const failGeneration = (reason: string) =>
+      supabase
+        .from("plan_generations")
+        .update({ status: "failed", error: reason.slice(0, 500), finished_at: new Date().toISOString() })
+        .eq("id", generationId);
 
     // 1) Obtener ejercicios reales de la BD según el perfil del usuario.
     const exercises = await fetchExercises(supabase, intake.equipment);
 
     if (exercises.length === 0) {
+      await failGeneration("no exercises matched equipment");
       return new Response(
         JSON.stringify({
           error:
@@ -424,22 +537,25 @@ Deno.serve(async (req: Request) => {
     const systemPrompt = buildSystemPrompt(intake, exercises);
     const userPrompt = buildUserPrompt(intake);
 
-    let responseText: string;
+    let ai: AiResult;
     try {
-      responseText = await callOpenAI(apiKey, model, systemPrompt, userPrompt);
+      ai = await callOpenAI(apiKey, model, systemPrompt, userPrompt);
     } catch (err) {
       console.error("OpenAI error:", err);
+      await failGeneration(err instanceof Error ? err.message : String(err));
       return new Response(JSON.stringify({ error: "Upstream AI error" }), {
         status: 502,
         headers: jsonHeaders,
       });
     }
+    const responseText = ai.text;
 
     let parsed: any;
     try {
       parsed = JSON.parse(responseText);
     } catch {
       console.error("AI returned non-JSON:", responseText.slice(0, 500));
+      await failGeneration("AI returned invalid JSON");
       return new Response(JSON.stringify({ error: "AI returned invalid JSON" }), {
         status: 502,
         headers: jsonHeaders,
@@ -452,16 +568,33 @@ Deno.serve(async (req: Request) => {
 
     if (matched === 0 || plan.days.length === 0) {
       console.error("Plan vacío tras resolver refs", { total, matched });
+      await failGeneration("AI did not produce a usable plan");
       return new Response(
         JSON.stringify({ error: "AI did not produce a usable plan" }),
         { status: 502, headers: jsonHeaders }
       );
     }
 
-    return new Response(
-      JSON.stringify({ plan, meta: { matched, total } }),
-      { status: 200, headers: jsonHeaders }
-    );
+    // Guardar el resultado ANTES de responder: si la respuesta no llega al
+    // teléfono, el reintento con el mismo requestId lo recupera de aquí.
+    const meta = { matched, total };
+    await supabase
+      .from("plan_generations")
+      .update({
+        status: "ok",
+        plan,
+        meta,
+        model,
+        prompt_tokens: ai.promptTokens,
+        completion_tokens: ai.completionTokens,
+        finished_at: new Date().toISOString(),
+      })
+      .eq("id", generationId);
+
+    return new Response(JSON.stringify({ plan, meta, requestId }), {
+      status: 200,
+      headers: jsonHeaders,
+    });
   } catch (error) {
     console.error("Error generating fitness plan:", error);
     return new Response(JSON.stringify({ error: "Failed to generate plan" }), {

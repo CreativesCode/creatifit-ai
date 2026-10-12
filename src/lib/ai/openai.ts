@@ -1,55 +1,112 @@
 import { GeneratedPlanSchema } from "../validators/schemas";
 import { supabase } from "../supabase-config";
+import { newId } from "../workout-outbox";
+
+// Una generación cuesta dinero. Cada intento lleva un requestId: si la respuesta
+// se pierde por la red, se reintenta con el MISMO id y el servidor devuelve el
+// plan ya generado sin volver a llamar a OpenAI.
+const PENDING_KEY = "cf-pending-generation";
+const RETRY_WAIT_MS = 5000;
+const MAX_ATTEMPTS = 24; // ~2 min esperando a una generación en curso
+
+interface PendingGeneration {
+  uid: string;
+  requestId: string;
+  // Huella del cuestionario: un id pendiente solo se reutiliza para la misma petición.
+  fingerprint: string;
+}
+
+const fingerprintOf = (intake: unknown) => JSON.stringify(intake);
+
+function readPending(): PendingGeneration | null {
+  try {
+    const raw = window.localStorage.getItem(PENDING_KEY);
+    return raw ? (JSON.parse(raw) as PendingGeneration) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Id de la generación para este cuestionario: el pendiente si existe, o uno nuevo. */
+export function generationRequestId(uid: string, intake: unknown): string {
+  const fingerprint = fingerprintOf(intake);
+  const pending = readPending();
+  if (pending && pending.uid === uid && pending.fingerprint === fingerprint) {
+    return pending.requestId;
+  }
+  const requestId = newId();
+  try {
+    window.localStorage.setItem(
+      PENDING_KEY,
+      JSON.stringify({ uid, requestId, fingerprint } satisfies PendingGeneration)
+    );
+  } catch {
+    // sin storage: se pierde solo la recuperación tras cerrar la app
+  }
+  return requestId;
+}
+
+/** Llamar cuando el plan ya está guardado: el id deja de estar pendiente. */
+export function clearGenerationRequest(): void {
+  try {
+    window.localStorage.removeItem(PENDING_KEY);
+  } catch {
+    // ignorar
+  }
+}
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Código de error que devuelve la función en el cuerpo JSON (402, 409, 429...).
+async function serverErrorCode(error: unknown): Promise<string | null> {
+  try {
+    const ctx = (error as { context?: { json?: () => Promise<{ error?: string }> } }).context;
+    const payload = ctx?.json ? await ctx.json() : null;
+    return payload?.error ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // Genera el plan de fitness llamando a la Edge Function `generate-plan`.
 //
 // La API key de OpenAI vive como secret en el servidor (Supabase Edge Function),
 // nunca en el cliente. Esto evita exponerla en el bundle web o en el .apk.
-export async function generateFitnessPlan(intake: any): Promise<any> {
-  try {
+export async function generateFitnessPlan(intake: any, requestId: string): Promise<any> {
+  let lastWasNetwork = false;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const { data, error } = await supabase.functions.invoke("generate-plan", {
-      body: intake,
+      body: { ...intake, requestId },
     });
 
-    if (error) {
-      // La función devuelve 402 { error: "FREE_LIMIT_REACHED" } cuando un usuario
-      // free intenta superar su límite (backstop del paywall, no falsificable).
+    if (!error) {
+      if (!data?.plan) {
+        throw new Error("No se recibió un plan válido del servidor.");
+      }
       try {
-        const ctx = (error as { context?: { json?: () => Promise<any> } }).context;
-        const payload = ctx?.json ? await ctx.json() : null;
-        if (payload?.error === "FREE_LIMIT_REACHED") {
-          throw new Error("FREE_LIMIT_REACHED");
-        }
-      } catch (parseErr) {
-        if (parseErr instanceof Error && parseErr.message === "FREE_LIMIT_REACHED") {
-          throw parseErr;
-        }
-        // si falla el parseo, caemos al error genérico de abajo
-      }
-      console.error("Error invoking generate-plan function:", error);
-      throw new Error("Error de conexión al generar el plan. Inténtalo de nuevo.");
-    }
-
-    if (!data?.plan) {
-      throw new Error("No se recibió un plan válido del servidor.");
-    }
-
-    // Validar la estructura con Zod
-    const validatedPlan = GeneratedPlanSchema.parse(data.plan);
-    return validatedPlan;
-  } catch (error) {
-    console.error("Error generating fitness plan:", error);
-
-    if (error instanceof Error) {
-      if (error.message.includes("Failed to fetch")) {
-        throw new Error("Error de conexión. Verifica tu conexión a internet.");
-      }
-      // Re-lanzar mensajes ya legibles
-      if (error.message.startsWith("Error") || error.message.startsWith("No se")) {
-        throw error;
+        return GeneratedPlanSchema.parse(data.plan);
+      } catch (invalid) {
+        // Un plan inválido no debe volver a servirse en el siguiente intento.
+        clearGenerationRequest();
+        throw invalid;
       }
     }
 
-    throw new Error("Error al generar el plan de fitness. Por favor, inténtalo de nuevo.");
+    const code = await serverErrorCode(error);
+    // Límites: el llamador decide (paywall / mensaje). No se reintenta.
+    if (code === "FREE_LIMIT_REACHED" || code === "PRO_LIMIT_REACHED") {
+      throw new Error(code);
+    }
+    // Sin respuesta del servidor (red caída, timeout) o generación aún en curso:
+    // esperar y reintentar con el mismo id. No dispara otra generación.
+    lastWasNetwork = code === null && error.name !== "FunctionsHttpError";
+    if (lastWasNetwork || code === "GENERATION_IN_PROGRESS") {
+      await wait(RETRY_WAIT_MS);
+      continue;
+    }
+
+    console.error("Error invoking generate-plan function:", error);
+    throw new Error("GENERATION_FAILED");
   }
+  throw new Error(lastWasNetwork ? "GENERATION_NETWORK" : "GENERATION_FAILED");
 }

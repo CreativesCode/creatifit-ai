@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { canGenerate } from "@/lib/config/plans-config";
 import { supabaseClient } from "@/lib/supabase-client";
+import { isNetworkError } from "@/lib/local-cache";
 import {
   IntakeSchema,
   type GeneratedPlan,
@@ -235,8 +236,13 @@ export function IntakeForm({
         },
       };
 
-      const { generateFitnessPlan } = await import("@/lib/ai/openai");
-      const generatedPlan = await generateFitnessPlan(apiData);
+      const { generateFitnessPlan, generationRequestId, clearGenerationRequest } =
+        await import("@/lib/ai/openai");
+      // El id del plan es también el id de la generación: si la red falla y el
+      // usuario reintenta con el mismo cuestionario, el servidor devuelve el plan
+      // ya generado en vez de cobrar otro.
+      const planId = generationRequestId(user?.id ?? "", apiData);
+      const generatedPlan = await generateFitnessPlan(apiData, planId);
 
       if (!generatedPlan || !generatedPlan.days || !Array.isArray(generatedPlan.days)) {
         throw new Error("Plan structure is invalid - missing days array");
@@ -254,7 +260,6 @@ export function IntakeForm({
         }
       }
 
-      const planId = crypto.randomUUID();
       const { plan: savedPlan, exercisesInserted } = await supabaseClient.savePlan({
         id: planId,
         user_id: user?.id ?? null,
@@ -281,6 +286,7 @@ export function IntakeForm({
       });
 
       if (!savedPlan) throw new Error("Failed to save plan to database");
+      clearGenerationRequest();
 
       // El plan se guardó. Si la RPC de ejercicios falló (E-COD-3) no perdemos el
       // plan: avisamos al usuario y le dejamos continuar de todos modos.
@@ -309,7 +315,21 @@ export function IntakeForm({
         return;
       }
       console.error("💥 [INTAKE FORM] Error generating plan:", error);
-      setErrors({ submit: t("validation.submit_error") });
+      const code = error instanceof Error ? error.message : "";
+      setErrors({
+        submit:
+          code === "GENERATION_NETWORK" || isNetworkError(error)
+            ? t(
+                "validation.submit_network",
+                "No hay conexión estable. Tu plan no se pierde: vuelve a intentarlo y lo recuperamos sin generar otro."
+              )
+            : code === "PRO_LIMIT_REACHED"
+              ? t(
+                  "validation.submit_pro_limit",
+                  "Has alcanzado el límite mensual de planes generados."
+                )
+              : t("validation.submit_error"),
+      });
     } finally {
       setIsGenerating(false);
     }

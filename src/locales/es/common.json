@@ -153,7 +153,9 @@
     "weight_range": "El peso debe estar entre 30 y 200 kg",
     "height_range": "La altura debe estar entre 120 y 250 cm",
     "intake_invalid": "Revisa tus datos: hay un campo fuera de rango.",
-    "submit_error": "Error al generar el plan. Por favor, inténtalo de nuevo."
+    "submit_error": "Error al generar el plan. Por favor, inténtalo de nuevo.",
+    "submit_network": "No hay conexión estable. Tu plan no se pierde: vuelve a intentarlo y lo recuperamos sin generar otro.",
+    "submit_pro_limit": "Has alcanzado el límite mensual de planes generados."
   },
   "plan": {
     "title": "Tu Plan de Entrenamiento",

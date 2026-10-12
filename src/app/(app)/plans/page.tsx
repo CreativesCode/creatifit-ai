@@ -424,14 +424,20 @@ export default function PlansPage() {
         notes
       );
 
-      const { generateFitnessPlan } = await import("@/lib/ai/openai");
-      const generatedPlan = await generateFitnessPlan(intake);
+      const { generateFitnessPlan, generationRequestId, clearGenerationRequest } =
+        await import("@/lib/ai/openai");
+      // Mismo id para la generación y para el plan: un reintento tras un fallo de
+      // red recupera el plan ya generado en vez de pagar otro.
+      const planId = generationRequestId(user?.id ?? "", {
+        improve: selectedPlan.id,
+        intake,
+      });
+      const generatedPlan = await generateFitnessPlan(intake, planId);
       if (!generatedPlan?.days?.length) {
         throw new Error("Plan structure is invalid");
       }
 
       // 4) Guardar como plan NUEVO (el anterior y el historial se conservan).
-      const planId = crypto.randomUUID();
       const meta = selectedPlan.payload?.meta || {};
       const { plan: savedPlan } = await supabaseClient.savePlan({
         id: planId,
@@ -450,6 +456,7 @@ export default function PlansPage() {
         },
       });
       if (!savedPlan) throw new Error("Failed to save improved plan");
+      clearGenerationRequest();
 
       // 5) Navegar al plan nuevo.
       setEditMode(false);

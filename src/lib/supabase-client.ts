@@ -245,6 +245,17 @@ export const supabaseClient = {
       .single();
 
     if (error) {
+      // 23505 = el plan ya existe: un intento anterior lo guardó pero su respuesta
+      // se perdió por la red. Lo damos por guardado en vez de fallar el reintento.
+      if (error.code === "23505" && planData.id) {
+        const { data: saved, error: readError } = await supabase
+          .from("plans")
+          .select()
+          .eq("id", planData.id)
+          .single();
+        if (readError) throw readError;
+        return { plan: saved, exercisesInserted: true, exercisesError: null };
+      }
       throw error;
     }
 

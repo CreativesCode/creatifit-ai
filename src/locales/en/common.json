@@ -153,7 +153,9 @@
     "weight_range": "Weight must be between 30 and 200 kg",
     "height_range": "Height must be between 120 and 250 cm",
     "intake_invalid": "Check your details: a field is out of range.",
-    "submit_error": "Failed to generate plan. Please try again."
+    "submit_error": "Failed to generate plan. Please try again.",
+    "submit_network": "The connection is unstable. Your plan is not lost: try again and we'll recover it without generating another.",
+    "submit_pro_limit": "You've reached the monthly limit of generated plans."
   },
   "plan": {
     "title": "Your Training Plan",

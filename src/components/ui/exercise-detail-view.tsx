@@ -2,7 +2,7 @@
 import { ArrowLeft, Dumbbell, Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatReps } from "@/lib/plan-display";
-import { exerciseImageSrc } from "@/lib/exercise-media";
+import { ExerciseAnimation } from "@/components/ui/exercise-image";
 
 // Datos del ejercicio que necesita el detalle. Superset compatible con el tipo
 // `ExerciseDetail` de /exercises y con la fila de la tabla `exercises`.
@@ -43,7 +43,7 @@ interface ExerciseDetailViewProps {
   planSpec?: ExercisePlanSpec | null;
 }
 
-const imgUrl = exerciseImageSrc;
+
 
 export function ExerciseDetailView({
   exercise: ex,
@@ -75,16 +75,7 @@ export function ExerciseDetailView({
         style={{ height: "min(56vh, 460px)" }}
       >
         {ex.gif_url ? (
-          <img
-            src={imgUrl(ex.gif_url)}
-            alt={ex.name}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder-exercise.svg";
-            }}
-          />
+          <ExerciseAnimation gif={ex.gif_url} alt={ex.name} />
         ) : (
           <Dumbbell size={64} color="rgba(255,255,255,0.85)" />
         )}

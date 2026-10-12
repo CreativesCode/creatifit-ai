@@ -283,6 +283,10 @@
       "auto": "Auto"
     },
     "coming_soon": "Próximamente",
+    "data_saver": {
+      "title": "Ahorro de datos",
+      "desc": "Muestra una imagen fija y descarga la animación solo al tocarla"
+    },
     "about": {
       "title": "Acerca de",
       "description": "Información sobre CreatiFit AI",
@@ -454,6 +458,7 @@
     "retry": "Reintentar"
   },
   "exercises": {
+    "play_animation": "Ver animación",
     "title": "Biblioteca de Ejercicios",
     "subtitle": "Explora nuestra colección completa de ejercicios con instrucciones detalladas",
     "search": {

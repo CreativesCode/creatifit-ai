@@ -3,7 +3,7 @@ import { CFLoader } from "@/components/ui/loader";
 import { ExerciseDetailView } from "@/components/ui/exercise-detail-view";
 import { supabaseClient } from "@/lib/supabase-client";
 import { LoadError } from "@/components/ui/load-error";
-import { exerciseImageSrc } from "@/lib/exercise-media";
+import { ExerciseThumb } from "@/components/ui/exercise-image";
 import {
   ChevronRight,
   Dumbbell,
@@ -59,7 +59,6 @@ export default function ExercisesPage() {
   const [onlyFavs, setOnlyFavs] = useState(false);
 
   const exerciseId = searchParams.get("id");
-  const imgUrl = exerciseImageSrc;
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -267,15 +266,10 @@ export default function ExercisesPage() {
         style={{ width: 58, height: 58, borderRadius: 14 }}
       >
         {exercise.gif_url ? (
-          <img
-            src={imgUrl(exercise.gif_url)}
+          <ExerciseThumb
+            gif={exercise.gif_url}
             alt={exercise.name}
-            loading="lazy"
-            decoding="async"
             className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder-exercise.svg";
-            }}
           />
         ) : (
           <Dumbbell size={24} color="rgba(255,255,255,0.8)" />

@@ -24,7 +24,7 @@ import {
   setSessionActive,
 } from "@/lib/session-resume";
 import { playRestEndCue } from "@/lib/feedback";
-import { exerciseImageUrl } from "@/lib/exercise-media";
+import { ExerciseAnimation, ExerciseThumb } from "@/components/ui/exercise-image";
 import {
   Activity,
   Check,
@@ -51,7 +51,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
-const buildImageUrl = exerciseImageUrl;
 
 const formatTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
@@ -431,7 +430,6 @@ function ExerciseStep({
   t: TFunction;
 }) {
   const gif = exerciseDetails?.gif_url ?? exerciseDetails?.exercise_details?.gif_url;
-  const img = gif ? buildImageUrl(gif) : null;
   const equipment = exerciseDetails?.equipment ?? exerciseDetails?.exercise_details?.equipment;
   const targets: [React.ElementType, string, string, string][] = [
     [Repeat, formatReps(currentExercise.reps), t("session.reps", "Reps"), "var(--primary)"],
@@ -487,15 +485,8 @@ function ExerciseStep({
         className="cf-eximg flex items-center justify-center mb-4 overflow-hidden"
         style={{ height: "min(26vh, 210px)", borderRadius: 20 }}
       >
-        {img ? (
-          <img
-            src={img}
-            alt={currentExercise.name}
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder-exercise.svg";
-            }}
-          />
+        {gif ? (
+          <ExerciseAnimation gif={gif} alt={currentExercise.name} />
         ) : (
           <Dumbbell size={48} color="rgba(255,255,255,0.85)" />
         )}
@@ -659,7 +650,6 @@ function RestStep({
 }) {
   const value = total > 0 ? (restTime / total) * 100 : 0;
   const nextGif = nextExerciseDetails?.gif_url ?? nextExerciseDetails?.exercise_details?.gif_url;
-  const img = nextGif ? buildImageUrl(nextGif) : null;
   return (
     <div className="cf-screen relative flex flex-col" style={{ minHeight: "calc(100dvh - 140px)" }}>
       <div className="container mx-auto max-w-xl px-5 pt-4 flex flex-col flex-1">
@@ -701,8 +691,8 @@ function RestStep({
               className="cf-eximg flex items-center justify-center shrink-0 overflow-hidden"
               style={{ width: 52, height: 52, borderRadius: 14 }}
             >
-              {img ? (
-                <img src={img} alt={nextExercise.name} className="w-full h-full object-cover" />
+              {nextGif ? (
+                <ExerciseThumb gif={nextGif} alt={nextExercise.name} className="w-full h-full object-cover" />
               ) : (
                 <Dumbbell size={22} color="rgba(255,255,255,0.85)" />
               )}

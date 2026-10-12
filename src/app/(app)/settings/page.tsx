@@ -5,12 +5,14 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { deleteOwnAccount } from "@/lib/account/delete-account";
 import { useIsAdmin } from "@/lib/admin/use-is-admin";
+import { setDataSaver, useDataSaver } from "@/lib/data-saver";
 import {
   AlertTriangle,
   Bell,
   ChevronRight,
   Crown,
   FileText,
+  Gauge,
   Globe,
   Heart,
   LifeBuoy,
@@ -114,6 +116,7 @@ export default function SettingsPage() {
     useRevenueCat();
   const { theme, setTheme } = useTheme();
   const isAdmin = useIsAdmin();
+  const dataSaver = useDataSaver();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -329,6 +332,21 @@ export default function SettingsPage() {
           label={t("settings.language.title")}
           sub={t("settings.language.app_language")}
           right={<LanguageSwitcher />}
+        />
+        <Row
+          icon={Gauge}
+          label={t("settings.data_saver.title", "Ahorro de datos")}
+          sub={t(
+            "settings.data_saver.desc",
+            "Muestra una imagen fija y descarga la animación solo al tocarla"
+          )}
+          right={
+            <Toggle
+              on={dataSaver}
+              label={t("settings.data_saver.title", "Ahorro de datos")}
+              onToggle={() => setDataSaver(!dataSaver)}
+            />
+          }
         />
         <Row
           icon={Bell}

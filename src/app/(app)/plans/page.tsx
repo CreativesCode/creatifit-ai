@@ -36,7 +36,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { exerciseImageSrc } from "@/lib/exercise-media";
+import { ExerciseThumb } from "@/components/ui/exercise-image";
 
 interface ExerciseBlock {
   name: string;
@@ -119,8 +119,6 @@ export default function PlansPage() {
     setDayEditing(!!dayParam && searchParams.get("edit") === "1");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayParam]);
-
-  const buildImageUrl = exerciseImageSrc;
 
   useEffect(() => {
     if (planId) {
@@ -717,19 +715,11 @@ export default function PlansPage() {
                   onClick={() => openExerciseDetail(block)}
                   className="flex items-start gap-3.5 text-left w-full"
                 >
-                  <img
-                    src={buildImageUrl(
-                      block.exercise_id ? dayGifs[block.exercise_id] : null
-                    )}
+                  <ExerciseThumb
+                    gif={block.exercise_id ? dayGifs[block.exercise_id] : null}
                     alt={block.name}
-                    loading="lazy"
-                    decoding="async"
                     className="rounded-[14px] object-contain bg-white/90 shrink-0"
                     style={{ width: 64, height: 64 }}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "/placeholder-exercise.svg";
-                    }}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-[15px] leading-tight">
@@ -863,17 +853,11 @@ export default function PlansPage() {
                       className="cf-card-solid flex items-center gap-3 text-left disabled:opacity-60"
                       style={{ padding: "10px 12px", borderRadius: 14 }}
                     >
-                      <img
-                        src={buildImageUrl(alt.gif_url)}
+                      <ExerciseThumb
+                        gif={alt.gif_url}
                         alt={alt.name}
-                        loading="lazy"
-                        decoding="async"
                         className="rounded-[12px] object-contain bg-white/90 shrink-0"
                         style={{ width: 46, height: 46 }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "/placeholder-exercise.svg";
-                        }}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-[14px] leading-tight truncate">

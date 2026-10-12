@@ -15,8 +15,10 @@ import {
   DEFAULT_BLOCK,
   DEFAULT_WEEKS,
   PLAN_LIMITS,
+  addBlocks,
   addDay,
   canAddDay,
+  freeBlocks,
   dayLetter,
   moveBlock,
   moveDay,
@@ -34,6 +36,7 @@ import { EditablePlanSchema } from "@/lib/validators/schemas";
 import { newId } from "@/lib/workout-outbox";
 import { Stepper } from "./block-controls";
 import { DayEditor } from "./day-editor";
+import { ExercisePicker } from "./exercise-picker";
 
 export interface EditorPlan {
   id: string;
@@ -138,6 +141,7 @@ export function PlanEditor({
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [storageFull, setStorageFull] = useState(false);
   // Tras guardar o descartar ya no hay que volver a escribir el borrador.
   const doneRef = useRef(false);
@@ -414,6 +418,29 @@ export function PlanEditor({
           onRemoveBlock={(i) => change(removeBlock(draft.days, dayIndex, i))}
           onMoveBlock={(from, to) => change(moveBlock(draft.days, dayIndex, from, to))}
           onUpdateBlock={(i, patch) => change(updateBlock(draft.days, dayIndex, i, patch))}
+          onAddExercises={() => setPickerOpen(true)}
+        />
+      )}
+
+      {pickerOpen && day && (
+        <ExercisePicker
+          presentIds={day.blocks.flatMap((b) => (b.exercise_id ? [b.exercise_id] : []))}
+          maxSelectable={freeBlocks(day)}
+          onClose={() => setPickerOpen(false)}
+          onConfirm={(picked) => {
+            setPickerOpen(false);
+            setProblem(null);
+            setDraft((d) => ({
+              ...d,
+              days: addBlocks(d.days, dayIndex, picked),
+              gifs: {
+                ...d.gifs,
+                ...Object.fromEntries(
+                  picked.flatMap((p) => (p.gif_url ? [[p.id, p.gif_url]] : []))
+                ),
+              },
+            }));
+          }}
         />
       )}
 

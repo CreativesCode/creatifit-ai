@@ -4,6 +4,7 @@ import { ExerciseDetailView } from "@/components/ui/exercise-detail-view";
 import { supabaseClient } from "@/lib/supabase-client";
 import { LoadError } from "@/components/ui/load-error";
 import { ExerciseThumb } from "@/components/ui/exercise-image";
+import { EXERCISE_CATEGORIES } from "@/lib/constants/exercise-categories";
 import {
   ChevronRight,
   Dumbbell,
@@ -247,13 +248,12 @@ export default function ExercisesPage() {
   // que el filtro usa `.eq("category", value)` (sensible a mayúsculas).
   const CATS: [string, string][] = [
     ["", t("exercises.filters.all_types")],
-    ["Chest", t("exercises.categories.Chest", "Pecho")],
-    ["Back / Wing", t("exercises.categories.Back / Wing", "Espalda")],
-    ["Leg", t("exercises.categories.Leg", "Piernas")],
-    ["Hips", t("exercises.categories.Hips", "Glúteos")],
-    ["Abs / Core", t("exercises.categories.Abs / Core", "Core")],
-    ["Cardio", t("exercises.categories.Cardio", "Cardio")],
-    ["General", t("exercises.categories.General", "General")],
+    ...EXERCISE_CATEGORIES.map(
+      (c): [string, string] => [
+        c.value,
+        String(t(`exercises.categories.${c.value}`, c.fallback)),
+      ]
+    ),
   ];
 
   // Etiqueta traducida de una categoría (grupo muscular); cae al valor crudo si

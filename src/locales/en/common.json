@@ -566,8 +566,19 @@
       "exit_keep": "Leave and continue later",
       "exit_discard": "Discard changes"
     },
+    "picker": {
+      "title": "Add exercises",
+      "in_day": "Already in this day",
+      "choose": "Choose exercises",
+      "add": "Add {{count}}",
+      "limit": "This day can't fit more exercises.",
+      "offline_title": "Connection needed",
+      "offline_desc": "You need a connection to choose exercises from the catalog. What's already in the plan stays saved on this phone.",
+      "error": "Couldn't load the catalog. Check your connection and try again.",
+      "load_more_retry": "Couldn't load more. Retry"
+    },
     "loading": {
-      "plans":"Loading plans...",
+      "plans": "Loading plans...",
       "plan": "Loading plan..."
     },
     "retry": "Retry"

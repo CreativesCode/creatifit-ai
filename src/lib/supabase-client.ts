@@ -83,6 +83,38 @@ export const supabaseClient = {
     return { data, count, hasMore: count ? page * limit < count : false };
   },
 
+  // Página del catálogo para el selector del editor de planes. Solo las columnas
+  // que pinta la lista y sin recuento exacto (se pide una fila de más para saber
+  // si hay otra página): con mala conexión cada kB cuenta. No lleva copia local:
+  // elegir ejercicios exige conexión.
+  async pickExercises(params: {
+    page: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    onlyIds?: string[];
+  }): Promise<{
+    data: { id: string; name: string; category: string | null; equipment: string | null; gif_url: string | null }[];
+    hasMore: boolean;
+  }> {
+    const { page, limit = 30, search, category, onlyIds } = params;
+    if (onlyIds && onlyIds.length === 0) return { data: [], hasMore: false };
+
+    let query = supabase
+      .from("exercises")
+      .select("id,name,category,equipment,gif_url")
+      .order("name", { ascending: true })
+      .range((page - 1) * limit, page * limit);
+    if (search) query = query.ilike("name", `%${search}%`);
+    if (category) query = query.eq("category", category);
+    if (onlyIds) query = query.in("id", onlyIds);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = data ?? [];
+    return { data: rows.slice(0, limit), hasMore: rows.length > limit };
+  },
+
   async getExerciseById(id: string) {
     const { data, error } = await supabase
       .from("exercises")

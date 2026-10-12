@@ -566,8 +566,19 @@
       "exit_keep": "Salir y seguir después",
       "exit_discard": "Descartar cambios"
     },
+    "picker": {
+      "title": "Añadir ejercicios",
+      "in_day": "Ya está en este día",
+      "choose": "Elige ejercicios",
+      "add": "Añadir {{count}}",
+      "limit": "No caben más ejercicios en este día.",
+      "offline_title": "Hace falta conexión",
+      "offline_desc": "Para elegir ejercicios del catálogo necesitas conexión. Lo que ya tienes en el plan sigue guardado en este teléfono.",
+      "error": "No se pudo cargar el catálogo. Revisa tu conexión e inténtalo de nuevo.",
+      "load_more_retry": "No se pudo cargar más. Reintentar"
+    },
     "loading": {
-      "plans":"Cargando planes...",
+      "plans": "Cargando planes...",
       "plan": "Cargando plan..."
     },
     "retry": "Reintentar"

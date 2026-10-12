@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   Crown,
   Dumbbell,
   Loader2,
@@ -178,11 +179,22 @@ export default function AdminPage() {
       <div className="relative z-10 container mx-auto max-w-5xl px-4 lg:px-6 py-6 lg:py-8">
         {/* header */}
         <div className="flex items-center justify-between mb-5">
-          <div>
-            <div className="cf-eyebrow flex items-center gap-1.5">
-              <ShieldCheck size={13} /> Administración
+          <div className="flex items-center gap-3">
+            {/* El panel vive fuera del layout de la app: sin esto no hay vuelta en móvil */}
+            <button
+              onClick={() => router.push("/settings")}
+              className="cf-icon-tile bg-surface-2 border border-border"
+              style={{ width: 40, height: 40 }}
+              aria-label="Volver a la app"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div>
+              <div className="cf-eyebrow flex items-center gap-1.5">
+                <ShieldCheck size={13} /> Administración
+              </div>
+              <h1 className="cf-h1 text-[26px] mt-1.5">Usuarios</h1>
             </div>
-            <h1 className="cf-h1 text-[26px] mt-1.5">Usuarios</h1>
           </div>
           <button
             onClick={loadUsers}

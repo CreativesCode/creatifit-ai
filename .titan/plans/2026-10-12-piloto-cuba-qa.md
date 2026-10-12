@@ -4,7 +4,9 @@ Fecha: 2026-10-12. Estado: **hallazgos anotados, nada corregido todavía.**
 
 ## Progreso
 
-Hecho el 2026-10-12 (sin commitear):
+**Siguiente por hacer, en este orden:** 1.12 (día sugerido y calentamiento opcional), 1.7 resto (tarjeta "Continuar entrenamiento") y 1.8, 1.14 y 1.15 (botón Atrás y navegación en sesión), 4.1 y 4.3 (generación idempotente y registro de consumo; tocan la Edge Function y hay que desplegarla), 5.2 (actividad en admin), 3.1 (GIF). Pendientes de decisión del usuario: 0.2 (alta con o sin confirmación de correo), 0.3 (Pro del piloto desde admin) y 0.6 (cambiar contraseña del admin y quitar el secret de bootstrap). 0.4 y 0.5 se hacen al preparar el APK.
+
+Hecho el 2026-10-12 (un commit por tarea, sin push):
 
 - **0.1** Aplicado en la BD live con `schemas/harden-profiles-privileges.sql` (REVOKE de escritura sobre `profiles` y eliminación de la política de UPDATE). Verificado: un usuario normal recibe 403. De paso se comprobó que `execute_sql` no existe en la BD (5.6) y que hay un solo admin.
 - **1.1, 1.2** Cola local de series en `src/lib/workout-outbox.ts`: id generado en el teléfono, upsert que ignora duplicados, reintento al recuperar red, al volver a primer plano y al abrir la app; aviso de series pendientes en la sesión y en el resumen. "Completar serie" ya no espera a la red y un segundo toque no duplica.
@@ -15,6 +17,8 @@ Hecho el 2026-10-12 (sin commitear):
 
 - **1.11** El descanso y el calentamiento cuentan contra la hora de fin (no se desincronizan con la pantalla apagada), se pide wake lock de pantalla durante la sesión y el manifest declara `VIBRATE`. Verificado en navegador (cuenta, pausa, reanudar, saltar); wake lock y vibración solo se confirman en un teléfono, y el permiso exige recompilar el APK.
 - **1.9** Pantalla de ejercicio reordenada: barra de acción fija sobre la navegación, GIF más pequeño, objetivo en una línea y pista de progresión bajo los campos. Medido a 360×640: campos y "Completar serie" visibles sin desplazarse. Falta ocultar la navegación durante la sesión (1.15).
+- **4.2** Bloqueo inmediato contra el doble toque en "Generar plan" (`intake-form.tsx`) y en "Mejorar plan" (`plans/page.tsx`). No probado en vivo para no generar planes; la guarda de servidor llega con 4.1.
+- **5.1** Entrada "Panel de administración" en Ajustes, visible solo para admins, y botón de volver en `/admin`. Verificado en navegador con ambos usuarios.
 - **2.2** Límite de tiempo global en el cliente Supabase (`src/lib/supabase-config.ts`): 15 s, y 120 s para Edge Functions y Storage.
 - **2.1** Arranque con la sesión guardada en el dispositivo (`auth-context.tsx`): sin red y con el token caducado ya no se manda al login; solo se cierra sesión si auth-js borró el token.
 - **1.7 (parcial) y 2.7 (parcial)** Copia local de lecturas en `src/lib/local-cache.ts`, aplicada en `supabase-client.ts` a planes, plan por id, ejercicios del plan, historial, favoritos y medidas: red primero y, si falla, lo último guardado. El panel deja en el teléfono los ejercicios del plan activo, así que la sesión arranca sin conexión. Falta la tarjeta "Continuar entrenamiento" de 1.7 y reducir las descargas repetidas de 2.7 (sigue siendo red primero en cada visita).

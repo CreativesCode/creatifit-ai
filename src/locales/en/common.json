@@ -248,6 +248,10 @@
     "cached_banner": "Unstable connection · showing saved data"
   },
   "settings": {
+    "admin": {
+      "title": "Admin panel",
+      "desc": "Users, plans and subscriptions"
+    },
     "account": {
       "title": "Account",
       "description": "Manage your session",

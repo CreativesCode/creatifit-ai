@@ -4,6 +4,7 @@ import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { deleteOwnAccount } from "@/lib/account/delete-account";
+import { useIsAdmin } from "@/lib/admin/use-is-admin";
 import {
   AlertTriangle,
   Bell,
@@ -112,6 +113,7 @@ export default function SettingsPage() {
   const { isPro, isNative, presentPaywall, openCustomerCenter, restorePurchases } =
     useRevenueCat();
   const { theme, setTheme } = useTheme();
+  const isAdmin = useIsAdmin();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -197,6 +199,31 @@ export default function SettingsPage() {
           {signingOut ? <Loader2 size={17} className="animate-spin" /> : <LogOut size={17} />}
         </button>
       </div>
+
+      {/* Panel de administración: en móvil no hay barra lateral, esta es la entrada */}
+      {isAdmin && (
+        <button
+          onClick={() => router.push("/admin")}
+          className="cf-card flex items-center gap-3.5 mb-4 w-full text-left"
+          style={{ padding: 14, borderRadius: 18 }}
+        >
+          <div
+            className="cf-icon-tile bg-surface-2 border border-border text-txt-2"
+            style={{ width: 38, height: 38 }}
+          >
+            <ShieldCheck size={18} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-[14.5px]">
+              {t("settings.admin.title", "Panel de administración")}
+            </div>
+            <div className="cf-muted text-[11.5px] mt-px">
+              {t("settings.admin.desc", "Usuarios, planes y suscripciones")}
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-faint" />
+        </button>
+      )}
 
       {/* subscription */}
       {isPro ? (

@@ -248,6 +248,10 @@
     "cached_banner": "Conexión inestable · mostrando datos guardados"
   },
   "settings": {
+    "admin": {
+      "title": "Panel de administración",
+      "desc": "Usuarios, planes y suscripciones"
+    },
     "account": {
       "title": "Cuenta",
       "description": "Gestiona tu sesión",

@@ -429,7 +429,6 @@ function ExerciseStep({
   const equipment = exerciseDetails?.equipment ?? exerciseDetails?.exercise_details?.equipment;
   const targets: [React.ElementType, string, string, string][] = [
     [Repeat, formatReps(currentExercise.reps), t("session.reps", "Reps"), "var(--primary)"],
-    [Target, `${currentSetIndex + 1}/${currentExercise.sets}`, t("session.set", "Serie"), "var(--cyan)"],
     [Clock, `${currentExercise.rest_sec}s`, t("session.rest_label", "Descanso"), "var(--mint)"],
   ];
 
@@ -480,7 +479,7 @@ function ExerciseStep({
       {/* media */}
       <div
         className="cf-eximg flex items-center justify-center mb-4 overflow-hidden"
-        style={{ height: "min(42vh, 300px)", borderRadius: 20 }}
+        style={{ height: "min(26vh, 210px)", borderRadius: 20 }}
       >
         {img ? (
           <img
@@ -510,36 +509,16 @@ function ExerciseStep({
         </span>
       </div>
 
-      {/* targets */}
-      <div className="flex gap-2.5 mb-4">
+      {/* objetivo de la serie, en una línea: deja los campos a la vista sin scroll */}
+      <div className="flex items-center gap-4 mb-3.5 text-[13px] font-semibold cf-txt2">
         {targets.map(([Icon, val, lbl, color], i) => (
-          <div key={i} className="cf-card flex-1 text-center" style={{ padding: "12px 8px", borderRadius: 16 }}>
-            <div className="flex justify-center mb-1.5" style={{ color }}>
-              <Icon size={17} />
-            </div>
-            <div className="cf-num text-[19px]">{val}</div>
-            <div className="cf-muted text-[10.5px] mt-px">{lbl}</div>
-          </div>
+          <span key={i} className="flex items-center gap-1.5">
+            <Icon size={15} style={{ color }} />
+            <span className="cf-num">{val}</span>
+            <span className="cf-muted text-[11.5px]">{lbl}</span>
+          </span>
         ))}
       </div>
-
-      {/* progresión por reglas */}
-      {showProg && (
-        <div
-          className="cf-card mb-3.5 flex items-start gap-2.5"
-          style={{ padding: "11px 13px", borderRadius: 14 }}
-        >
-          <span style={{ color: "var(--mint)", marginTop: 1 }} className="shrink-0">
-            <TrendingUp size={16} />
-          </span>
-          <div className="min-w-0">
-            <div className="text-[13px] font-bold cf-txt2">{progRecommendation}</div>
-            <div className="cf-muted text-[11.5px] mt-0.5">
-              {t("session.prog_last_label", "La vez pasada")}: {progLastSummary}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* log inputs */}
       <div className="flex gap-2.5 mb-3.5">
@@ -587,6 +566,24 @@ function ExerciseStep({
         />
       </div>
 
+      {/* progresión por reglas (bajo los campos: no debe empujarlos fuera de pantalla) */}
+      {showProg && (
+        <div
+          className="cf-card mb-3.5 flex items-start gap-2.5"
+          style={{ padding: "11px 13px", borderRadius: 14 }}
+        >
+          <span style={{ color: "var(--mint)", marginTop: 1 }} className="shrink-0">
+            <TrendingUp size={16} />
+          </span>
+          <div className="min-w-0">
+            <div className="text-[13px] font-bold cf-txt2">{progRecommendation}</div>
+            <div className="cf-muted text-[11.5px] mt-0.5">
+              {t("session.prog_last_label", "La vez pasada")}: {progLastSummary}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* cues */}
       {currentExercise.cues && currentExercise.cues.length > 0 && (
         <div className="cf-card mb-3.5" style={{ padding: 14, borderRadius: 16 }}>
@@ -602,7 +599,11 @@ function ExerciseStep({
         </div>
       )}
 
-      <div className="flex gap-3 mt-2">
+      {/* Acción principal siempre a la vista, sobre la navegación inferior */}
+      <div
+        className="sticky z-20 flex gap-3 mt-2 -mx-5 px-5 pt-3 pb-2 bottom-[calc(env(safe-area-inset-bottom,0px)+68px)] lg:bottom-4"
+        style={{ background: "linear-gradient(to top, var(--bg) 70%, transparent)" }}
+      >
         <button className="cf-btn cf-btn-ghost" style={{ flex: "0 0 auto", padding: "15px 18px" }} onClick={onStartRest}>
           <Clock size={18} />
         </button>

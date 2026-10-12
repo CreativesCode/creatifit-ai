@@ -1184,8 +1184,8 @@ export default function PlansPage() {
                     setDeleteError(null);
                     setPlanToDelete(plan);
                   }}
-                  className="cf-icon-tile bg-surface-2 border border-border absolute top-3 right-3"
-                  style={{ width: 30, height: 30, color: "#ef4444" }}
+                  className="cf-icon-tile bg-surface-2 border border-border absolute top-2 right-2"
+                  style={{ width: 40, height: 40, color: "#ef4444" }}
                   aria-label={t("plans.delete.action", "Eliminar plan")}
                 >
                   <Trash2 size={15} />

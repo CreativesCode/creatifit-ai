@@ -360,7 +360,8 @@ function ExerciseLogField({
             aria-label={info}
             aria-expanded={showInfo}
             className="inline-flex items-center justify-center shrink-0"
-            style={{ width: 15, height: 15, color: "var(--muted)" }}
+            // Icono pequeño, zona táctil de 36 px (el margen negativo no mueve el diseño).
+            style={{ width: 36, height: 36, margin: "-11px -8px -11px -10px", color: "var(--muted)" }}
           >
             <Info size={13} />
           </button>
@@ -386,12 +387,15 @@ function ExerciseLogField({
       {info && showInfo && (
         <div
           className="cf-card-solid"
+          onClick={() => setShowInfo(false)}
           style={{
+            // Se abre hacia arriba y a lo ancho: hacia abajo tapaba "Completar serie".
             position: "absolute",
-            top: "100%",
-            left: 0,
+            bottom: "100%",
             right: 0,
-            marginTop: 6,
+            width: "min(270px, 78vw)",
+            marginBottom: 6,
+            background: "var(--surface)",
             padding: "10px 12px",
             borderRadius: 12,
             zIndex: 30,

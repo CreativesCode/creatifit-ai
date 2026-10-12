@@ -50,8 +50,13 @@ export function setDataSaver(on: boolean): void {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
+  // El navegador recalcula el tipo de conexión sobre la marcha: sin elección
+  // manual, el valor automático puede cambiar durante la sesión.
+  const conn = (navigator as Navigator & { connection?: EventTarget }).connection;
+  conn?.addEventListener?.("change", listener);
   return () => {
     listeners.delete(listener);
+    conn?.removeEventListener?.("change", listener);
   };
 }
 

@@ -7,6 +7,11 @@ import { Mark } from "@/components/ui/brand";
 import { useAuth } from "@/lib/auth/auth-context";
 import { getExerciseCount, supabaseClient } from "@/lib/supabase-client";
 import { cacheRead } from "@/lib/local-cache";
+import {
+  findResumableSession,
+  suggestNextDay,
+  type ResumableSession,
+} from "@/lib/session-resume";
 import { planTitle } from "@/lib/plan-display";
 import {
   computeStreak,
@@ -61,6 +66,12 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  // Día sugerido del plan activo y sesión a medias guardada en el dispositivo.
+  const [nextDay, setNextDay] = useState<string | null>(null);
+  const [resumable, setResumable] = useState<ResumableSession | null>(null);
+  useEffect(() => {
+    setResumable(findResumableSession());
+  }, []);
   const [today, setToday] = useState("");
   const [streak, setStreak] = useState<StreakInfo | null>(null);
 
@@ -101,6 +112,14 @@ export default function DashboardPage() {
         if (activeId && !cacheRead(`plan-exercises:${activeId}`)) {
           void supabaseClient.getPlanExercises(activeId).catch(() => undefined);
         }
+
+        // Día que toca: el siguiente al último entrenado de este plan.
+        const activeDays = (
+          (plansData?.[0]?.payload?.days ?? []) as { day?: string }[]
+        )
+          .map((d) => d.day)
+          .filter((d): d is string => !!d);
+        setNextDay(activeId ? suggestNextDay(activeDays, logs || [], activeId) : null);
 
         // Racha viva anclada a hoy (días locales). Mismos logs que ya pedimos.
         setStreak(computeStreak(logs || [], todayLocal()));
@@ -234,12 +253,43 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Un toque lleva directo al entrenamiento: a la sesión a medias si la hay,
+              o al día que toca. Elegir otro día queda como acción secundaria. */}
+          {resumable ? (
+            <button
+              className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-4"
+              onClick={() =>
+                router.push(`/session?planId=${resumable.planId}&day=${resumable.day}`)
+              }
+            >
+              <Play size={17} fill="currentColor" />
+              {t("dashboard.resume_session", "Continuar · Día {{day}} ({{count}} series)", {
+                day: resumable.day,
+                count: resumable.sets,
+              })}
+            </button>
+          ) : (
+            <button
+              className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-4"
+              onClick={() =>
+                router.push(
+                  nextDay
+                    ? `/session?planId=${activePlan.id}&day=${nextDay}`
+                    : `/session?planId=${activePlan.id}`
+                )
+              }
+            >
+              <Play size={17} fill="currentColor" />
+              {nextDay
+                ? t("dashboard.train_day", "Entrenar · Día {{day}}", { day: nextDay })
+                : t("dashboard.train", "Entrenar")}
+            </button>
+          )}
           <button
-            className="cf-btn cf-btn-primary cf-btn-block cf-btn-lg mt-4"
+            className="block w-full text-center text-[12.5px] font-semibold text-primary mt-3"
             onClick={() => router.push(`/session?planId=${activePlan.id}`)}
           >
-            <Play size={17} fill="currentColor" />
-            {t("plans.plan_details.start_session")}
+            {t("dashboard.other_day", "Elegir otro día")}
           </button>
         </div>
       ) : (

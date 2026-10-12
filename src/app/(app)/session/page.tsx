@@ -2,6 +2,7 @@
 import { PageLoader } from "@/components/ui/loader";
 import { WorkoutSession } from "@/components/ui/workout-session";
 import { supabaseClient } from "@/lib/supabase-client";
+import { suggestNextDay } from "@/lib/session-resume";
 import { ArrowLeft, ChevronRight, Clock, Dumbbell } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -72,6 +73,25 @@ export default function SessionPage() {
       setLoading(false);
     }
   };
+
+  // Día que toca (siguiente al último entrenado), para destacarlo en el selector.
+  const [suggestedDay, setSuggestedDay] = useState<string | null>(null);
+  useEffect(() => {
+    if (!plan) return;
+    let active = true;
+    supabaseClient
+      .getLogs()
+      .then((logs) => {
+        if (!active) return;
+        setSuggestedDay(
+          suggestNextDay(plan.payload.days.map((d) => d.day), logs ?? [], plan.id)
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [plan]);
 
   const goBackToPlanDetails = () => router.replace(`/plans?id=${planId}`);
 
@@ -176,6 +196,11 @@ export default function SessionPage() {
                 {day.day}
               </div>
               <div className="flex-1 min-w-0">
+                {day.day === suggestedDay && (
+                  <span className="cf-chip cf-chip-mint mb-1" style={{ fontSize: 10.5, padding: "2px 8px" }}>
+                    {t("session.next_up", "Te toca hoy")}
+                  </span>
+                )}
                 <div className="font-bold text-[15.5px]">
                   {t("plan.day")} {day.day} · {day.focus}
                 </div>

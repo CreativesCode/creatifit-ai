@@ -3,10 +3,12 @@ import { Calendar, Dumbbell, Home, Scale, Settings, TrendingUp } from "lucide-re
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { useSessionActive } from "@/lib/session-resume";
 
 export function BottomNavigation() {
   const { t } = useTranslation("common");
   const pathname = usePathname();
+  const sessionActive = useSessionActive();
 
   const isActive = (path: string) => {
     const currentPath = pathname.split("?")[0].replace(/\/$/, "");
@@ -26,6 +28,9 @@ export function BottomNavigation() {
     { href: "/body", icon: Scale, label: t("nav.body", "Cuerpo") },
     { href: "/settings", icon: Settings, label: t("nav.settings", "Ajustes") },
   ];
+
+  // Durante un entrenamiento la barra no se muestra (se sale con la X de la sesión).
+  if (sessionActive) return null;
 
   return (
     <nav className="cf-nav">

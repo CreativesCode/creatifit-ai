@@ -12,9 +12,8 @@ import { startOutboxSync } from "@/lib/workout-outbox";
 const TAB_ROOTS = ["/dashboard", "/plans", "/exercises", "/session", "/settings"];
 
 /* C-UX-4 — Manejo del botón "Atrás" de Android.
-   Implementación defensiva: usa el objeto global `Capacitor.Plugins.App` con
-   carga/guard en runtime. Si `@capacitor/app` no está disponible (build web o
-   plugin ausente), es un no-op y no rompe nada. */
+   Solo en la app nativa: carga `@capacitor/app` bajo demanda. En web, o si el
+   plugin no está disponible, es un no-op y no rompe nada. */
 function useAndroidBackButton() {
   const router = useRouter();
   const pathname = usePathname();
@@ -22,63 +21,40 @@ function useAndroidBackButton() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Acceso defensivo al plugin App vía el global de Capacitor.
     const cap = (window as unknown as {
-      Capacitor?: {
-        isNativePlatform?: () => boolean;
-        Plugins?: {
-          App?: {
-            addListener?: (
-              ev: string,
-              cb: (data: { canGoBack?: boolean }) => void
-            ) => Promise<{ remove: () => void }> | { remove: () => void };
-            exitApp?: () => void;
-          };
-        };
-      };
+      Capacitor?: { isNativePlatform?: () => boolean };
     }).Capacitor;
-
     if (!cap?.isNativePlatform?.()) return;
-    const appPlugin = cap.Plugins?.App;
-    if (!appPlugin?.addListener) return;
 
     let removeFn: (() => void) | null = null;
     let cancelled = false;
 
-    const handler = (data: { canGoBack?: boolean }) => {
-      // Hay historial si Capacitor lo reporta o si el history del WebView > 1.
-      const isTabRoot = TAB_ROOTS.includes(pathname);
-      const canGoBack =
-        data?.canGoBack ??
-        (typeof window !== "undefined" && window.history.length > 1);
-
-      // Con historial: retroceder. En una raíz de tab sin historial: salir.
-      if (canGoBack) {
-        router.back();
-      } else if (isTabRoot) {
-        appPlugin.exitApp?.();
-      } else {
-        // Sin historial y fuera de una raíz: ir a una raíz segura.
-        router.push("/dashboard");
-      }
-    };
-
-    try {
-      const res = appPlugin.addListener("backButton", handler);
-      Promise.resolve(res)
-        .then((listener) => {
-          if (cancelled) {
-            listener?.remove?.();
+    // El plugin se importa de verdad (antes se buscaba en Capacitor.Plugins.App,
+    // que no existe si nadie lo importa, y el handler nunca se registraba).
+    import("@capacitor/app")
+      .then(({ App }) =>
+        App.addListener("backButton", ({ canGoBack }) => {
+          // Las rutas del export estático acaban en "/" (trailingSlash).
+          const isTabRoot = TAB_ROOTS.includes(pathname.replace(/\/$/, ""));
+          // Con historial: retroceder (la sesión en curso lo intercepta con su
+          // confirmación). En una raíz de tab sin historial: salir de la app.
+          if (canGoBack) {
+            router.back();
+          } else if (isTabRoot) {
+            void App.exitApp();
           } else {
-            removeFn = () => listener?.remove?.();
+            // Sin historial y fuera de una raíz: ir a una raíz segura.
+            router.push("/dashboard");
           }
         })
-        .catch(() => {
-          /* no-op: plugin no disponible */
-        });
-    } catch {
-      /* no-op */
-    }
+      )
+      .then((listener) => {
+        if (cancelled) void listener.remove();
+        else removeFn = () => void listener.remove();
+      })
+      .catch(() => {
+        /* no-op: plugin no disponible */
+      });
 
     return () => {
       cancelled = true;

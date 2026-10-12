@@ -230,7 +230,8 @@
     "exit_confirm_leave": "Salir",
     "exit_confirm_stay": "Quedarme",
     "resumed_notice": "Se restauró tu sesión anterior",
-    "select_day": "Selecciona tu día"
+    "select_day": "Selecciona tu día",
+    "next_up": "Te toca hoy"
   },
   "common": {
     "loading": "Cargando...",
@@ -307,6 +308,10 @@
   "dashboard": {
     "title": "🏋️‍♂️ Dashboard de CreatiFit AI",
     "subtitle": "Tu centro de control para el fitness personalizado",
+    "train": "Entrenar",
+    "train_day": "Entrenar · Día {{day}}",
+    "resume_session": "Continuar · Día {{day}} ({{count}} series)",
+    "other_day": "Elegir otro día",
     "stats": {
       "plans_created": "Planes Creados",
       "sessions_completed": "Sesiones Completadas",

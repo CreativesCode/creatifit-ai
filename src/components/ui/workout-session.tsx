@@ -17,6 +17,11 @@ import {
   usePendingWorkoutLogs,
 } from "@/lib/workout-outbox";
 import { formatReps } from "@/lib/plan-display";
+import {
+  isSessionFresh,
+  sessionStorageKey,
+  setSessionActive,
+} from "@/lib/session-resume";
 import { playRestEndCue } from "@/lib/feedback";
 import {
   Activity,
@@ -217,10 +222,10 @@ interface PersistedSession {
   isLongRest: boolean;
   workoutLogs: WorkoutLog[];
   sessionId: string;
+  // Última vez que se guardó (ms). Sin esto, o caducada, la sesión no se reanuda.
+  savedAt?: number;
 }
 
-const sessionStorageKey = (planId: string, day: string) =>
-  `cf-workout-session:${planId}:${day}`;
 
 // Topes de lo que se puede registrar en una serie (evita valores imposibles por error de tecleo)
 const MAX_REPS = 200;
@@ -601,7 +606,7 @@ function ExerciseStep({
 
       {/* Acción principal siempre a la vista, sobre la navegación inferior */}
       <div
-        className="sticky z-20 flex gap-3 mt-2 -mx-5 px-5 pt-3 pb-2 bottom-[calc(env(safe-area-inset-bottom,0px)+68px)] lg:bottom-4"
+        className="sticky z-20 flex gap-3 mt-2 -mx-5 px-5 pt-3 pb-2 bottom-[calc(env(safe-area-inset-bottom,0px)+10px)]"
         style={{ background: "linear-gradient(to top, var(--bg) 70%, transparent)" }}
       >
         <button className="cf-btn cf-btn-ghost" style={{ flex: "0 0 auto", padding: "15px 18px" }} onClick={onStartRest}>
@@ -629,11 +634,13 @@ function RestStep({
   onPauseToggle,
   onSkip,
   onAdjust,
+  onExit,
   isLongRest,
   nextExercise,
   nextExerciseDetails,
   t,
 }: {
+  onExit: () => void;
   restTime: number;
   total: number;
   isPaused: boolean;
@@ -659,6 +666,15 @@ function RestStep({
               ? t("session.rest_between_exercises", "Descanso entre ejercicios")
               : t("session.rest_label", "Descanso")}
           </span>
+          {/* Con la navegación oculta, el descanso también necesita su salida */}
+          <button
+            onClick={onExit}
+            className="cf-icon-tile bg-surface-2 border border-border"
+            style={{ width: 44, height: 44 }}
+            aria-label={t("session.exit", "Salir")}
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="flex flex-col items-center justify-center gap-1 py-6" style={{ flex: "0 0 auto", marginTop: 12 }}>
@@ -1032,8 +1048,10 @@ export function WorkoutSession({
     setRestored(true);
     try {
       const raw = window.localStorage.getItem(sessionStorageKey(planId, planDay.day));
-      if (raw) {
-        const saved = JSON.parse(raw) as PersistedSession;
+      const saved = raw ? (JSON.parse(raw) as PersistedSession) : null;
+      // Una sesión de hace más de unas horas no se reanuda: empezaría el
+      // entrenamiento de hoy mezclado con series de otro día.
+      if (saved && isSessionFresh(saved.savedAt)) {
         setPhase(saved.phase);
         setTimer(saved.timer);
         setRestTotal(saved.restTotal);
@@ -1067,6 +1085,7 @@ export function WorkoutSession({
         isLongRest,
         workoutLogs,
         sessionId,
+        savedAt: Date.now(),
       };
       window.localStorage.setItem(
         sessionStorageKey(planId, planDay.day),
@@ -1128,14 +1147,28 @@ export function WorkoutSession({
     return () => document.removeEventListener("click", onClickCapture, true);
   }, [isSessionActive]);
 
+  // Ocultar la navegación inferior mientras dura el entrenamiento.
+  useEffect(() => {
+    setSessionActive(isSessionActive);
+    return () => setSessionActive(false);
+  }, [isSessionActive]);
+
   // Guard 2 · Botón atrás del navegador / hardware: atrapar con un estado centinela
   // y mostrar la confirmación en lugar de abandonar la sesión.
+  // Las entradas centinela se cuentan para poder retirarlas al salir: si se quedan
+  // en el historial, el siguiente "atrás" devuelve al usuario a /session y arranca
+  // otra sesión sola.
+  const sentinelCountRef = useRef(0);
+  const leavingRef = useRef(false);
   useEffect(() => {
     if (!isSessionActive) return;
     window.history.pushState(null, "", window.location.href);
+    sentinelCountRef.current++;
     const onPop = () => {
+      if (leavingRef.current) return;
       // volver a fijar el centinela para mantener al usuario en la sesión
       window.history.pushState(null, "", window.location.href);
+      sentinelCountRef.current++;
       setPendingNav(null); // atrás → salir vía onExit (a detalles del plan)
       setShowExitConfirm(true);
     };
@@ -1383,15 +1416,37 @@ export function WorkoutSession({
     setRestTotal((prev) => Math.max(1, prev + delta));
   };
 
+  // Retira del historial las entradas centinela y después navega.
+  const leaveSession = (go: () => void) => {
+    leavingRef.current = true;
+    const sentinels = sentinelCountRef.current;
+    sentinelCountRef.current = 0;
+    if (sentinels === 0) {
+      go();
+      return;
+    }
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener("popstate", finish);
+      go();
+    };
+    window.addEventListener("popstate", finish);
+    // Respaldo por si el navegador no emite popstate.
+    setTimeout(finish, 400);
+    window.history.go(-sentinels);
+  };
+
   const handleShowHistory = () => {
     clearPersistedSession();
-    router.push("/workout-history");
+    leaveSession(() => router.replace("/workout-history"));
   };
 
   // Salida del resumen final (sesión ya completada): limpiar y salir
   const handleCompletedExit = () => {
     clearPersistedSession();
-    onExit();
+    leaveSession(onExit);
   };
 
   // Botón "X": confirmar si hay progreso, de lo contrario salir directo
@@ -1400,7 +1455,7 @@ export function WorkoutSession({
       setShowExitConfirm(true);
     } else {
       clearPersistedSession();
-      onExit();
+      leaveSession(onExit);
     }
   };
 
@@ -1411,10 +1466,10 @@ export function WorkoutSession({
     setPendingNav(null);
     if (dest) {
       // Salida hacia un enlace del menú: navegar al destino solicitado.
-      router.push(dest);
+      leaveSession(() => router.replace(dest));
     } else {
       // Botón X o atrás: salir por el flujo normal (detalles del plan).
-      onExit();
+      leaveSession(onExit);
     }
   };
 
@@ -1511,6 +1566,7 @@ export function WorkoutSession({
             onPauseToggle={() => setIsPaused(!isPaused)}
             onSkip={handleSkipRest}
             onAdjust={handleAdjustRest}
+            onExit={handleExitRequest}
             isLongRest={isLongRest}
             nextExercise={nextExercise}
             nextExerciseDetails={nextExerciseDetails}

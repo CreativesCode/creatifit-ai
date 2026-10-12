@@ -115,6 +115,16 @@ export const supabaseClient = {
     return { data: rows.slice(0, limit), hasMore: rows.length > limit };
   },
 
+  // Miniaturas de unos ejercicios concretos (exercise_id -> gif_url).
+  async getExerciseGifs(ids: string[]): Promise<Record<string, string>> {
+    if (ids.length === 0) return {};
+    const { data, error } = await supabase.from("exercises").select("id,gif_url").in("id", ids);
+    if (error) throw error;
+    const map: Record<string, string> = {};
+    for (const row of data ?? []) if (row.gif_url) map[String(row.id)] = row.gif_url;
+    return map;
+  },
+
   async getExerciseById(id: string) {
     const { data, error } = await supabase
       .from("exercises")

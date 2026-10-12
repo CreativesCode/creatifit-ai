@@ -15,6 +15,8 @@ import { PlanEditor } from "@/components/plans/plan-editor";
 import { CreatePlanSheet } from "@/components/plans/create-plan-sheet";
 import { NEW_PLAN_SLOT, readDraft } from "@/lib/plans/plan-draft";
 import { afterBackGuards } from "@/lib/back-guard";
+import { AiProfileForm } from "@/components/plans/ai-profile-form";
+import { profileFromMeta, profileToMeta, type AiProfile } from "@/lib/plans/ai-profile";
 import {
   computeImproveEligibility,
   buildProgressionNotes,
@@ -111,6 +113,8 @@ export default function PlansPage() {
   const [improveEligible, setImproveEligible] = useState(false);
   const [improving, setImproving] = useState(false);
   const [improveError, setImproveError] = useState<string | null>(null);
+  // Cuestionario corto para la IA, cuando el plan a mejorar no tiene perfil.
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const planId = searchParams.get("id");
   const dayParam = searchParams.get("day");
@@ -394,8 +398,16 @@ export default function PlansPage() {
   // Bloqueo inmediato: `improving` es estado y un doble toque lo lee aún en false,
   // lo que lanzaría (y cobraría) dos generaciones.
   const improvingRef = useRef(false);
-  const handleImprovePlan = async () => {
-    if (!selectedPlan || improving || improvingRef.current) return;
+  const handleImprovePlan = async (planArg?: Plan) => {
+    const plan = planArg ?? selectedPlan;
+    if (!plan || improving || improvingRef.current) return;
+    // Un plan hecho a mano no trae cuestionario: se pide una vez y se guarda en
+    // el plan. Sin él la IA generaría con valores por defecto que nadie eligió.
+    if (!profileFromMeta(plan.payload?.meta)) {
+      setImproveError(null);
+      setProfileOpen(true);
+      return;
+    }
     improvingRef.current = true;
     setImproveError(null);
     try {
@@ -403,7 +415,7 @@ export default function PlansPage() {
 
       // 1) Datos reales de entrenamiento DE ESTE PLAN + comprobación de elegibilidad.
       const allLogs = (await supabaseClient.getLogs()) || [];
-      const logs = logsForPlan(allLogs, selectedPlan.id);
+      const logs = logsForPlan(allLogs, plan.id);
       const eligibility = computeImproveEligibility(logs);
       if (!eligibility.eligible) {
         setImproveError(
@@ -437,8 +449,8 @@ export default function PlansPage() {
       // 3) Reconstruir el intake desde el meta del plan + notas de progresión.
       const notes = buildProgressionNotes(logs, eligibility);
       const intake = buildImproveIntake(
-        selectedPlan.payload?.meta,
-        selectedPlan.weeks,
+        plan.payload?.meta,
+        plan.weeks,
         i18n.language,
         notes
       );
@@ -448,7 +460,7 @@ export default function PlansPage() {
       // Mismo id para la generación y para el plan: un reintento tras un fallo de
       // red recupera el plan ya generado en vez de pagar otro.
       const planId = generationRequestId(user?.id ?? "", {
-        improve: selectedPlan.id,
+        improve: plan.id,
         intake,
       });
       const generatedPlan = await generateFitnessPlan(intake, planId);
@@ -457,18 +469,20 @@ export default function PlansPage() {
       }
 
       // 4) Guardar como plan NUEVO (el anterior y el historial se conservan).
-      const meta = selectedPlan.payload?.meta || {};
+      // El plan mejorado lo genera la IA aunque el de partida fuera manual.
+      const meta = { ...(plan.payload?.meta || {}) };
+      delete meta.source;
       const { plan: savedPlan } = await supabaseClient.savePlan({
         id: planId,
         user_id: user?.id ?? null,
-        weeks: selectedPlan.weeks,
+        weeks: plan.weeks,
         version: 1,
         source_hash: planId,
         payload: {
           meta: {
             ...meta,
             name: t("plans.improve.improved_name", "Plan mejorado"),
-            improved_from: selectedPlan.id,
+            improved_from: plan.id,
             created_at: new Date().toISOString(),
           },
           ...generatedPlan,
@@ -514,6 +528,31 @@ export default function PlansPage() {
     } finally {
       improvingRef.current = false;
       setImproving(false);
+    }
+  };
+
+  // Guarda en el plan el perfil recién rellenado y sigue con la mejora.
+  const saveProfileAndImprove = async (profile: AiProfile) => {
+    setProfileOpen(false);
+    if (!selectedPlan) return;
+    try {
+      const payload = {
+        ...selectedPlan.payload,
+        meta: { ...(selectedPlan.payload?.meta || {}), ...profileToMeta(profile) },
+      };
+      const saved = await supabaseClient.savePlanStructure({ id: selectedPlan.id, payload });
+      const next: Plan = { ...selectedPlan, payload: saved ?? payload };
+      setSelectedPlan(next);
+      setPlans((prev) => prev.map((p) => (p.id === next.id ? next : p)));
+      handleImprovePlan(next);
+    } catch (err) {
+      console.error("Error saving AI profile:", err);
+      setImproveError(
+        t(
+          "plans.ai_profile.save_error",
+          "No se pudieron guardar tus datos. Revisa la conexión e inténtalo de nuevo."
+        )
+      );
     }
   };
 
@@ -1084,7 +1123,7 @@ export default function PlansPage() {
             <>
               <button
                 className="cf-btn cf-btn-ghost cf-btn-block"
-                onClick={handleImprovePlan}
+                onClick={() => handleImprovePlan()}
                 disabled={improving}
                 style={{ gap: 8 }}
               >
@@ -1119,6 +1158,14 @@ export default function PlansPage() {
         </div>
 
         {deleteModal}
+
+        {profileOpen && (
+          <AiProfileForm
+            submitLabel={t("plans.ai_profile.submit_improve", "Guardar y mejorar el plan")}
+            onClose={() => setProfileOpen(false)}
+            onSubmit={saveProfileAndImprove}
+          />
+        )}
       </div>
     );
   }

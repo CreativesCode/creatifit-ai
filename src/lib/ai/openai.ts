@@ -72,7 +72,13 @@ async function serverErrorCode(error: unknown): Promise<string | null> {
 //
 // La API key de OpenAI vive como secret en el servidor (Supabase Edge Function),
 // nunca en el cliente. Esto evita exponerla en el bundle web o en el .apk.
-export async function generateFitnessPlan(intake: any, requestId: string): Promise<any> {
+// `onInvalid` libera el id pendiente si el plan recibido no es válido; por
+// defecto, el del cuestionario.
+export async function generateFitnessPlan(
+  intake: any,
+  requestId: string,
+  onInvalid: () => void = clearGenerationRequest
+): Promise<any> {
   let lastWasNetwork = false;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const { data, error } = await supabase.functions.invoke("generate-plan", {
@@ -87,7 +93,7 @@ export async function generateFitnessPlan(intake: any, requestId: string): Promi
         return GeneratedPlanSchema.parse(data.plan);
       } catch (invalid) {
         // Un plan inválido no debe volver a servirse en el siguiente intento.
-        clearGenerationRequest();
+        onInvalid();
         throw invalid;
       }
     }
@@ -95,6 +101,10 @@ export async function generateFitnessPlan(intake: any, requestId: string): Promi
     const code = await serverErrorCode(error);
     // Límites: el llamador decide (paywall / mensaje). No se reintenta.
     if (code === "FREE_LIMIT_REACHED" || code === "PRO_LIMIT_REACHED") {
+      throw new Error(code);
+    }
+    // Relleno: con ese equipo no hay ejercicios suficientes en las zonas pedidas.
+    if (code === "NOT_ENOUGH_EXERCISES") {
       throw new Error(code);
     }
     // Sin respuesta del servidor (red caída, timeout) o generación aún en curso:

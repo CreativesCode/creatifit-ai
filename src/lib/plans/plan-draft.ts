@@ -1,3 +1,4 @@
+import type { AiProfile } from "./ai-profile";
 import type { EditableDay } from "./plan-structure";
 
 /* Borrador del editor de planes, guardado en el teléfono. Se edita aquí y se
@@ -17,6 +18,8 @@ export interface PlanDraft {
   days: EditableDay[];
   // Miniaturas de los ejercicios añadidos (exercise_id -> gif). No se envía.
   gifs: Record<string, string>;
+  // Perfil para la IA rellenado desde el editor; al guardar pasa a payload.meta.
+  profile?: AiProfile;
   savedAt: number;
 }
 

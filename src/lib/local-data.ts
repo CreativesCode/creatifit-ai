@@ -33,7 +33,9 @@ export function clearUserLocalData(uid: string, includeOutbox = false): void {
     );
     if (includeOutbox) {
       // Borradores del editor de planes: trabajo sin guardar, igual que la cola.
-      removeMatching((k) => k.startsWith(`cf-plan-draft:${uid}:`));
+      removeMatching(
+        (k) => k.startsWith(`cf-plan-draft:${uid}:`) || k.startsWith(`cf-pending-fill:${uid}:`)
+      );
       for (const key of OUTBOX_KEYS) {
         const raw = window.localStorage.getItem(key);
         if (!raw) continue;

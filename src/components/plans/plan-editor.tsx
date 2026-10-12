@@ -1,8 +1,21 @@
 "use client";
-import { AlertTriangle, ArrowLeft, Check, Loader2, Plus, WifiOff } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Loader2, Plus, Sparkles, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { GeneratingOverlay } from "@/components/ui/generating-overlay";
+import {
+  clearPendingFill,
+  readPendingFill,
+  runFill,
+  type FilledDay,
+  type FillRequest,
+  type FillTarget,
+} from "@/lib/ai/fill-plan";
 import { useBackGuard } from "@/lib/back-guard";
+import { canGenerate } from "@/lib/config/plans-config";
+import { countAiGenerations } from "@/lib/plans/ai-quota";
+import { profileFromMeta, profileToMeta, type AiProfile } from "@/lib/plans/ai-profile";
+import { useRevenueCat } from "@/lib/revenuecat/revenuecat-context";
 import { isNetworkError } from "@/lib/local-cache";
 import {
   NEW_PLAN_SLOT,
@@ -22,6 +35,7 @@ import {
   dayLetter,
   moveBlock,
   moveDay,
+  relabelDays,
   removeBlock,
   removeDay,
   saveBlocker,
@@ -35,6 +49,8 @@ import { supabaseClient } from "@/lib/supabase-client";
 import { EditablePlanSchema } from "@/lib/validators/schemas";
 import { newId } from "@/lib/workout-outbox";
 import { Stepper } from "./block-controls";
+import { AiFillSheet, type FillChoice } from "./ai-fill-sheet";
+import { AiProfileForm } from "./ai-profile-form";
 import { DayEditor } from "./day-editor";
 import { ExercisePicker } from "./exercise-picker";
 
@@ -103,7 +119,7 @@ function freshDraft(plan: EditorPlan | null): PlanDraft {
 }
 
 const contentOf = (d: PlanDraft) =>
-  JSON.stringify({ name: d.name, weeks: d.weeks, days: d.days });
+  JSON.stringify({ name: d.name, weeks: d.weeks, days: d.days, profile: d.profile });
 
 /**
  * Editor de un plan: sirve para uno nuevo (`plan` = null) y para cualquiera ya
@@ -121,7 +137,8 @@ export function PlanEditor({
   onClose: () => void;
   onSaved: (plan: EditorPlan) => void;
 }) {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
+  const { isPro, isNative, presentPaywall } = useRevenueCat();
   const slot = plan ? plan.id : NEW_PLAN_SLOT;
 
   // Punto de partida: lo guardado en el servidor (o un plan vacío).
@@ -192,6 +209,176 @@ export function PlanEditor({
     setDraft((d) => ({ ...d, days }));
   };
 
+  /* ===== Rellenar con IA ===== */
+  // Perfil para la IA: el rellenado en este editor o el que ya guarda el plan.
+  const savedProfile = useMemo(() => profileFromMeta(plan?.payload?.meta), [plan]);
+  const profile = draft.profile ?? savedProfile;
+  const [aiStep, setAiStep] = useState<{
+    scope: "day" | "plan";
+    stage: "profile" | "options";
+  } | null>(null);
+  const [filling, setFilling] = useState(false);
+  const fillingRef = useRef(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  // Relleno pedido y aún sin meter en el borrador (se cortó la red o se cerró la app).
+  const [pendingFill, setPendingFill] = useState(() => readPendingFill(uid, slot));
+
+  const openFill = (scope: "day" | "plan") => {
+    setAiError(null);
+    setAiStep({ scope, stage: profile ? "options" : "profile" });
+  };
+
+  const applyFill = (filled: FilledDay[], target: FillTarget, scope: "day" | "plan") => {
+    const focusOf = (d: FilledDay) => String(d.focus ?? "").slice(0, PLAN_LIMITS.focus);
+    setProblem(null);
+    setDraft((d) => {
+      if (scope === "plan") {
+        return {
+          ...d,
+          days: relabelDays(
+            filled.slice(0, PLAN_LIMITS.days.max).map((fd) => ({
+              day: "",
+              focus: focusOf(fd),
+              blocks: fd.blocks.slice(0, PLAN_LIMITS.blocks.max),
+            }))
+          ),
+        };
+      }
+      const at = Math.min(target.dayIndex, d.days.length - 1);
+      return {
+        ...d,
+        days: d.days.map((current, i) => {
+          if (i !== at) return current;
+          const kept = target.mode === "replace" ? [] : current.blocks;
+          const present = new Set(kept.map((b) => b.exercise_id));
+          const fresh = (filled[0]?.blocks ?? [])
+            .filter((b) => !present.has(b.exercise_id))
+            .slice(0, PLAN_LIMITS.blocks.max - kept.length);
+          return {
+            ...current,
+            focus: current.focus || (filled[0] ? focusOf(filled[0]) : ""),
+            blocks: [...kept, ...fresh],
+          };
+        }),
+      };
+    });
+    // Miniaturas de lo recién añadido (el resultado solo trae ids y nombres).
+    const ids = filled.flatMap((fd) => fd.blocks.flatMap((b) => (b.exercise_id ? [b.exercise_id] : [])));
+    supabaseClient
+      .getExerciseGifs(ids)
+      .then((map) => setDraft((d) => ({ ...d, gifs: { ...d.gifs, ...map } })))
+      .catch(() => undefined);
+  };
+
+  const limitMessage = () =>
+    t(
+      "paywall.limit_reached",
+      "Ya usaste tu plan gratuito. Mejora a Pro desde la app móvil para generar planes ilimitados."
+    );
+
+  // `gate`: comprobar el cupo antes de pedirlo. Al recuperar un relleno ya
+  // pedido no hace falta: el servidor devuelve el mismo resultado.
+  const execFill = async (
+    request: FillRequest,
+    target: FillTarget,
+    withProfile: AiProfile,
+    gate: boolean
+  ) => {
+    if (fillingRef.current) return;
+    fillingRef.current = true;
+    setAiError(null);
+    try {
+      if (gate && !isPro) {
+        const used = await countAiGenerations();
+        if (!canGenerate("free", used)) {
+          if (!isNative) {
+            setAiError(limitMessage());
+            return;
+          }
+          const purchased = await presentPaywall();
+          if (!purchased) return;
+        }
+      }
+      setFilling(true);
+      const filled = await runFill({
+        uid,
+        slot,
+        request,
+        target,
+        profile: withProfile,
+        language: i18n.language,
+      });
+      if (filled.length === 0) throw new Error("GENERATION_FAILED");
+      applyFill(filled, target, request.scope);
+      // Solo ahora, con el resultado en el borrador, deja de estar pendiente.
+      clearPendingFill(uid, slot);
+      setPendingFill(null);
+      if (request.scope === "plan") setActiveDay(0);
+    } catch (err) {
+      const code = err instanceof Error ? err.message : "";
+      if (code === "GENERATION_NETWORK") {
+        // Puede haberse generado: se conserva el id para recuperarlo sin gastar otra.
+        setPendingFill(readPendingFill(uid, slot));
+        setAiError(
+          t(
+            "plans.ai_fill.error_network",
+            "No hay conexión con el servidor. Cuando vuelva, toca «Recuperar»: no se gasta otra generación."
+          )
+        );
+        return;
+      }
+      clearPendingFill(uid, slot);
+      setPendingFill(null);
+      if (code === "FREE_LIMIT_REACHED") {
+        if (isNative) await presentPaywall();
+        else setAiError(limitMessage());
+      } else if (code === "PRO_LIMIT_REACHED") {
+        setAiError(
+          t("plans.ai_fill.error_pro_limit", "Has alcanzado el límite mensual de generaciones.")
+        );
+      } else if (code === "NOT_ENOUGH_EXERCISES") {
+        setAiError(
+          t(
+            "plans.ai_fill.error_not_enough",
+            "Con tu equipo no hay ejercicios suficientes para esas zonas. Prueba con otras zonas o menos ejercicios."
+          )
+        );
+      } else {
+        console.error("Error filling with AI:", err);
+        setAiError(
+          t("plans.ai_fill.error", "No se pudo generar. Inténtalo de nuevo; no se gastó tu generación.")
+        );
+      }
+    } finally {
+      fillingRef.current = false;
+      setFilling(false);
+    }
+  };
+
+  const confirmFill = (choice: FillChoice) => {
+    const scope = aiStep?.scope ?? "day";
+    setAiStep(null);
+    if (!profile || !day) return;
+    const mode = scope === "day" ? choice.mode : "replace";
+    execFill(
+      {
+        scope,
+        days: scope === "plan" ? choice.days : 1,
+        blocks: choice.blocks,
+        objective: choice.objective,
+        zones: choice.zones,
+        exclude:
+          scope === "day" && mode === "add"
+            ? day.blocks.flatMap((b) => (b.exercise_id ? [b.exercise_id] : []))
+            : [],
+        ...(choice.note.trim() ? { note: choice.note.trim() } : {}),
+      },
+      { dayIndex, mode },
+      profile,
+      true
+    );
+  };
+
   const save = async () => {
     if (saving) return;
     setConfirmExit(false);
@@ -218,6 +405,8 @@ export function PlanEditor({
         draft.name.trim().slice(0, PLAN_LIMITS.name) ||
         t("plans.editor.default_name", "Mi plan");
     }
+    // Perfil para la IA rellenado en este editor: se guarda con el plan.
+    if (draft.profile) Object.assign(meta, profileToMeta(draft.profile));
     const payload = { ...(plan?.payload ?? {}), meta, weeks: draft.weeks, days: draft.days };
 
     setSaving(true);
@@ -273,14 +462,14 @@ export function PlanEditor({
   };
 
   const requestClose = () => {
-    if (saving) return;
+    if (saving || filling) return;
     if (dirty) setConfirmExit(true);
     else onClose();
   };
 
   // Atrás del teléfono: cierra la confirmación, la pide si hay cambios, o sale.
   useBackGuard(true, () => {
-    if (saving) return true;
+    if (saving || filling) return true;
     if (confirmExit) {
       setConfirmExit(false);
       return true;
@@ -380,6 +569,47 @@ export function PlanEditor({
         </div>
       )}
 
+      {pendingFill && !filling && (
+        <div
+          className="cf-card flex items-center gap-2.5 mb-3"
+          style={{ padding: "10px 12px", borderRadius: 14 }}
+        >
+          <Sparkles size={16} className="shrink-0 text-primary" />
+          <span className="cf-muted text-[12.5px] flex-1">
+            {t("plans.ai_fill.pending", "Quedó un relleno con IA sin terminar.")}
+          </span>
+          {profile && (
+            <button
+              className="cf-btn cf-btn-ghost cf-btn-sm"
+              onClick={() => execFill(pendingFill.request, pendingFill.target, profile, false)}
+            >
+              {t("plans.ai_fill.recover", "Recuperar")}
+            </button>
+          )}
+          <button
+            className="cf-btn cf-btn-ghost cf-btn-sm"
+            onClick={() => {
+              clearPendingFill(uid, slot);
+              setPendingFill(null);
+              setAiError(null);
+            }}
+          >
+            {t("plans.editor.discard", "Descartar")}
+          </button>
+        </div>
+      )}
+
+      {aiError && (
+        <div
+          className="cf-card flex items-start gap-2.5 mb-3"
+          style={{ padding: "12px 14px", borderRadius: 14 }}
+          role="alert"
+        >
+          <AlertTriangle size={17} className="shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
+          <span className="flex-1 text-[13px] leading-snug">{aiError}</span>
+        </div>
+      )}
+
       {/* nombre y duración */}
       <div className="cf-card mb-4" style={{ padding: 14, borderRadius: 18 }}>
         {isManual ? (
@@ -409,6 +639,15 @@ export function PlanEditor({
             onChange={(weeks) => setDraft((d) => ({ ...d, weeks }))}
           />
         </div>
+        <button
+          type="button"
+          className="cf-btn cf-btn-ghost cf-btn-block mt-3.5"
+          style={{ gap: 8 }}
+          onClick={() => openFill("plan")}
+        >
+          <Sparkles size={16} />
+          {t("plans.ai_fill.cta_plan", "Rellenar todo el plan con IA")}
+        </button>
       </div>
 
       {/* días */}
@@ -465,6 +704,7 @@ export function PlanEditor({
           onMoveBlock={(from, to) => change(moveBlock(draft.days, dayIndex, from, to))}
           onUpdateBlock={(i, patch) => change(updateBlock(draft.days, dayIndex, i, patch))}
           onAddExercises={() => setPickerOpen(true)}
+          onAiFill={() => openFill("day")}
         />
       )}
 
@@ -489,6 +729,30 @@ export function PlanEditor({
           }}
         />
       )}
+
+      {aiStep?.stage === "profile" && (
+        <AiProfileForm
+          onClose={() => setAiStep(null)}
+          onSubmit={(next) => {
+            setDraft((d) => ({ ...d, profile: next }));
+            setAiStep({ scope: aiStep.scope, stage: "options" });
+          }}
+        />
+      )}
+
+      {aiStep?.stage === "options" && profile && day && (
+        <AiFillSheet
+          scope={aiStep.scope}
+          dayLabel={`${t("plan.day")} ${day.day}`}
+          dayBlocks={day.blocks.length}
+          freeInDay={freeBlocks(day)}
+          defaultObjective={profile.objective}
+          onClose={() => setAiStep(null)}
+          onConfirm={confirmFill}
+        />
+      )}
+
+      {filling && <GeneratingOverlay title={t("plans.ai_fill.generating", "Generando ejercicios…")} />}
 
       {/* salir con cambios sin guardar */}
       {confirmExit && (

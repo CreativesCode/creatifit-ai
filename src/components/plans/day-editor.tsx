@@ -1,5 +1,5 @@
 "use client";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ExerciseThumb } from "@/components/ui/exercise-image";
@@ -27,6 +27,7 @@ export function DayEditor({
   onMoveBlock,
   onUpdateBlock,
   onAddExercises,
+  onAiFill,
 }: {
   day: EditableDay;
   dayIndex: number;
@@ -42,6 +43,7 @@ export function DayEditor({
     patch: Partial<Pick<EditableBlock, "sets" | "reps" | "rest_sec">>
   ) => void;
   onAddExercises?: () => void;
+  onAiFill?: () => void;
 }) {
   const { t } = useTranslation("common");
   // Quitar un día con ejercicios pide un segundo toque.
@@ -193,6 +195,18 @@ export function DayEditor({
                 max: PLAN_LIMITS.blocks.max,
               })
             : t("plans.editor.add_exercise", "Añadir ejercicios")}
+        </button>
+      )}
+
+      {onAiFill && (
+        <button
+          type="button"
+          className="cf-btn cf-btn-ghost cf-btn-block mt-2.5"
+          style={{ gap: 8 }}
+          onClick={onAiFill}
+        >
+          <Sparkles size={16} />
+          {t("plans.ai_fill.cta_day", "Rellenar este día con IA")}
         </button>
       )}
     </div>

@@ -181,6 +181,124 @@ async function handle(req: Request): Promise<Response> {
       return json({ users });
     }
 
+    // Detalle de un usuario para dar soporte en el piloto: su cuestionario, sus
+    // planes (resumidos) y sus últimas sesiones. Solo lectura.
+    case "userDetail": {
+      const userId = String(body?.userId ?? "");
+      if (!userId) return json({ error: "userId requerido" }, 400);
+
+      const [intakeRes, plansRes, logsRes] = await Promise.all([
+        admin
+          .from("intake")
+          .select("objective, level, age, weight_kg, height_cm, equipment, steps_day, notes, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(1),
+        admin
+          .from("plans")
+          .select("id, weeks, created_at, payload")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(10),
+        admin
+          .from("workout_logs")
+          .select("session_id, plan_id, plan_day_id, actual_reps, weight, rpe, timestamp")
+          .eq("user_id", userId)
+          .order("timestamp", { ascending: false })
+          .limit(600),
+      ]);
+      const failed = intakeRes.error ?? plansRes.error ?? logsRes.error;
+      if (failed) return json({ error: failed.message }, 500);
+
+      // deno-lint-ignore no-explicit-any
+      const plans = (plansRes.data ?? []).map((p: any) => ({
+        id: p.id,
+        weeks: p.weeks,
+        created_at: p.created_at,
+        // deno-lint-ignore no-explicit-any
+        days: (p.payload?.days ?? []).map((d: any) => ({
+          day: String(d?.day ?? ""),
+          focus: String(d?.focus ?? ""),
+          // deno-lint-ignore no-explicit-any
+          exercises: (d?.blocks ?? []).map((b: any) => String(b?.name ?? "")),
+        })),
+      }));
+
+      type Sess = {
+        session_id: string;
+        plan_id: string | null;
+        day: string;
+        at: string;
+        sets: number;
+        volume: number;
+        rpeSum: number;
+        rpeCount: number;
+      };
+      const bySession = new Map<string, Sess>();
+      for (const l of logsRes.data ?? []) {
+        const s = bySession.get(l.session_id) ?? {
+          session_id: l.session_id,
+          plan_id: l.plan_id ?? null,
+          day: String(l.plan_day_id ?? ""),
+          at: l.timestamp,
+          sets: 0,
+          volume: 0,
+          rpeSum: 0,
+          rpeCount: 0,
+        };
+        s.sets++;
+        s.volume += Number(l.actual_reps ?? 0) * Number(l.weight ?? 0);
+        if (l.rpe) {
+          s.rpeSum += Number(l.rpe);
+          s.rpeCount++;
+        }
+        // Las filas llegan de más reciente a más antigua: `at` queda con el inicio.
+        s.at = l.timestamp;
+        bySession.set(l.session_id, s);
+      }
+      const sessions = Array.from(bySession.values())
+        .slice(0, 20)
+        .map((s) => ({
+          session_id: s.session_id,
+          plan_id: s.plan_id,
+          day: s.day,
+          at: s.at,
+          sets: s.sets,
+          volume: Math.round(s.volume),
+          avg_rpe: s.rpeCount ? Math.round((s.rpeSum / s.rpeCount) * 10) / 10 : null,
+        }));
+
+      // La tabla `intake` no la escribe la app: el cuestionario viaja dentro del
+      // plan (payload.meta). Se usa el del plan más reciente como respaldo.
+      // deno-lint-ignore no-explicit-any
+      const meta: any = (plansRes.data ?? [])[0]?.payload?.meta ?? null;
+      const trueKeys = (o: unknown) =>
+        o && typeof o === "object"
+          ? Object.entries(o as Record<string, unknown>)
+              .filter(([, v]) => v === true)
+              .map(([k]) => k.replace(/_/g, " "))
+          : [];
+      const avoid = trueKeys(meta?.constraints);
+      const fromMeta = meta
+        ? {
+            objective: meta.objective ?? null,
+            level: meta.level ?? null,
+            age: meta.age ?? null,
+            weight_kg: meta.weight_kg ?? null,
+            height_cm: meta.height_cm ?? null,
+            equipment: Array.isArray(meta.equipment) ? meta.equipment : trueKeys(meta.equipment),
+            steps_day: meta.steps_day ?? null,
+            notes:
+              [meta.notes, avoid.length ? `Evitar: ${avoid.join(", ")}` : null]
+                .filter(Boolean)
+                .join(" · ") || null,
+            created_at: meta.created_at ?? (plansRes.data ?? [])[0]?.created_at,
+          }
+        : null;
+
+      return json({ intake: intakeRes.data?.[0] ?? fromMeta, plans, sessions });
+    }
+
     // Asignar/forzar tier (free | pro_monthly | pro_annual) sin pasar por pago.
     case "setTier": {
       const userId = String(body?.userId ?? "");
@@ -204,6 +322,21 @@ async function handle(req: Request): Promise<Response> {
       if (!userId) return json({ error: "userId requerido" }, 400);
       if (userId === callerId) {
         return json({ error: "No puedes eliminar tu propia cuenta" }, 400);
+      }
+      // No dejar el proyecto sin administradores.
+      const { data: target } = await admin
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userId)
+        .maybeSingle();
+      if (target?.is_admin) {
+        const { count } = await admin
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("is_admin", true);
+        if ((count ?? 0) <= 1) {
+          return json({ error: "No se puede eliminar al único administrador" }, 400);
+        }
       }
       const photoError = await removeUserPhotos(admin, userId);
       if (photoError) return json({ error: photoError }, 500);

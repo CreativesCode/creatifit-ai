@@ -25,6 +25,35 @@ export interface AdminUser {
   last_sign_in: string | null;
 }
 
+export interface AdminUserDetail {
+  intake: {
+    objective: string | null;
+    level: string | null;
+    age: number | null;
+    weight_kg: number | null;
+    height_cm: number | null;
+    equipment: string[] | string | null;
+    steps_day: number | null;
+    notes: string | null;
+    created_at: string;
+  } | null;
+  plans: {
+    id: string;
+    weeks: number | null;
+    created_at: string;
+    days: { day: string; focus: string; exercises: string[] }[];
+  }[];
+  sessions: {
+    session_id: string;
+    plan_id: string | null;
+    day: string;
+    at: string;
+    sets: number;
+    volume: number;
+    avg_rpe: number | null;
+  }[];
+}
+
 async function callAdmin<T = unknown>(
   action: string,
   payload: Record<string, unknown> = {}
@@ -68,4 +97,5 @@ export const adminApi = {
   listUsers: () => callAdmin<{ users: AdminUser[] }>("list").then((r) => r.users),
   setTier: (userId: string, tier: Tier) => callAdmin("setTier", { userId, tier }),
   deleteUser: (userId: string) => callAdmin("deleteUser", { userId }),
+  userDetail: (userId: string) => callAdmin<AdminUserDetail>("userDetail", { userId }),
 };

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ChevronDown,
   Crown,
   Dumbbell,
   Loader2,
@@ -22,7 +23,12 @@ import {
 import { useAuth } from "@/lib/auth/auth-context";
 import { LoadError } from "@/components/ui/load-error";
 import { refreshProfileFlags, useProfileFlags } from "@/lib/profile-flags";
-import { adminApi, type AdminUser, type Tier } from "@/lib/admin/admin-api";
+import {
+  adminApi,
+  type AdminUser,
+  type AdminUserDetail,
+  type Tier,
+} from "@/lib/admin/admin-api";
 
 const TIER_LABEL: Record<Tier, string> = {
   free: "Free",
@@ -72,6 +78,10 @@ export default function AdminPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"recent" | "active" | "inactive">("recent");
+  // Detalle desplegado (plan, cuestionario y sesiones) de un usuario.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [details, setDetails] = useState<Record<string, AdminUserDetail>>({});
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   // Redirige a login si no hay sesión.
   useEffect(() => {
@@ -107,6 +117,23 @@ export default function AdminPage() {
       setError(e instanceof Error ? e.message : "Error al cambiar el plan");
     } finally {
       setBusyId(null);
+    }
+  };
+
+  // Abre o cierra el detalle de un usuario; lo pide al servidor la primera vez.
+  const toggleDetail = async (u: AdminUser) => {
+    if (openId === u.id) {
+      setOpenId(null);
+      return;
+    }
+    setOpenId(u.id);
+    if (details[u.id]) return;
+    setDetailError(null);
+    try {
+      const d = await adminApi.userDetail(u.id);
+      setDetails((prev) => ({ ...prev, [u.id]: d }));
+    } catch (e) {
+      setDetailError(e instanceof Error ? e.message : "No se pudo cargar el detalle");
     }
   };
 
@@ -280,13 +307,15 @@ export default function AdminPage() {
         ) : (
           <div className="flex flex-col gap-2.5">
             {filtered.map((u) => (
-              <div
-                key={u.id}
-                className="cf-card flex flex-col sm:flex-row sm:items-center gap-3"
-                style={{ padding: 14, borderRadius: 18 }}
-              >
-                {/* avatar + identidad */}
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div key={u.id} className="cf-card" style={{ padding: 14, borderRadius: 18 }}>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                {/* avatar + identidad (tocar abre el detalle) */}
+                <button
+                  type="button"
+                  onClick={() => toggleDetail(u)}
+                  aria-expanded={openId === u.id}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                >
                   <div
                     className="rounded-full grid place-items-center text-white font-display font-bold text-[15px] shrink-0"
                     style={{ width: 42, height: 42, background: "var(--grad-brand-soft)" }}
@@ -295,11 +324,14 @@ export default function AdminPage() {
                   </div>
                   <div className="min-w-0">
                     <div className="font-semibold text-[14px] truncate flex items-center gap-1.5">
-                      {u.email}
+                      <span className="truncate">{u.name?.trim() || u.email}</span>
                       {u.is_admin && (
                         <ShieldCheck size={13} className="text-primary shrink-0" />
                       )}
                     </div>
+                    {u.name?.trim() && (
+                      <div className="cf-muted text-[11.5px] truncate">{u.email}</div>
+                    )}
                     <div className="cf-muted text-[11.5px] mt-0.5">
                       Alta {fmtDate(u.created_at)} · acceso {fmtAgo(u.last_sign_in)}
                     </div>
@@ -318,7 +350,12 @@ export default function AdminPage() {
                       {u.generation_count > 0 && ` (${u.generation_count} gen.)`}
                     </div>
                   </div>
-                </div>
+                  <ChevronDown
+                    size={17}
+                    className="text-faint shrink-0 ml-auto"
+                    style={{ transform: openId === u.id ? "rotate(180deg)" : "none" }}
+                  />
+                </button>
 
                 {/* acciones */}
                 <div className="flex items-center gap-2 shrink-0">
@@ -359,7 +396,109 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
+              {openId === u.id && (
+                <UserDetail detail={details[u.id]} error={detailError} />
+              )}
+              </div>
             ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Detalle de un usuario: cuestionario, planes y últimas sesiones.
+function UserDetail({
+  detail,
+  error,
+}: {
+  detail?: AdminUserDetail;
+  error: string | null;
+}) {
+  if (!detail) {
+    return (
+      <div className="cf-muted text-[12.5px] mt-3 pt-3 border-t border-border">
+        {error ?? "Cargando detalle…"}
+      </div>
+    );
+  }
+  const { intake, plans, sessions } = detail;
+  const equipment = Array.isArray(intake?.equipment)
+    ? intake?.equipment.join(", ")
+    : intake?.equipment;
+  const dayOfPlan = (planId: string | null) =>
+    plans.findIndex((p) => p.id === planId);
+  return (
+    <div className="mt-3 pt-3 border-t border-border flex flex-col gap-3 text-[12.5px]">
+      <div>
+        <div className="cf-eyebrow text-[10px] mb-1">Cuestionario</div>
+        {intake ? (
+          <div className="cf-txt2 leading-relaxed">
+            {[
+              intake.objective,
+              intake.level,
+              intake.age ? `${intake.age} años` : null,
+              intake.weight_kg ? `${intake.weight_kg} kg` : null,
+              intake.height_cm ? `${intake.height_cm} cm` : null,
+              equipment || null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+            {intake.notes ? <div className="cf-muted mt-0.5">Notas: {intake.notes}</div> : null}
+          </div>
+        ) : (
+          <div className="cf-muted">Sin cuestionario (aún no ha generado un plan).</div>
+        )}
+      </div>
+
+      <div>
+        <div className="cf-eyebrow text-[10px] mb-1">Planes ({plans.length})</div>
+        {plans.length === 0 ? (
+          <div className="cf-muted">Sin planes.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {plans.map((p, i) => (
+              <details key={p.id} className="cf-card-solid" style={{ padding: "8px 10px", borderRadius: 12 }}>
+                <summary className="font-semibold cursor-pointer">
+                  Plan {plans.length - i} · {fmtDate(p.created_at)}
+                  {p.weeks ? ` · ${p.weeks} sem.` : ""} · {p.days.length} días
+                </summary>
+                <div className="flex flex-col gap-1.5 mt-2">
+                  {p.days.map((d, di) => (
+                    <div key={di}>
+                      <span className="font-semibold">Día {d.day}</span>
+                      {d.focus ? ` · ${d.focus}` : ""}
+                      <div className="cf-muted">{d.exercises.join(", ")}</div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="cf-eyebrow text-[10px] mb-1">Últimas sesiones ({sessions.length})</div>
+        {sessions.length === 0 ? (
+          <div className="cf-muted">Aún no ha registrado ninguna serie.</div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {sessions.map((s) => {
+              const idx = dayOfPlan(s.plan_id);
+              return (
+                <div key={s.session_id} className="flex justify-between gap-3">
+                  <span className="cf-txt2">
+                    {fmtDate(s.at)} · Día {s.day}
+                    {idx >= 0 ? ` (plan ${plans.length - idx})` : ""}
+                  </span>
+                  <span className="cf-muted shrink-0">
+                    {s.sets} series · {s.volume} kg{s.avg_rpe ? ` · RPE ${s.avg_rpe}` : ""}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

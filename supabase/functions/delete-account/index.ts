@@ -64,6 +64,26 @@ Deno.serve(async (req: Request) => {
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
     if (userErr || !userData?.user) return json({ error: "Token inválido" }, 401);
 
+    // El único administrador no puede borrarse a sí mismo: nadie podría entrar
+    // después al panel ni nombrar a otro.
+    const { data: own } = await admin
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", userData.user.id)
+      .maybeSingle();
+    if (own?.is_admin) {
+      const { count } = await admin
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("is_admin", true);
+      if ((count ?? 0) <= 1) {
+        return json(
+          { error: "Eres el único administrador. Nombra a otro antes de eliminar esta cuenta." },
+          400
+        );
+      }
+    }
+
     // Primero los archivos: si fallan, la cuenta sigue existiendo y se puede reintentar.
     const photoError = await removeUserPhotos(admin, userData.user.id);
     if (photoError) return json({ error: photoError }, 500);

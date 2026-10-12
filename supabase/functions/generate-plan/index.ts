@@ -117,6 +117,7 @@ function equipmentTerms(equipment?: Record<string, boolean>): string[] {
 }
 
 const CATALOG_SIZE = 150;
+const MOVEMENT_FLAGS = ["jumps", "high_impact", "heavy_lifting"] as const;
 
 // Generador determinista a partir de un texto (el requestId): la misma petición
 // ve siempre el mismo catálogo, peticiones distintas ven catálogos distintos.
@@ -176,8 +177,14 @@ function balancedSample(rows: DbExercise[], size: number, seed: string): DbExerc
 async function fetchExercises(
   supabase: SupabaseClient,
   equipment: Record<string, boolean> | undefined,
-  seed: string
+  seed: string,
+  constraints?: Record<string, boolean>
 ): Promise<DbExercise[]> {
+  // Restricciones físicas activas (saltos, alto impacto, cargas pesadas). Los
+  // ejercicios marcados con alguna de ellas (columna movement_flags, ver
+  // schemas/add-exercise-movement-flags.sql) no entran en el catálogo, así que
+  // el modelo no puede elegirlos: ya no depende de que haga caso al prompt.
+  const avoid = MOVEMENT_FLAGS.filter((flag) => constraints?.[flag] === true);
   const terms = equipmentTerms(equipment);
   const orFilter = terms.map((t) => `equipment.ilike.%${t}%`).join(",");
 
@@ -188,6 +195,7 @@ async function fetchExercises(
         .from("exercises")
         .select("id,name,equipment,primary_muscles,category");
       if (filtered) query = query.or(orFilter);
+      if (avoid.length > 0) query = query.not("movement_flags", "ov", `{${avoid.join(",")}}`);
       const { data, error } = await query.order("id").range(from, from + 999);
       if (error) {
         console.error("exercises query error:", error);
@@ -617,7 +625,12 @@ Deno.serve(async (req: Request) => {
         .eq("id", generationId);
 
     // 1) Obtener ejercicios reales de la BD según el perfil del usuario.
-    const exercises = await fetchExercises(supabase, intake.equipment, requestId);
+    const exercises = await fetchExercises(
+      supabase,
+      intake.equipment,
+      requestId,
+      intake.constraints
+    );
 
     if (exercises.length === 0) {
       await failGeneration("no exercises matched equipment");

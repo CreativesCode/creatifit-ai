@@ -808,7 +808,9 @@ function CompletedStep({
         >
           <Check size={44} color="#06231A" strokeWidth={3} />
         </div>
-        <div className="cf-h1 text-[26px]">{t("session.session_completed", "¡Sesión completada!")}</div>
+        <div className="cf-h1 text-[26px]">{completedSets >= totalSets
+            ? t("session.session_completed", "¡Sesión completada!")
+            : t("session.session_ended", "Sesión terminada")}</div>
         <div className="cf-muted text-[13.5px] mt-1.5">
           {t("session.summary_subtitle", "Resumen de tu entrenamiento")}
         </div>

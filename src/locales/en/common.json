@@ -223,6 +223,7 @@
     "ai_generated": "AI Generated"
   },
   "session": {
+    "session_ended": "Session ended",
     "title": "Workout Session",
     "exercise": "Exercise",
     "sets": "Sets",
@@ -394,7 +395,7 @@
     "other_day": "Choose another day",
     "stats": {
       "plans_created": "Plans Created",
-      "sessions_completed": "Sessions Completed",
+      "sessions_completed": "Workouts",
       "exercises_available": "Exercises Available"
     },
     "streak": {

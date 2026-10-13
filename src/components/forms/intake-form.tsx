@@ -135,7 +135,7 @@ export function IntakeForm({
     };
   }, []);
 
-  const set = (field: keyof Intake, value: any) => {
+  const set = (field: keyof Intake, value: Intake[keyof Intake]) => {
     touchedRef.current = true;
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));

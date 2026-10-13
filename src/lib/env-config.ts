@@ -30,8 +30,8 @@ export const envConfig = {
   
   // Detectar si estamos en aplicación móvil
   IS_MOBILE: typeof window !== 'undefined' && (
-    !!(window as any).Capacitor || 
-    !!(window as any).cordova || 
+    !!window.Capacitor ||
+    !!window.cordova ||
     /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
   ),
 };

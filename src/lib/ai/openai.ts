@@ -1,4 +1,4 @@
-import { GeneratedPlanSchema } from "../validators/schemas";
+import { GeneratedPlanSchema, type GeneratedPlan } from "../validators/schemas";
 import { supabase } from "../supabase-config";
 import { newId } from "../workout-outbox";
 
@@ -75,10 +75,10 @@ async function serverErrorCode(error: unknown): Promise<string | null> {
 // `onInvalid` libera el id pendiente si el plan recibido no es válido; por
 // defecto, el del cuestionario.
 export async function generateFitnessPlan(
-  intake: any,
+  intake: Record<string, unknown>,
   requestId: string,
   onInvalid: () => void = clearGenerationRequest
-): Promise<any> {
+): Promise<GeneratedPlan> {
   let lastWasNetwork = false;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const { data, error } = await supabase.functions.invoke("generate-plan", {

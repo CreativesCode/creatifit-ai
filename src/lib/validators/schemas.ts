@@ -105,7 +105,7 @@ export const GeneratedPlanSchema = z.object({
           // depender del frágil matching por nombre.
           exercise_id: z.string().uuid().optional(),
           sets: z.number(),
-          reps: z.array(z.number()).length(2), // [min, max]
+          reps: z.tuple([z.number(), z.number()]), // [min, max]
           rest_sec: z.number(),
           cues: z.array(z.string()).optional(),
         })

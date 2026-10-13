@@ -39,7 +39,6 @@ import {
   Play,
   Repeat,
   SkipForward,
-  Target,
   TrendingUp,
   Trophy,
   Undo2,

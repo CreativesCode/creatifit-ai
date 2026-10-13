@@ -210,6 +210,7 @@ export default function ExercisesPage() {
     if (hasMore && !loadingMore && !loading) {
       fetchExercises(currentPage + 1, true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, loadingMore, loading, currentPage]);
 
   // Re-buscar al cambiar la categoría o el término de búsqueda (con debounce 300 ms),

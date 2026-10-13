@@ -1,10 +1,10 @@
 declare global {
   interface Window {
     Capacitor?: {
-      Plugins?: any;
+      Plugins?: Record<string, unknown>;
       isNative?: boolean;
     };
-    cordova?: any;
+    cordova?: unknown;
   }
 }
 

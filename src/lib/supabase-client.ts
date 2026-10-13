@@ -32,6 +32,31 @@ const LOGS_PAGE = 1000;
 const LOG_COLUMNS =
   "id, exercise_name, set_index, target_reps, actual_reps, weight, rpe, notes, plan_day_id, plan_id, session_id, timestamp, created_at";
 
+// Fila de la RPC get_plan_exercises_with_details: un ejercicio del plan con los
+// datos del catálogo. Lleva más columnas (series, repeticiones, descanso…).
+interface PlanExerciseRow {
+  day_letter: string;
+  block_index: number;
+  exercise_id: string | null;
+  exercise_name: string;
+  equipment: string | null;
+  category: string | null;
+  primary_muscles: string | null;
+  gif_url: string | null;
+  [column: string]: unknown;
+}
+
+interface PlanExerciseDetail extends PlanExerciseRow {
+  exercise_details: {
+    id: string | null;
+    name: string;
+    equipment: string | null;
+    category: string | null;
+    primary_muscles: string | null;
+    gif_url: string | null;
+  };
+}
+
 /** Ruta de la miniatura de una foto, o null si esa foto no tiene (las antiguas). */
 export function photoThumbPath(path: string): string | null {
   const name = path.slice(path.lastIndexOf("/") + 1);
@@ -256,29 +281,20 @@ export const supabaseClient = {
       }
 
       // Agrupar ejercicios por día
-      const exercisesByDay =
-        data?.reduce((acc: any, exercise: any) => {
-          const day = exercise.day_letter;
-          if (!acc[day]) {
-            acc[day] = [];
-          }
-
-          // Agregar información del ejercicio con gif_url
-          acc[day].push({
-            ...exercise,
+      const exercisesByDay: Record<string, PlanExerciseDetail[]> = {};
+      for (const exercise of (data ?? []) as PlanExerciseRow[]) {
+        (exercisesByDay[exercise.day_letter] ??= []).push({
+          ...exercise,
+          exercise_details: {
+            id: exercise.exercise_id,
+            name: exercise.exercise_name,
+            equipment: exercise.equipment,
+            category: exercise.category,
+            primary_muscles: exercise.primary_muscles,
             gif_url: exercise.gif_url, // Solo el nombre del archivo
-            exercise_details: {
-              id: exercise.exercise_id,
-              name: exercise.exercise_name,
-              equipment: exercise.equipment,
-              category: exercise.category,
-              primary_muscles: exercise.primary_muscles,
-              gif_url: exercise.gif_url,
-            },
-          });
-
-          return acc;
-        }, {}) || {};
+          },
+        });
+      }
 
       return {
         success: true,
@@ -379,7 +395,7 @@ export const supabaseClient = {
   // para refrescar la UI sin recargar.
   async swapPlanExercise(params: {
     planId: string;
-    currentPayload: { days: any[] };
+    currentPayload: { days: { day: string; blocks?: object[] }[] };
     dayLetter: string;
     blockIndex: number;
     newExerciseId: string;
@@ -391,11 +407,11 @@ export const supabaseClient = {
     // 1) Construir el payload actualizado (copia inmutable).
     const payload = {
       ...currentPayload,
-      days: (currentPayload.days || []).map((day: any) => {
+      days: (currentPayload.days || []).map((day) => {
         if (day.day !== dayLetter) return day;
         return {
           ...day,
-          blocks: (day.blocks || []).map((block: any, i: number) =>
+          blocks: (day.blocks || []).map((block, i) =>
             i === blockIndex
               ? { ...block, name: newName, exercise_id: newExerciseId, cues: [] }
               : block

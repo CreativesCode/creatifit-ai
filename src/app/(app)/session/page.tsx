@@ -50,6 +50,7 @@ export default function SessionPage() {
       return;
     }
     fetchPlan(planId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planId, router]);
 
   const fetchPlan = async (id: string) => {

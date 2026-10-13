@@ -13,7 +13,7 @@ const prefer = () => {
     // Solo usar navigator.language si localStorage no tiene valor
     if (navigator.language.startsWith("es")) return "es";
     return "en";
-  } catch (error) {
+  } catch {
     // Fallback seguro
     return "en";
   }

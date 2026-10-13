@@ -130,12 +130,13 @@ export function buildProgressionNotes(
 // idioma y las notas de progresión. Si el plan viejo no guardó algún campo,
 // caemos a valores seguros por defecto.
 export function buildImproveIntake(
-  planMeta: Record<string, any> | undefined,
+  planMeta: Record<string, unknown> | undefined,
   weeks: number,
   language: string,
   notes: string
 ) {
   const m = planMeta || {};
+  const constraints = (m.constraints ?? {}) as Record<string, unknown>;
   return {
     weeks: Number(weeks) || 8,
     objective: m.objective || "general_health",
@@ -148,9 +149,9 @@ export function buildImproveIntake(
     stepsDay: m.steps_day,
     language,
     constraints: {
-      jumps: !!m.constraints?.jumps,
-      high_impact: !!m.constraints?.high_impact,
-      heavy_lifting: !!m.constraints?.heavy_lifting,
+      jumps: !!constraints.jumps,
+      high_impact: !!constraints.high_impact,
+      heavy_lifting: !!constraints.heavy_lifting,
     },
     notes,
   };

@@ -55,6 +55,14 @@ interface ExerciseBlock {
   cues?: string[];
 }
 
+// Ejercicio alternativo para la hoja "Cambiar ejercicio".
+interface AltExercise {
+  id: string;
+  name: string;
+  equipment?: string | null;
+  gif_url?: string | null;
+}
+
 interface PlanDay {
   day: string;
   focus: string;
@@ -100,7 +108,7 @@ export default function PlansPage() {
     exerciseId?: string;
     name: string;
   } | null>(null);
-  const [alternatives, setAlternatives] = useState<any[]>([]);
+  const [alternatives, setAlternatives] = useState<AltExercise[]>([]);
   const [altLoading, setAltLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
   const [swappingId, setSwappingId] = useState<string | null>(null);
@@ -168,7 +176,7 @@ export default function PlansPage() {
     let cancelled = false;
     supabaseClient
       .getPlanExercises(planId)
-      .then((res: any) => {
+      .then((res) => {
         if (cancelled) return;
         const list = res?.exercises?.[dayView] || [];
         const map: Record<string, string> = {};
@@ -330,11 +338,7 @@ export default function PlansPage() {
   };
 
   // Ejecuta el cambio: persiste y refresca el estado local sin recargar.
-  const doSwap = async (alt: {
-    id: string;
-    name: string;
-    gif_url?: string;
-  }) => {
+  const doSwap = async (alt: AltExercise) => {
     if (!selectedPlan || !dayView || !swapTarget) return;
     try {
       setSwapping(true);

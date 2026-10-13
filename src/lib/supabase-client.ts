@@ -87,17 +87,22 @@ export const supabaseClient = {
   // que pinta la lista y sin recuento exacto (se pide una fila de más para saber
   // si hay otra página): con mala conexión cada kB cuenta. No lleva copia local:
   // elegir ejercicios exige conexión.
+  // Los filtros se suman entre sí (grupo Y equipo) y, dentro de cada uno, vale
+  // cualquiera de los elegidos: espalda con "sin equipo" o "bandas".
   async pickExercises(params: {
     page: number;
     limit?: number;
     search?: string;
-    category?: string;
+    /** Valores exactos de exercises.category. */
+    categories?: string[];
+    /** Textos a buscar en exercises.equipment (EQUIPMENT_FILTERS[].token). */
+    equipment?: string[];
     onlyIds?: string[];
   }): Promise<{
     data: { id: string; name: string; category: string | null; equipment: string | null; gif_url: string | null }[];
     hasMore: boolean;
   }> {
-    const { page, limit = 30, search, category, onlyIds } = params;
+    const { page, limit = 30, search, categories, equipment, onlyIds } = params;
     if (onlyIds && onlyIds.length === 0) return { data: [], hasMore: false };
 
     let query = supabase
@@ -106,7 +111,10 @@ export const supabaseClient = {
       .order("name", { ascending: true })
       .range((page - 1) * limit, page * limit);
     if (search) query = query.ilike("name", `%${search}%`);
-    if (category) query = query.eq("category", category);
+    if (categories?.length) query = query.in("category", categories);
+    if (equipment?.length) {
+      query = query.or(equipment.map((token) => `equipment.ilike.%${token}%`).join(","));
+    }
     if (onlyIds) query = query.in("id", onlyIds);
 
     const { data, error } = await query;

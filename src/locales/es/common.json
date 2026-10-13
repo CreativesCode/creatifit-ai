@@ -663,8 +663,12 @@
       "flexibility": "Flexibilidad",
       "balance": "Equilibrio",
       "bodyweight": "Sin equipo",
+      "bands": "Bandas elásticas",
       "dumbbells": "Mancuernas",
       "barbell": "Barra",
+      "kettlebell": "Pesa rusa",
+      "bench": "Banco",
+      "ball": "Pelota",
       "cable": "Cable",
       "machine": "Máquina"
     },

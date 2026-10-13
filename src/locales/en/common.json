@@ -663,8 +663,12 @@
       "flexibility": "Flexibility",
       "balance": "Balance",
       "bodyweight": "No equipment",
+      "bands": "Resistance bands",
       "dumbbells": "Dumbbells",
       "barbell": "Barbell",
+      "kettlebell": "Kettlebell",
+      "bench": "Bench",
+      "ball": "Exercise ball",
       "cable": "Cable",
       "machine": "Machine"
     },

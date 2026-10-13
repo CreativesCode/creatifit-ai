@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ExerciseThumb } from "@/components/ui/exercise-image";
 import { useBackGuard } from "@/lib/back-guard";
+import { EQUIPMENT_FILTERS } from "@/lib/constants/equipment-filters";
 import { EXERCISE_CATEGORIES } from "@/lib/constants/exercise-categories";
 import { supabaseClient } from "@/lib/supabase-client";
 
@@ -20,10 +21,14 @@ interface Row extends PickedExercise {
 
 const PAGE = 30;
 
+const toggleIn = (list: string[], value: string) =>
+  list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+
 /**
  * Hoja a pantalla completa para elegir ejercicios del catálogo: buscador,
- * grupos musculares, favoritos y selección múltiple. Necesita conexión: sin
- * ella no lista nada y lo dice, en vez de enseñar un catálogo a medias.
+ * grupos musculares, equipo, favoritos y selección múltiple. Se pueden marcar
+ * varios grupos y varios equipos a la vez. Necesita conexión: sin ella no lista
+ * nada y lo dice, en vez de enseñar un catálogo a medias.
  */
 export function ExercisePicker({
   presentIds,
@@ -40,7 +45,8 @@ export function ExercisePicker({
 }) {
   const { t } = useTranslation("common");
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [equipment, setEquipment] = useState<string[]>([]);
   const [onlyFavs, setOnlyFavs] = useState(false);
   const [favorites, setFavorites] = useState<string[] | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
@@ -90,7 +96,8 @@ export function ExercisePicker({
           page: nextPage,
           limit: PAGE,
           search: search.trim() || undefined,
-          category: category || undefined,
+          categories,
+          equipment,
           onlyIds: favIds === undefined ? undefined : favIds ?? [],
         });
         if (query !== queryRef.current) return;
@@ -105,7 +112,7 @@ export function ExercisePicker({
         if (query === queryRef.current) setLoading(false);
       }
     },
-    [search, category, favIds]
+    [search, categories, equipment, favIds]
   );
 
   // Primera página al abrir y al cambiar la búsqueda o los filtros (con espera
@@ -193,17 +200,44 @@ export function ExercisePicker({
               <Heart size={12} fill={onlyFavs ? "currentColor" : "none"} />
               {t("exercises.filters.favorites", "Favoritos")}
             </button>
-            <button onClick={() => setCategory("")} className={chip(!category)} style={chipStyle}>
+            <button
+              onClick={() => setCategories([])}
+              className={chip(categories.length === 0)}
+              style={chipStyle}
+              aria-pressed={categories.length === 0}
+            >
               {t("exercises.filters.all_types")}
             </button>
             {EXERCISE_CATEGORIES.map((c) => (
               <button
                 key={c.value}
-                onClick={() => setCategory(c.value)}
-                className={chip(category === c.value)}
+                onClick={() => setCategories((prev) => toggleIn(prev, c.value))}
+                className={chip(categories.includes(c.value))}
                 style={chipStyle}
+                aria-pressed={categories.includes(c.value)}
               >
                 {String(t(`exercises.categories.${c.value}`, c.fallback))}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 mt-1.5">
+            <button
+              onClick={() => setEquipment([])}
+              className={chip(equipment.length === 0)}
+              style={chipStyle}
+              aria-pressed={equipment.length === 0}
+            >
+              {t("exercises.filters.all_equipment", "Todo el equipo")}
+            </button>
+            {EQUIPMENT_FILTERS.map((e) => (
+              <button
+                key={e.key}
+                onClick={() => setEquipment((prev) => toggleIn(prev, e.token))}
+                className={chip(equipment.includes(e.token))}
+                style={chipStyle}
+                aria-pressed={equipment.includes(e.token)}
+              >
+                {String(t(`exercises.filters.${e.key}`, e.fallback))}
               </button>
             ))}
           </div>

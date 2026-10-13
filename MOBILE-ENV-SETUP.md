@@ -1,143 +1,65 @@
-# Configuración de Variables de Entorno para Aplicación Móvil
+# Variables de entorno de la app (web y APK)
 
-## Problema
-La aplicación móvil no puede acceder a las variables de entorno del servidor, pero necesitamos que las credenciales de OpenAI y Supabase estén disponibles.
+CreatiFit se compila como export estático (`next build` → `out/`) y Capacitor
+empaqueta esa carpeta en el APK. Todo lo que lleve el prefijo `NEXT_PUBLIC_`
+queda escrito en el JavaScript que se distribuye: cualquiera que tenga el APK o
+abra la web puede leerlo.
 
-## Solución
-Usar variables de entorno con prefijo `NEXT_PUBLIC_` que se compilan durante el build y están disponibles en el cliente.
+**Por eso en el cliente solo van valores públicos.** La clave de OpenAI y la
+`service_role` de Supabase no se ponen nunca en `.env.local` con `NEXT_PUBLIC_`:
+viven como secrets de las Edge Functions.
 
-## Configuración Requerida
+## Qué va en `.env.local`
 
-### 1. Crear/Actualizar archivo `.env.local`
-Crea un archivo `.env.local` en la raíz del proyecto con las siguientes variables:
+Copia `env.example` a `.env.local` (está en `.gitignore`; no se sube) y rellena:
 
-```bash
-# OpenAI
-NEXT_PUBLIC_OPENAI_API_KEY=sk-tu-api-key-aqui
-NEXT_PUBLIC_MODEL_NAME=gpt-4o-mini
+| Variable | Para qué |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave anónima; los datos los protege la RLS |
+| `NEXT_PUBLIC_APP_URL` | URL pública de la web. Se usa en los enlaces de recuperación de contraseña |
+| `NEXT_PUBLIC_STATICS_IMAGES` | Base pública de las imágenes de los ejercicios |
+| `NEXT_PUBLIC_REVENUECAT_*` | Claves del SDK de RevenueCat e identificadores de producto (son públicas) |
 
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key-aqui
-NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key-aqui
+Las dos primeras son obligatorias: sin ellas la app arranca pero no conecta.
 
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+`SUPABASE_SERVICE_ROLE_KEY` (sin prefijo) solo la leen los scripts de
+mantenimiento de `scripts/`. Al no llevar `NEXT_PUBLIC_` no entra en el build;
+déjala vacía si no vas a ejecutarlos.
 
-### 2. Variables Obligatorias
-- ✅ `NEXT_PUBLIC_OPENAI_API_KEY` - Tu clave de API de OpenAI
-- ✅ `NEXT_PUBLIC_SUPABASE_URL` - URL de tu proyecto Supabase
-- ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Clave anónima de Supabase
+## Qué va en el servidor
 
-### 3. Variables Opcionales
-- 🔶 `NEXT_PUBLIC_MODEL_NAME` - Modelo de OpenAI (default: gpt-4o-mini)
-- 🔶 `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` - Clave de servicio de Supabase
-- 🔶 `NEXT_PUBLIC_APP_URL` - URL de la aplicación (default: localhost:3000)
+Las Edge Functions (`supabase/functions/`) leen sus secrets del proyecto Supabase:
 
-## Cómo Funciona
+| Secret | Lo usa |
+|---|---|
+| `OPENAI_API_KEY`, `MODEL_NAME` | `generate-plan` |
+| `REVENUECAT_WEBHOOK_AUTH` | `revenuecat-webhook` |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Los pone Supabase; no hay que crearlos |
 
-### En Desarrollo Web
-- Las variables se leen directamente del archivo `.env.local`
-- Funciona igual que antes
-
-### En Aplicación Móvil
-- Las variables se compilan durante el build de Next.js
-- Se inyectan en el código JavaScript final
-- Están disponibles en el cliente móvil
-
-## Pasos para Configurar
-
-### 1. Configurar Variables de Entorno
-```bash
-# En la raíz del proyecto
-cp env.example .env.local
-
-# Editar .env.local con tus credenciales reales
-nano .env.local  # o usar tu editor preferido
-```
-
-### 2. Verificar Configuración
-```bash
-# Construir la aplicación
-npm run build
-
-# Verificar que no hay errores de variables faltantes
-```
-
-### 3. Sincronizar con Capacitor
-```bash
-# Después de configurar las variables
-npm run cap:sync
-```
-
-## Verificación
-
-### En la Consola del Navegador
-Deberías ver logs como:
-```
-🔧 [ENV CONFIG] Environment configuration status:
-Environment: Production
-Mobile App: Yes
-OpenAI API Key: ✅ Configurada
-Supabase URL: ✅ Configurada
-Supabase Anon Key: ✅ Configurada
-```
-
-### En la Aplicación Móvil
-- La generación de planes debería funcionar sin errores
-- No deberías ver mensajes de "API Key no configurada"
-
-## Solución de Problemas
-
-### Error: "OpenAI API Key no configurada"
-1. Verifica que `.env.local` existe y tiene `NEXT_PUBLIC_OPENAI_API_KEY`
-2. Asegúrate de que el archivo no esté en `.gitignore`
-3. Reinicia el servidor de desarrollo: `npm run dev`
-
-### Error: "Supabase URL no configurada"
-1. Verifica que `.env.local` tiene `NEXT_PUBLIC_SUPABASE_URL`
-2. Asegúrate de que la URL sea correcta
-3. Verifica que no haya espacios extra en el archivo
-
-### Variables no se cargan en móvil
-1. Asegúrate de que las variables empiecen con `NEXT_PUBLIC_`
-2. Ejecuta `npm run build` para verificar que compila
-3. Sincroniza con Capacitor: `npm run cap:sync`
-
-## Notas Importantes
-
-- ⚠️ **NUNCA** subas `.env.local` a Git
-- ✅ Las variables con `NEXT_PUBLIC_` se compilan en el cliente
-- 🔒 Las variables sin `NEXT_PUBLIC_` solo están en el servidor
-- 📱 La aplicación móvil necesita las variables compiladas durante el build
-
-## Ejemplo de .env.local
-```bash
-# Copia este archivo y reemplaza con tus credenciales reales
-NEXT_PUBLIC_OPENAI_API_KEY=sk-proj-1234567890abcdef
-NEXT_PUBLIC_MODEL_NAME=gpt-4o-mini
-NEXT_PUBLIC_SUPABASE_URL=https://abcdefgh.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-## Comandos Útiles
+Se configuran con el CLI, no en archivos del repo:
 
 ```bash
-# Verificar configuración
-npm run build
-
-# Desarrollo
-npm run dev
-
-# Build para producción
-npm run build
-
-# Sincronizar con Capacitor
-npm run cap:sync
-
-# Abrir Android Studio
-npm run cap:open
+supabase secrets set OPENAI_API_KEY=sk-... MODEL_NAME=gpt-4o-mini --project-ref <ref>
 ```
+
+## Compilar el APK
+
+Las variables se fijan al compilar: si cambias `.env.local`, hay que repetir el
+build.
+
+```bash
+npm run build          # genera out/ (falla si hay errores de lint o de tipos)
+npx cap sync android   # copia out/ al proyecto Android
+npm run cap:open       # abre Android Studio para compilar
+```
+
+## Si algo falla
+
+- **La app no conecta o las listas salen vacías:** revisa las dos variables de
+  Supabase en `.env.local` y repite el build. En desarrollo, la consola muestra
+  el estado con el prefijo `[ENV CONFIG]`.
+- **"Generar plan" falla:** el problema está en el servidor. Revisa los secrets
+  de la función y sus logs en el panel de Supabase, no el `.env.local`.
+- **Una clave privada llegó a un APK o a la web:** dala por expuesta. Revócala y
+  crea otra; quitarla del código no basta.

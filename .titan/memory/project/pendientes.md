@@ -4,17 +4,17 @@ Tabla del 2026-09-10, con filas actualizadas el 2026-10-12 donde se indica. Prio
 
 | ID | Hallazgo / estado | Siguiente comprobación útil |
 |---|---|---|
-| P01 | Guía móvil recomienda secretos públicos; contradice implementación actual | Corregir/retirar MOBILE-ENV-SETUP.md en una tarea documental; mientras, tratarla como obsoleta |
+| P01 | **Resuelto 2026-10-12.** `MOBILE-ENV-SETUP.md` reescrito: solo variables públicas en el cliente, secrets en las Edge Functions | Nada pendiente |
 | P02 | **Resuelto 2026-10-12.** El REVOKE por columna no bloqueaba nada; se revocó la escritura de tabla sobre `profiles` | Nada pendiente. Si se añade un campo editable por el usuario, hace falta GRANT de columna o Edge Function |
-| P03 | No existe cadena supabase/migrations; SQL disperso y variantes antiguas | Inventariar schema remoto y ordenar migraciones; no ejecutar todos los SQL |
+| P03 | **Resuelto 2026-10-12.** `supabase/migrations/` tiene la línea base volcada del proyecto real y la de auth/Storage. `schemas/` queda como historia | Falta marcar las dos como aplicadas en el proyecto real (`supabase migration repair`, ver su README) antes del primer `db push` |
 | P04 | **Resuelto 2026-10-12.** Los límites cuentan generaciones reales en `plan_generations`: Free 1, Pro 30 cada 30 días | Nada pendiente |
 | P05 | **Resuelto 2026-10-12.** `generate-plan` valida el plan (ejercicios reales, rangos, días) y aplica equipo y restricciones sobre el catálogo. Sigue usando `json_object`, no `json_schema` estricto | Nada urgente |
-| P06 | Guardado/sustitución de plan en varias escrituras | Definir transacción/recuperación; verificar consistency de payload y plan_exercises |
+| P06 | **Resuelto 2026-10-12.** Los planes generados y mejorados se guardan con `save_plan_structure` (una transacción); `savePlan` ya no existe | Probar una generación real de extremo a extremo |
 | P07 | **Resuelto 2026-10-12.** El cliente propaga `FREE_LIMIT_REACHED`, `PRO_LIMIT_REACHED`, red y fallo por separado | Probar el 402 hasta el paywall en un APK |
 | P08 | Webhook sin control persistido de orden/idempotencia observado | Probar eventos fuera de orden, expiración, cambios de producto y perfiles inexistentes |
 | P09 | **Resuelto 2026-10-12.** `delete-account` y `admin-api` borran las fotos del Storage antes de la cuenta; verificado con cuenta desechable | Nada pendiente |
-| P10 | Proveedor de React Query retirado el 2026-10-12; las dependencias (React Query, auth-ui/helpers) siguen en `package.json` | Decidir migración de fetching o retirada selectiva; no añadir más clientes Supabase |
-| P11 | any, lint omitido en build y sin suite general en package.json | Establecer baseline actual antes de afirmar calidad; audit de 18 vulnerabilidades era histórico, no se repitió |
+| P10 | **Resuelto 2026-10-12.** Retirados React Query, auth-ui/helpers, el SDK de OpenAI y tres Radix sin uso | Nada pendiente. `@capacitor/status-bar` se dejó: es plugin nativo |
+| P11 | **Resuelto 2026-10-12.** Lint sin errores y activo en el build; scripts `lint`, `typecheck` y `test` (vitest, 13 pruebas de lógica pura) | Ampliar pruebas al tocar lógica; no hay pruebas de UI |
 | P12 | Logros recalculados y rachas con semánticas distintas | Persistencia de desbloqueos/longest, fechas locales/UTC y DST |
 | P13 | Una sesión sigue siendo un grupo de series, sin marca de finalización en la BD. Desde 2026-10-12 las sesiones a medias caducan a las 12 h y la app ya no llama "completada" a una sesión terminada antes de tiempo | Solo si hace falta distinguir sesiones parciales en estadísticas o en "Mejorar plan" |
 | P14 | Rutina semanal repetida; mejora crea otra rutina | Separar en copy y roadmap mejora puntual de periodización semanal real |
@@ -55,6 +55,14 @@ Auditoría de código por áreas más pruebas en navegador contra el Supabase re
 - **Sin verificar al cerrar (2026-10-12):** todo lo que exige APK o teléfono (teclado, pantalla encendida, vibración, Atrás físico, orientación, `creatifit://`, modo ligero, identidad en RevenueCat, página de WebView antiguo); el envío real del correo de recuperación; la pantalla de espera de la generación y el cambio de ejercicio en vivo.
 - El proyecto Supabase estaba pausado ese día (el host no resolvía en DNS) y lo restauró el usuario; el keep-alive no lo evitó.
 - El piloto es principalmente móvil (APK Android); priorizar ese flujo.
+
+## Deuda técnica y filtros del selector — 2026-10-12 (tarde)
+
+- **Selector de ejercicios del editor:** admite varios grupos musculares y varios equipos a la vez (`EQUIPMENT_FILTERS` en `src/lib/constants/equipment-filters.ts`). Grupo y equipo se suman (Y); dentro de cada uno vale cualquiera (O). El equipo se busca como texto dentro de `exercises.equipment`. Comprobada la consulta contra el catálogo real (espalda + sin equipo o bandas: 38 ejercicios); **la pantalla no se abrió en navegador ni en teléfono**.
+- **Guardado de planes:** todo plan (manual, generado o mejorado) se escribe con `supabaseClient.savePlanStructure`. No volver a insertar en `plans` desde el cliente. La función SQL `insert_plan_exercises` sigue en la BD pero la app ya no la llama.
+- **Calidad:** `npm run build` falla si hay errores de lint. Antes de dar algo por terminado: `npm run lint`, `npm run typecheck`, `npm test`.
+- **Migraciones:** cualquier cambio de esquema va en `supabase/migrations/` (ver su README). No añadir más SQL a `schemas/`.
+- **Sin tocar:** P08 (webhook de RevenueCat) y P17 (release y tiendas), por decisión del usuario. Siguen en la BD los datos de prueba `qa-*-check-1` y los 9 ejercicios de cuello sin imagen.
 
 ## No volver a abrir como si estuviera ausente
 

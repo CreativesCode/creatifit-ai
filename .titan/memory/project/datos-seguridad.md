@@ -38,6 +38,11 @@ Revisado: 2026-09-10. Evidencia local, sin consultar ni modificar Supabase.
 - **Datos en el dispositivo:** `localStorage` guarda la cola de series (`cf-workout-outbox`), copias de lectura por usuario (`cf-cache:<uid>:...`), la sesión a medias y el id de generación pendiente. No se limpian al cerrar sesión; las copias van separadas por usuario.
 - **Credenciales:** las notas con credenciales van en `.titan/memory/**/*.local.md`, ignoradas por git.
 
+## Actualización 2026-10-12 (tarde)
+
+- **Migraciones:** existe `supabase/migrations/` con la línea base del esquema `public` (14 tablas, 17 funciones, 29 políticas, RLS activa en las 14) y otra con el trigger `on_auth_user_created`, los buckets `CreatiFit AI` (público) y `progress-photos` (privado) y sus 3 políticas. Volcado del proyecto real y probado en un PostgreSQL 17 vacío.
+- `progress-photos` no tiene política de UPDATE: confirmado en el proyecto real.
+
 ## Storage y eliminación
 
 - Fotos: bucket privado `progress-photos`, carpeta por UUID de usuario; URLs firmadas de duración predeterminada 3600 s. No guardar URLs firmadas ni imágenes personales en memorias.

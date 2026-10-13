@@ -43,6 +43,12 @@ Las instrucciones Prisma db:generate/db:push/db:seed del README no existen en lo
 - **Pruebas en navegador:** Playwright con `channel: "chrome"` y perfil `devices["Pixel 5"]`, instalado fuera del repo. No hay suite automatizada en el proyecto; las comprobaciones de ese día fueron scripts sueltos.
 - **Cuentas de prueba:** `robert.cabrer92@gmail.com` (usuario, `pro_annual`) y `admin@creatifitai.com`. Evitar generar planes en las pruebas: cada generación cuesta.
 
+## Actualización 2026-10-12 (tarde)
+
+- **Comprobaciones:** `npm run lint` (`eslint src`), `npm run typecheck` y `npm test` (vitest, archivos `src/**/*.test.ts`). `npm run build` ya no omite el lint.
+- **Migraciones:** `supabase/migrations/` es la fuente del esquema; `schemas/` es historia. `schemas/create-execute-sql-function.sql` se borró del repo.
+- **Entorno:** `MOBILE-ENV-SETUP.md` reescrito; `env.example` ya no lista NextAuth ni OneSignal y añade `NEXT_PUBLIC_STATICS_IMAGES`.
+
 ## Infraestructura y QA
 
 - Solo workflow de aplicación encontrado: keep-supabase-alive; cron 06:00 UTC y manual, llama RPC ping con secrets de GitHub. Archivo local no acredita ejecuciones exitosas ni estado del proveedor.

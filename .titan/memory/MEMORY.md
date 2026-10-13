@@ -8,7 +8,7 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 - **Export estático**, `out` para Android. Backend privilegiado en **Supabase Edge Functions**, no APIs Next ni Prisma.
 - Pagos **RevenueCat**; mantener el proveedor existente. EasyPanel es alternativa futura del toolkit.
 - Rutina de cuatro días repetidos; “Mejorar plan” crea otro plan basado en logs. No confundir con periodización semanal ni offline completo.
-- **No seguir MOBILE-ENV-SETUP.md para secretos**: instrucciones obsoletas. Nunca OpenAI/service-role en NEXT_PUBLIC_.
+- Nunca OpenAI/service-role en NEXT_PUBLIC_. `MOBILE-ENV-SETUP.md` se reescribió el 2026-10-12 y ya lo dice así.
 - SQL local no acredita RLS/despliegue live. “HECHO” en auditoría de junio no significa prueba actual.
 
 ## Estado a 2026-10-12
@@ -19,6 +19,14 @@ Reconstruida el **2026-09-10**, base de código **2cb14df**. Reconstrucción de 
 - Desde esa fecha hay **offline básico** (cola local de series y copia local de lecturas), **corrección de la última serie, saltar ejercicio y terminar antes**, **generación idempotente con registro de consumo**, **tier y admin que no se degradan sin red**, **admin con actividad, detalle, alta de cuentas y Pro en bloque**, **filtro de equipo y restricciones aplicados en el servidor**, **miniaturas de ejercicios y ahorro de datos** y **recuperación de contraseña por la web pública**. Varias notas de septiembre que los daban por ausentes quedaron superadas; cada entrada lleva su apartado "Actualización 2026-10-12".
 - Verificado en navegador con perfil de teléfono contra el Supabase real. **Nada probado aún en un APK ni en un teléfono físico.**
 - La app es principalmente móvil (APK Android) y el piloto será con conexión lenta e intermitente.
+
+## Deuda técnica cerrada y filtros del selector — 2026-10-12 (tarde)
+
+- Resueltos P01, P03, P06, P10 y P11 (detalle en [Pendientes](project/pendientes.md)); P08 y P17 se dejaron fuera por decisión del usuario. Commits locales `6ad2ce1`..`34bc925`, **sin push**.
+- El selector de ejercicios del editor combina varios grupos musculares y varios equipos. Sin probar en pantalla.
+- `npm run build` ahora pasa el lint; hay `npm run lint`, `npm run typecheck` y `npm test`.
+- Los cambios de esquema van en `supabase/migrations/`. Pendiente del usuario: `supabase migration repair --status applied 20261012000000 20261012000100 --linked` antes del primer `db push`.
+- `MOBILE-ENV-SETUP.md` ya es fiable (reescrito).
 
 ## Plan manual + relleno con IA (PRP-001) — implementado el 2026-10-12
 

@@ -169,8 +169,6 @@
     "continue": "Continuar",
     "generating_title": "Generando tu plan…",
     "generating_hint": "Suele tardar entre 10 y 20 segundos. No cierres la app.",
-    "exercises_failed_title": "Plan guardado",
-    "exercises_failed_hint": "Tu plan se guardó, pero hubo un problema al cargar los ejercicios detallados. Puedes continuar; aparecerán cuando se resuelva.",
     "submit": "Generar Mi Plan",
     "generating": "Generando Tu Plan..."
   },

@@ -293,99 +293,6 @@ export const supabaseClient = {
     }
   },
 
-  // Devuelve { plan, exercisesInserted, exercisesError }.
-  // - `plan`: el plan persistido (lanza si la inserción del plan falla).
-  // - `exercisesInserted`: true si la RPC insert_plan_exercises tuvo éxito (o no
-  //   había ejercicios que insertar); false si la RPC falló.
-  // - `exercisesError`: el error de la RPC (si lo hubo), para que el llamador
-  //   pueda dar feedback al usuario sin perder el plan ya guardado.
-  async savePlan(planData: any): Promise<{
-    plan: any;
-    exercisesInserted: boolean;
-    exercisesError: Error | null;
-  }> {
-    const { data, error } = await supabase
-      .from("plans")
-      .insert([planData])
-      .select()
-      .single();
-
-    if (error) {
-      // 23505 = el plan ya existe: un intento anterior lo guardó pero su respuesta
-      // se perdió por la red. Lo damos por guardado en vez de fallar el reintento.
-      if (error.code === "23505" && planData.id) {
-        const { data: saved, error: readError } = await supabase
-          .from("plans")
-          .select()
-          .eq("id", planData.id)
-          .single();
-        if (readError) throw readError;
-        return { plan: saved, exercisesInserted: true, exercisesError: null };
-      }
-      throw error;
-    }
-
-    // Sin días que procesar: el plan se guardó, no hay ejercicios pendientes.
-    if (!data || !planData.payload || !planData.payload.days) {
-      return { plan: data, exercisesInserted: true, exercisesError: null };
-    }
-
-    // Convertir los días del plan a formato para insert_plan_exercises
-    const exercises: any[] = [];
-
-    planData.payload.days.forEach((day: any, dayIndex: number) => {
-      const dayLetter = String.fromCharCode(65 + dayIndex); // A, B, C, D...
-
-      day.blocks.forEach((block: any, blockIndex: number) => {
-        exercises.push({
-          name: block.name,
-          // id real resuelto por la Edge Function; la RPC lo usa directamente
-          // y solo cae al matching por nombre si falta.
-          exercise_id: block.exercise_id ?? null,
-          day: dayLetter,
-          block_index: blockIndex,
-          sets: block.sets,
-          reps: block.reps, // [min, max]
-          rest_sec: block.rest_sec,
-          cues: block.cues || [],
-        });
-      });
-    });
-
-    try {
-      // Llamar a la función RPC insert_plan_exercises
-      const { error: insertError } = await supabase.rpc(
-        "insert_plan_exercises",
-        {
-          p_plan_id: data.id,
-          p_exercises: exercises,
-        }
-      );
-
-      if (insertError) {
-        // No tragar en silencio: registrar y propagar al llamador.
-        console.error("Error inserting exercises:", insertError);
-        return {
-          plan: data,
-          exercisesInserted: false,
-          exercisesError: insertError,
-        };
-      }
-
-      return { plan: data, exercisesInserted: true, exercisesError: null };
-    } catch (exerciseError) {
-      console.error("Error processing exercises:", exerciseError);
-      return {
-        plan: data,
-        exercisesInserted: false,
-        exercisesError:
-          exerciseError instanceof Error
-            ? exerciseError
-            : new Error(String(exerciseError)),
-      };
-    }
-  },
-
   // Logs
   // Historial de series. Solo las columnas que usa la app y por páginas: la API
   // corta en 1000 filas por petición y un historial largo se truncaba en silencio.
@@ -499,17 +406,6 @@ export const supabaseClient = {
 
     // 2) Persistir payload y plan_exercises juntos.
     return this.savePlanStructure({ id: planId, payload });
-  },
-
-  // Función de debug para verificar la tabla plans
-  async debugPlansTable() {
-    // Verificar si la tabla existe y obtener información básica
-    const { data, error, count } = await supabase
-      .from("plans")
-      .select("*", { count: "exact" })
-      .limit(5);
-
-    return { data, error, count };
   },
 
   // ===== Seguimiento corporal (peso, medidas y fotos de progreso) =====

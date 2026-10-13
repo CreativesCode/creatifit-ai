@@ -472,12 +472,9 @@ export default function PlansPage() {
       // El plan mejorado lo genera la IA aunque el de partida fuera manual.
       const meta = { ...(plan.payload?.meta || {}) };
       delete meta.source;
-      const { plan: savedPlan } = await supabaseClient.savePlan({
+      const savedPayload = await supabaseClient.savePlanStructure({
         id: planId,
-        user_id: user?.id ?? null,
         weeks: plan.weeks,
-        version: 1,
-        source_hash: planId,
         payload: {
           meta: {
             ...meta,
@@ -488,17 +485,16 @@ export default function PlansPage() {
           ...generatedPlan,
         },
       });
-      if (!savedPlan) throw new Error("Failed to save improved plan");
+      if (!savedPayload?.days) throw new Error("Failed to save improved plan");
       clearGenerationRequest();
 
       // 5) Navegar al plan nuevo.
       setDayView(null);
       const improved: Plan = {
-        ...savedPlan,
-        payload:
-          typeof savedPlan.payload === "string"
-            ? JSON.parse(savedPlan.payload)
-            : savedPlan.payload,
+        id: planId,
+        weeks: plan.weeks,
+        created_at: new Date().toISOString(),
+        payload: savedPayload,
       };
       setPlans((prev) => [improved, ...prev.filter((p) => p.id !== improved.id)]);
       setSelectedPlan(improved);

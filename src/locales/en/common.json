@@ -169,8 +169,6 @@
     "continue": "Continue",
     "generating_title": "Generating your plan…",
     "generating_hint": "It usually takes 10 to 20 seconds. Keep the app open.",
-    "exercises_failed_title": "Plan saved",
-    "exercises_failed_hint": "Your plan was saved, but there was a problem loading the detailed exercises. You can continue; they'll appear once it's resolved.",
     "submit": "Generate My Plan",
     "generating": "Generating Your Plan..."
   },

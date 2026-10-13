@@ -90,10 +90,6 @@ export function IntakeForm({
     weeks: 8,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  // true cuando el plan se guardó pero la RPC de ejercicios falló (E-COD-3).
-  const [exercisesWarning, setExercisesWarning] = useState(false);
-  // Continuación diferida hacia el plan tras el aviso de ejercicios.
-  const pendingNavRef = useRef<(() => void) | null>(null);
 
   // Quien ya generó un plan no vuelve a rellenar todo: el cuestionario parte de
   // las respuestas de su plan más reciente (se guardan en payload.meta). Solo se
@@ -310,7 +306,6 @@ export function IntakeForm({
       }
     }
 
-    setExercisesWarning(false);
     setErrors({});
     setIsGenerating(true);
     try {
@@ -358,12 +353,10 @@ export function IntakeForm({
         }
       }
 
-      const { plan: savedPlan, exercisesInserted } = await supabaseClient.savePlan({
+      // Plan y ejercicios se guardan juntos: o queda entero o no queda.
+      await supabaseClient.savePlanStructure({
         id: planId,
-        user_id: user?.id ?? null,
         weeks: formData.weeks || 8,
-        version: 1,
-        source_hash: planId,
         payload: {
           meta: {
             name: `Plan de ${formData.objective} - ${formData.level}`,
@@ -383,21 +376,11 @@ export function IntakeForm({
         },
       });
 
-      if (!savedPlan) throw new Error("Failed to save plan to database");
       clearGenerationRequest();
       try {
         window.sessionStorage.removeItem(draftKey);
       } catch {
         /* no-op */
-      }
-
-      // El plan se guardó. Si la RPC de ejercicios falló (E-COD-3) no perdemos el
-      // plan: avisamos al usuario y le dejamos continuar de todos modos.
-      if (!exercisesInserted) {
-        setExercisesWarning(true);
-        // Guardamos el callback de continuación para el CTA "continuar".
-        pendingNavRef.current = () => onPlanGenerated(planId, generatedPlan);
-        return;
       }
 
       onPlanGenerated(planId, generatedPlan);
@@ -778,48 +761,6 @@ export function IntakeForm({
 
       {/* Espera de la generación */}
       {isGenerating && <GeneratingOverlay />}
-
-      {/* Aviso: el plan se guardó pero los ejercicios fallaron (E-COD-3) */}
-      {exercisesWarning && !isGenerating && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-6"
-          style={{
-            background: "rgba(8,8,16,0.72)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
-          }}
-          role="alertdialog"
-          aria-live="assertive"
-        >
-          <div
-            className="cf-card flex flex-col items-center gap-3 text-center"
-            style={{ padding: 22, borderRadius: 20, maxWidth: 360 }}
-          >
-            <ShieldAlert size={30} className="text-danger" />
-            <div className="cf-h1 text-[18px]">
-              {t("onboarding.exercises_failed_title", "Plan guardado")}
-            </div>
-            <p className="cf-muted text-[14px]">
-              {t(
-                "onboarding.exercises_failed_hint",
-                "Tu plan se guardó, pero hubo un problema al cargar los ejercicios detallados. Puedes continuar; aparecerán cuando se resuelva."
-              )}
-            </p>
-            <button
-              className="cf-btn cf-btn-primary cf-btn-block"
-              onClick={() => {
-                setExercisesWarning(false);
-                const nav = pendingNavRef.current;
-                pendingNavRef.current = null;
-                nav?.();
-              }}
-            >
-              {t("onboarding.continue", "Continuar")}
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* sticky CTA — en móvil se eleva por encima del bottom-nav (z-1000, ~64px);
           en escritorio el nav está oculto y se ancla abajo. */}
